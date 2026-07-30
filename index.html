@@ -261,21 +261,27 @@
     .brand .sub{ font-size:.5rem; }
     .filters{ top:60px; padding:10px 4vw; }
     .products{ padding:14px 4vw 8vh; gap:10px; }
-    .item-row{ padding:10px 12px; gap:10px; flex-wrap:wrap; }
-    .item-photo{ width:84px; height:122px; }
-    .item-main{ order:2; flex:1 1 auto; }
-    .item-actions{ order:3; width:100%; }
-    .pname{ font-size:.78rem; margin-bottom:2px; }
-    .item-code{ font-size:.6rem; margin-bottom:6px; }
-    .stats-row{ gap:16px; }
-    .stat-label{ font-size:.58rem; }
-    .stat-value{ font-size:.8rem; }
-    .add-btn{ font-size:.7rem; padding:9px; }
+    .item-row{ padding:10px; gap:8px; flex-wrap:nowrap; align-items:stretch; }
+    .item-photo{ width:76px; height:110px; flex-shrink:0; }
+    .item-main{ flex:1 1 auto; min-width:0; }
+    .item-actions{ flex-shrink:0; width:82px; display:flex; align-items:flex-end; }
+    .pname{ font-size:.72rem; margin-bottom:2px; line-height:1.35; }
+    .item-code{ font-size:.56rem; margin-bottom:5px; }
+    .stats-row{ gap:10px; row-gap:4px; }
+    .stat-label{ font-size:.54rem; }
+    .stat-value{ font-size:.74rem; }
+    .add-btn{ font-size:.62rem; padding:8px 4px; line-height:1.25; }
+    .unit-toggle{ padding:2px; }
+    .unit-toggle button{ font-size:.58rem; padding:4px 6px; }
+    .inline-qty{ padding:3px; }
+    .inline-qty button{ width:24px; height:24px; font-size:.85rem; }
+    .inline-qty input{ font-size:.72rem; }
     .drawer{ width:100vw; }
     .qty-ctrl button{ width:34px; height:34px; }
   }
   @media (max-width:380px){
-    .item-photo{ width:70px; height:100px; }
+    .item-photo{ width:64px; height:96px; }
+    .item-actions{ width:74px; }
   }
 </style>
 </head>
@@ -890,9 +896,7 @@
       const invoiceHtml = `
       <div id="invoiceCapture" style="position:relative; width:760px; background:#ffffff; font-family:'Cairo',sans-serif; direction:rtl; padding:0; overflow:hidden;">
         <div style="position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center; pointer-events:none; overflow:hidden;">
-          <div style="transform:rotate(-28deg); color:rgba(14,74,133,0.13); font-size:15px; font-weight:800; text-align:center; line-height:3.6; white-space:nowrap; width:600px;">
-            غير معتمدة من الشركة - إرشادية للمندوب والعميل فقط<br>
-            غير معتمدة من الشركة - إرشادية للمندوب والعميل فقط<br>
+          <div style="transform:rotate(-24deg); color:rgba(14,74,133,0.17); font-size:20px; font-weight:900; text-align:center; line-height:2.3; white-space:nowrap; width:700px;">
             غير معتمدة من الشركة - إرشادية للمندوب والعميل فقط<br>
             غير معتمدة من الشركة - إرشادية للمندوب والعميل فقط<br>
             غير معتمدة من الشركة - إرشادية للمندوب والعميل فقط
@@ -937,7 +941,10 @@
 
       holder.innerHTML = invoiceHtml;
       const target = document.getElementById('invoiceCapture');
-      return html2canvas(target, { scale:2, backgroundColor:'#ffffff', useCORS:true }).then(canvas => {
+      const waitFonts = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+      return waitFonts.then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(() =>
+        html2canvas(target, { scale:2, backgroundColor:'#ffffff', useCORS:true })
+      ).then(canvas => {
         pageCanvases.push(canvas);
       });
     }
