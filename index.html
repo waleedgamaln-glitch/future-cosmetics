@@ -589,6 +589,10 @@
       <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="30" cy="34" r="22"/><path d="M30 22 v12 l9 7"/><path d="M46 10 l8 8 M14 10 l-8 8"/><circle cx="50" cy="16" r="8" fill="currentColor" stroke="none"/><text x="50" y="20" font-size="11" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="900">!</text></svg>
       <span>متأخرات العملاء</span>
     </button>
+    <button class="menu-card" onclick="openOrderHistory()">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 6 H38 L50 18 V58 H14 Z"/><path d="M38 6 V18 H50"/><path d="M22 30 h20 M22 38 h20 M22 46 h12"/><circle cx="46" cy="48" r="10" fill="currentColor" stroke="none"/><path d="M46 43 v5 l4 3" stroke="#fff" stroke-width="1.8"/></svg>
+      <span>سجل الفواتير</span>
+    </button>
   </div>
   <button class="change-pw-link" onclick="openChangePassword()">🔒 تغيير كلمة المرور</button>
 </div>
@@ -687,6 +691,13 @@
   </div>
   <p style="font-size:.76rem; color:var(--muted); margin:-6px 0 14px;">العملاء اللي عندهم مديونية ومتأخرين عن آخر تحصيل ٣٠ يوم أو أكتر (أو معندهمش تحصيل مسجل خالص).</p>
   <div id="arrearsBody"></div>
+</div>
+
+<div id="orderHistoryScreen" class="report-screen" style="display:none;">
+  <button class="back-btn" onclick="goTo('menu')">‹ رجوع</button>
+  <h2>سجل الفواتير</h2>
+  <p style="font-size:.76rem; color:var(--muted); margin:-6px 0 14px;">كل الفواتير اللي عملتها من الجهاز ده، الأحدث أولًا. الأرشيف ده محفوظ على جهازك بس.</p>
+  <div id="orderHistoryBody"></div>
 </div>
 
 <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
@@ -991,8 +1002,8 @@
 
   // ---------- Screen navigation ----------
   function goTo(screen){
-    const map = { menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen' };
-    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen'].forEach(id=>{
+    const map = { menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen', orderHistory:'orderHistoryScreen' };
+    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -1045,7 +1056,7 @@
     const [f, t] = monthRange();
     document.getElementById('reportFrom').value = f;
     document.getElementById('reportTo').value = t;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -1619,7 +1630,7 @@
   }
 
   function openDebtList(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -1744,7 +1755,7 @@
   }
 
   function openArrears(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -1825,6 +1836,120 @@
   let query = '';
   let companyFilter = ALL;
 
+  // ---------- Cart draft persistence (survives accidental refresh) ----------
+  function draftKey(){ return 'fc_draft_' + (currentRep && currentRep.user ? currentRep.user : 'anon'); }
+
+  function saveDraft(){
+    try{
+      const formEl = document.getElementById('checkoutForm');
+      const draft = {
+        cart, unitState,
+        selectedCustomerCode: selectedCustomer ? selectedCustomer.code : null,
+        form: formEl ? {
+          cName: document.getElementById('cName').value,
+          custCode: document.getElementById('custCode').value,
+          cPhone: document.getElementById('cPhone').value,
+          cAddr: document.getElementById('cAddr').value
+        } : null
+      };
+      localStorage.setItem(draftKey(), JSON.stringify(draft));
+    }catch(e){}
+  }
+
+  function clearDraft(){
+    try{ localStorage.removeItem(draftKey()); }catch(e){}
+  }
+
+  function restoreDraft(){
+    let saved = null;
+    try{ saved = JSON.parse(localStorage.getItem(draftKey()) || 'null'); }catch(e){}
+    if(!saved || !saved.cart || Object.keys(saved.cart).length === 0) return;
+    cart = saved.cart || {};
+    unitState = saved.unitState || {};
+    if(saved.selectedCustomerCode != null){
+      const c = CUSTOMERS.find(x => x.code === saved.selectedCustomerCode);
+      if(c) selectedCustomer = c;
+    }
+    if(saved.form){
+      const setVal = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
+      setVal('cName', saved.form.cName);
+      setVal('custCode', saved.form.custCode);
+      setVal('cPhone', saved.form.cPhone);
+      setVal('cAddr', saved.form.cAddr);
+    }
+    updateCartUI();
+    showToast('استرجعنا آخر طلبية كنتِ بتجهزيها');
+  }
+
+  window.addEventListener('beforeunload', function(e){
+    if(Object.keys(cart).length > 0){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  // ---------- Order history log (سجل الفواتير) ----------
+  function historyKey(){ return 'fc_order_history_' + (currentRep && currentRep.user ? currentRep.user : 'anon'); }
+
+  function saveOrderToHistory(order){
+    try{
+      let list = JSON.parse(localStorage.getItem(historyKey()) || '[]');
+      list.unshift({ ...order, savedAt: Date.now() });
+      if(list.length > 200) list = list.slice(0, 200);
+      localStorage.setItem(historyKey(), JSON.stringify(list));
+    }catch(e){}
+  }
+
+  function getOrderHistory(){
+    try{ return JSON.parse(localStorage.getItem(historyKey()) || '[]'); }catch(e){ return []; }
+  }
+
+  function openOrderHistory(){
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    document.getElementById('orderHistoryScreen').style.display = 'block';
+    const bag = document.getElementById('bagBtn');
+    if(bag) bag.style.display = 'none';
+    renderOrderHistory();
+  }
+
+  function renderOrderHistory(){
+    const list = getOrderHistory();
+    const body = document.getElementById('orderHistoryBody');
+    if(!list.length){
+      body.innerHTML = '<p style="text-align:center;color:var(--muted);">مفيش فواتير مسجلة على الجهاز ده لسه</p>';
+      return;
+    }
+    let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+    list.forEach((o, i) => {
+      html += `<div class="stmt-bal-card" style="flex-direction:column;align-items:stretch;gap:6px;cursor:pointer;" onclick="reopenHistoryInvoice(${i})">
+        <div style="display:flex;justify-content:space-between;font-weight:800;">
+          <span>${o.orderNo}</span><span>${fmt(Math.round(o.subtotal))} ج.م</span>
+        </div>
+        <div style="font-size:.78rem;color:var(--muted);display:flex;justify-content:space-between;">
+          <span>${o.name} — كود ${o.custCode}</span><span>${o.dateStr}</span>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    body.innerHTML = html;
+  }
+
+  function reopenHistoryInvoice(index){
+    const list = getOrderHistory();
+    const order = list[index];
+    if(!order) return;
+    document.getElementById('orderNo').textContent = 'رقم الطلب: ' + order.orderNo;
+    document.getElementById('confirmDesc').textContent = 'جاري تجهيز الفاتورة...';
+    document.getElementById('downloadInvoiceBtn').disabled = true;
+    document.getElementById('confirmModal').classList.add('open');
+    document.getElementById('sharePdfBtn').style.display = 'none';
+    document.getElementById('shareTxtBtn').style.display = 'none';
+    generateInvoice(order);
+  }
+
   // populate company select
   const compSel = document.getElementById('companySelect');
   compSel.innerHTML = `<option value="${ALL}">كل الشركات</option>` + COMPANIES.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -1884,7 +2009,7 @@
     const unit = unitState[p.code] || 'piece';
     const outOfStock = unitMax(p, unit) <= 0;
     const price = unitPrice(p, unit);
-    const imgSrc = p.img ? `data:image/png;base64,${p.img}` : (p.img_url || null);
+    const imgSrc = p.img ? `images/${p.img}` : (p.img_url || null);
     const media = imgSrc
       ? `<img src="${imgSrc}" alt="${p.name}" loading="lazy">`
       : PLACEHOLDER_ICON;
@@ -2007,7 +2132,7 @@
         const p = PRODUCTS.find(x => x.code === entry.code);
         const price = unitPrice(p, entry.unit);
         const max = unitMax(p, entry.unit);
-        const ciSrc = p.img ? `data:image/png;base64,${p.img}` : (p.img_url || null);
+        const ciSrc = p.img ? `images/${p.img}` : (p.img_url || null);
         const media = ciSrc ? `<img src="${ciSrc}" alt="${p.name}">` : PLACEHOLDER_ICON;
         return `
           <div class="cart-item">
@@ -2041,6 +2166,7 @@
     } else {
       bar.classList.remove('show');
     }
+    saveDraft();
   }
 
   function openCart(){ document.getElementById('drawer').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
@@ -2234,9 +2360,13 @@
     lastWaUrl = waUrl;
     window.open(waUrl, '_blank'); // always notify the store owner, regardless of what happens with the file-share step below
 
-    // 2) Professional PDF invoice + accounting txt export, shared together on WhatsApp
-    generateInvoice({ orderNo, dateStr, repName, custCode: displayCode, name, phone, addr, items, subtotal, txtContent, txtFilename, waMessage: message });
+    const orderRecord = { orderNo, dateStr, repName, custCode: displayCode, name, phone, addr, items, subtotal, txtContent, txtFilename, waMessage: message };
 
+    // 2) Professional PDF invoice + accounting txt export, shared together on WhatsApp
+    generateInvoice(orderRecord);
+
+    saveOrderToHistory(orderRecord);
+    clearDraft();
     cart = {};
     unitState = {};
     selectedCustomer = null;
@@ -2546,10 +2676,12 @@
       }, 300);
     }
   });
+  document.getElementById('checkoutForm').addEventListener('input', () => { saveDraft(); });
 
   renderProducts();
   updateCartUI();
   checkSession();
+  if(currentRep) restoreDraft();
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
