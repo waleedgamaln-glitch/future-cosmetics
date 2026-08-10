@@ -841,6 +841,15 @@
 
 <div id="toast"></div>
 
+<div class="modal-wrap" id="exitConfirmModal">
+  <div class="modal">
+    <h3>تأكيد الخروج</h3>
+    <div class="mdesc">هل تريدين الخروج من التطبيق؟</div>
+    <button class="login-btn" onclick="confirmExitYes()">نعم، خروج</button>
+    <button class="ghost-btn" onclick="confirmExitNo()" style="width:100%; margin-top:8px;">لا، ابقى في التطبيق</button>
+  </div>
+</div>
+
 <div class="mini-cart-bar" id="miniCartBar" onclick="openCart()">
   <div class="mc-info">
     <span class="mc-count" id="miniCartCount">0 منتجات</span>
@@ -2978,14 +2987,25 @@
     return 'mainMenuScreen';
   }
   history.pushState({ app:true }, '', location.href);
+
+  let suppressNextPopstate = false;
+  function confirmExitYes(){
+    document.getElementById('exitConfirmModal').classList.remove('open');
+    suppressNextPopstate = true;
+    window.history.back(); // consume our guard entry; next real back press will then exit naturally
+  }
+  function confirmExitNo(){
+    document.getElementById('exitConfirmModal').classList.remove('open');
+  }
+
   window.addEventListener('popstate', function(){
+    if(suppressNextPopstate){ suppressNextPopstate = false; return; }
     const cur = getCurrentScreenId();
     if(cur === 'mainMenuScreen'){
-      if(confirm('هل تريدين الخروج من التطبيق؟')){
-        // confirmed: let the back navigation proceed naturally, don't re-trap
-      } else {
-        history.pushState({ app:true }, '', location.href);
-      }
+      // Re-trap immediately: while the custom confirm dialog is open, back button
+      // should not have already let the app close underneath it.
+      history.pushState({ app:true }, '', location.href);
+      document.getElementById('exitConfirmModal').classList.add('open');
     } else {
       const action = BACK_ACTIONS[cur];
       if(action) action();
