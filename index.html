@@ -2107,7 +2107,16 @@
     renderRouteList(region);
   };
 
+  let routeSortAsc = false; // false = الأكثر تأخرًا أولًا (default), true = الأقدم تعاملًا أولًا
+  let lastRouteRegion = null;
+
+  function toggleRouteSort(){
+    routeSortAsc = !routeSortAsc;
+    if(lastRouteRegion) renderRouteList(lastRouteRegion);
+  }
+
   function renderRouteList(region){
+    lastRouteRegion = region;
     const lastMap = lastSaleDateMap();
     const list = regionFilteredCustomers()
       .filter(c => c.region === region)
@@ -2116,14 +2125,22 @@
         const days = last ? daysSince(last) : Infinity;
         return { ...c, lastDate: last, days };
       })
-      .sort((a,b) => (b.days === Infinity ? 1e9 : b.days) - (a.days === Infinity ? 1e9 : a.days));
+      .sort((a,b) => {
+        const da = a.days === Infinity ? 1e9 : a.days;
+        const db = b.days === Infinity ? 1e9 : b.days;
+        return routeSortAsc ? (da - db) : (db - da);
+      });
 
     const body = document.getElementById('routeBody');
+    const sortLabel = routeSortAsc
+      ? 'الترتيب: الأقدم تعاملًا أولًا (اتعاملنا معاه الأول) ⟲'
+      : 'الترتيب: الأكثر تأخرًا في الزيارة أولًا ⟲';
+    const toggleHtml = `<button class="apply-btn" style="margin-bottom:14px; width:100%;" onclick="toggleRouteSort()">${sortLabel}</button>`;
     if(!list.length){
-      body.innerHTML = '<p style="text-align:center;color:var(--muted);">لا يوجد عملاء في المنطقة دي</p>';
+      body.innerHTML = toggleHtml + '<p style="text-align:center;color:var(--muted);">لا يوجد عملاء في المنطقة دي</p>';
       return;
     }
-    let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+    let html = toggleHtml + '<div style="display:flex;flex-direction:column;gap:10px;">';
     list.forEach(c => {
       let lastTxt = 'لا يوجد تعامل مسجل';
       if(c.lastDate){
@@ -2131,7 +2148,10 @@
         lastTxt = `${ds.slice(6,8)}/${ds.slice(4,6)}/${ds.slice(0,4)} — من ${fmt(c.days)} يوم`;
       }
       html += `<div class="stmt-bal-card" style="flex-direction:column;align-items:stretch;gap:6px;">
-        <div style="font-weight:800;color:var(--teal-dark);">${c.name}</div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-weight:800;color:var(--teal-dark);">${c.name}</span>
+          <span style="font-size:.76rem;color:var(--muted);">كود ${c.code}</span>
+        </div>
         <div style="font-size:.8rem;color:var(--ink);">👤 ${c.contact || 'غير مسجل'}</div>
         <div style="font-size:.8rem;color:var(--ink);">📞 ${c.phone || 'بدون تليفون'}</div>
         <div style="font-size:.8rem;color:var(--ink);">📍 ${c.addr || 'بدون عنوان'}</div>
@@ -2932,6 +2952,46 @@
   checkSession();
   if(currentRep) restoreDraft();
   initLiveStock();
+
+  // ---------- In-app back navigation (mobile swipe/hardware back) ----------
+  // Instead of letting the OS/browser close the app on the first back gesture,
+  // we trap it: navigate one screen inward first, and only ask to exit once
+  // the user is already at the main menu (root level).
+  const BACK_ACTIONS = {
+    'reportsMenuScreen': () => goTo('menu'),
+    'storeContent': () => goTo('menu'),
+    'statementScreen': () => goTo('menu'),
+    'itemStatementScreen': () => goTo('menu'),
+    'debtListScreen': () => goTo('menu'),
+    'arrearsScreen': () => goTo('menu'),
+    'accountScreen': () => goTo('menu'),
+    'reportScreen': () => goTo('reportsMenu'),
+    'orderHistoryScreen': () => openAccountScreen(),
+    'routeScreen': () => openAccountScreen()
+  };
+  function getCurrentScreenId(){
+    const ids = ['reportScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','routeScreen','accountScreen','mainMenuScreen'];
+    for(const id of ids){
+      const el = document.getElementById(id);
+      if(el && el.style.display === 'block') return id;
+    }
+    return 'mainMenuScreen';
+  }
+  history.pushState({ app:true }, '', location.href);
+  window.addEventListener('popstate', function(){
+    const cur = getCurrentScreenId();
+    if(cur === 'mainMenuScreen'){
+      if(confirm('هل تريدين الخروج من التطبيق؟')){
+        // confirmed: let the back navigation proceed naturally, don't re-trap
+      } else {
+        history.pushState({ app:true }, '', location.href);
+      }
+    } else {
+      const action = BACK_ACTIONS[cur];
+      if(action) action();
+      history.pushState({ app:true }, '', location.href);
+    }
+  });
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
