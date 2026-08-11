@@ -848,8 +848,8 @@
 <div class="modal-wrap" id="exitConfirmModal" style="align-items:center; z-index:999;">
   <div class="modal" style="margin:0;">
     <h3>تأكيد الخروج</h3>
-    <div class="mdesc">هل تريدين الخروج من التطبيق؟</div>
-    <button class="login-btn" onclick="confirmExitYes()">نعم، خروج</button>
+    <div class="mdesc">هل تريدين الخروج من التطبيق؟<br><span style="font-size:.74rem; color:var(--muted);">(هتحتاجي تضغطي رجوع مرة كمان بعد الموافقة، أو تقفلي التطبيق من زرار الرئيسية)</span></div>
+    <button class="login-btn" onclick="confirmExitYes()">نعم، اخرج</button>
     <button class="ghost-btn" onclick="confirmExitNo()" style="width:100%; margin-top:8px;">لا، ابقى في التطبيق</button>
   </div>
 </div>
@@ -3030,6 +3030,10 @@
     document.getElementById('exitConfirmModal').classList.remove('open');
     suppressNextPopstate = true;
     window.history.go(-BACK_GUARD_BUFFER); // consume the whole guard buffer at once
+    try{ window.close(); }catch(e){} // works in a few environments; harmless no-op otherwise
+    setTimeout(() => {
+      showToast('اضغطي رجوع مرة كمان، أو اقفلي التطبيق من زرار الرئيسية في الموبايل.');
+    }, 200);
   }
   function confirmExitNo(){
     document.getElementById('exitConfirmModal').classList.remove('open');
