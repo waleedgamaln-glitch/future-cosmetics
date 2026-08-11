@@ -759,7 +759,7 @@
 <div class="modal-wrap" id="checkoutModal">
   <div class="modal">
     <h3>إتمام الطلب</h3>
-    <div class="mdesc">أدخلي بياناتكِ لإرسال طلبكِ (تجربة تجريبية دون دفع فعلي)</div>
+    <div class="mdesc">أدخل بياناتك لإرسال طلبك</div>
     <form id="checkoutForm" onsubmit="submitOrder(event)">
       <div class="field"><label for="repName">اسم المندوب</label><input id="repName" required></div>
       <div class="field ac-field">
@@ -848,7 +848,7 @@
 <div class="modal-wrap" id="exitConfirmModal" style="align-items:center; z-index:999;">
   <div class="modal" style="margin:0;">
     <h3>تأكيد الخروج</h3>
-    <div class="mdesc">هل تريدين الخروج من التطبيق؟<br><span style="font-size:.74rem; color:var(--muted);">(هتحتاجي تضغطي رجوع مرة كمان بعد الموافقة، أو تقفلي التطبيق من زرار الرئيسية)</span></div>
+    <div class="mdesc">هل تريد الخروج من التطبيق؟<br><span style="font-size:.74rem; color:var(--muted);">(هتحتاجي تضغطي رجوع مرة كمان بعد الموافقة، أو تقفلي التطبيق من زرار الرئيسية)</span></div>
     <button class="login-btn" onclick="confirmExitYes()">نعم، اخرج</button>
     <button class="ghost-btn" onclick="confirmExitNo()" style="width:100%; margin-top:8px;">لا، ابقى في التطبيق</button>
   </div>
@@ -2033,7 +2033,7 @@
       setVal('cAddr', saved.form.cAddr);
     }
     updateCartUI();
-    showToast('استرجعنا آخر طلبية كنتِ بتجهزيها');
+    showToast('استرجعنا آخر طلبية كنت بتجهزها');
   }
 
   window.addEventListener('beforeunload', function(e){
@@ -2387,7 +2387,7 @@
     cart[key] = { code, unit, qty: Math.min(cur + 1, max) };
     updateCartUI();
     refreshRow(code);
-    showToast(`أُضيف «${p.name}» (${unitLabel(unit)}) إلى حقيبتكِ`);
+    showToast(`أُضيف «${p.name}» (${unitLabel(unit)}) إلى حقيبتك`);
   }
   function changeQty(key, delta){
     const entry = cart[key];
@@ -2425,7 +2425,7 @@
     document.getElementById('bagCount').textContent = `(${count})`;
     const body = document.getElementById('drawerBody');
     if(keys.length === 0){
-      body.innerHTML = '<div class="empty-note">حقيبتكِ فارغة حتى الآن</div>';
+      body.innerHTML = '<div class="empty-note">حقيبتك فارغة حتى الآن</div>';
     } else {
       body.innerHTML = keys.map(key => {
         const entry = cart[key];
@@ -2519,7 +2519,7 @@
       <div class="ac-item" onclick='window.__pickCustomer(${c.code})'>
         <div class="ac-name">${c.name}</div>
         <div class="ac-meta">كود ${c.code} · ${c.phone || 'بدون تليفون'}</div>
-      </div>`).join('') + (allMatches.length > 50 ? `<div class="ac-more">و ${fmt(allMatches.length - 50)} نتيجة أخرى، اكتبي أكتر للتضييق</div>` : '');
+      </div>`).join('') + (allMatches.length > 50 ? `<div class="ac-more">و ${fmt(allMatches.length - 50)} نتيجة أخرى، اكتب أكتر للتضييق</div>` : '');
     dd.classList.add('show');
   }
   window.__pickCustomer = function(code){
@@ -2693,7 +2693,7 @@
     try {
       generateInvoiceInner(order);
     } catch(err){
-      document.getElementById('confirmDesc').textContent = 'حصل خطأ أثناء تجهيز الفاتورة، جربي زرار "تحميل الفاتورة" تاني أو أعيدي الطلب.';
+      document.getElementById('confirmDesc').textContent = 'حصل خطأ أثناء تجهيز الفاتورة، جرب زرار "تحميل الفاتورة" تاني أو أعيدي الطلب.';
     }
   }
 
@@ -2869,7 +2869,7 @@
       finalizeInvoiceDelivery(order, pageCanvases);
     }).catch(() => {
       if(holder.parentNode) document.body.removeChild(holder);
-      document.getElementById('confirmDesc').textContent = 'تعذّر توليد الفاتورة تلقائيًا، جربي زرار "تحميل الفاتورة" أو أعيدي المحاولة.';
+      document.getElementById('confirmDesc').textContent = 'تعذّر توليد الفاتورة تلقائيًا، جرب زرار "تحميل الفاتورة" أو أعيدي المحاولة.';
     });
   }
 
@@ -2941,7 +2941,7 @@
     openWhatsAppForPdfFallback();
   }
   function openWhatsAppForPdfFallback(){
-    showToast('هيتفتح واتساب — اختاري المحادثة، وبعدين دوسي على 📎 وأرفقي ملف الفاتورة PDF اللي اتحمّل في مجلد التنزيلات بتاع جهازك.');
+    showToast('هيتفتح واتساب — اختار المحادثة، وبعدين دوس على 📎 وأرفق ملف الفاتورة PDF اللي اتحمّل في مجلد التنزيلات بتاع جهازك.');
     const caption = window.__lastSharePdf ? window.__lastSharePdf.text : 'فاتورة فيوتشر كوزماتكس';
     window.open(`https://wa.me/?text=${encodeURIComponent(caption)}`, '_blank');
   }
@@ -3032,7 +3032,7 @@
     window.history.go(-BACK_GUARD_BUFFER); // consume the whole guard buffer at once
     try{ window.close(); }catch(e){} // works in a few environments; harmless no-op otherwise
     setTimeout(() => {
-      showToast('اضغطي رجوع مرة كمان، أو اقفلي التطبيق من زرار الرئيسية في الموبايل.');
+      showToast('اضغط رجوع مرة كمان، أو اقفل التطبيق من زرار الرئيسية في الموبايل.');
     }, 200);
   }
   function confirmExitNo(){
