@@ -891,13 +891,18 @@
   function initLiveStock(){
     try{
       if(typeof firebase === 'undefined') return;
+      // Capture the ACTUAL fresh baseline from this file before the live
+      // listener (below) has any chance to overwrite p.stock with whatever
+      // is currently sitting in Firebase (possibly stale, from before this update).
+      PRODUCTS.forEach(p => { p.fileStock = p.stock; });
+
       firebase.initializeApp(firebaseConfig);
       fbDb = firebase.database();
       const stockRef = fbDb.ref('stock');
       stockRef.once('value').then(snap => {
         if(!snap.exists()){
           const seed = {};
-          PRODUCTS.forEach(p => { seed[p.code] = p.stock || 0; });
+          PRODUCTS.forEach(p => { seed[p.code] = p.fileStock || 0; });
           stockRef.set(seed);
         }
       });
@@ -923,9 +928,15 @@
 
   function resyncLiveStock(){
     if(!fbDb){ showToast('لسه المزامنة اللحظية مش شغالة، جرب تاني بعد شوية'); return; }
+    // Push the TRUE baseline from this uploaded file (fileStock), not p.stock —
+    // p.stock may already have been overwritten by live Firebase values on load.
     const seed = {};
-    PRODUCTS.forEach(p => { seed[p.code] = p.stock || 0; });
-    fbDb.ref('stock').set(seed).then(() => showToast('اتزامن المخزون بنجاح مع كل الأجهزة'));
+    PRODUCTS.forEach(p => { seed[p.code] = (p.fileStock != null ? p.fileStock : p.stock) || 0; });
+    fbDb.ref('stock').set(seed).then(() => {
+      PRODUCTS.forEach(p => { p.stock = seed[p.code]; });
+      renderProducts();
+      showToast('اتزامن المخزون بنجاح مع كل الأجهزة');
+    });
   }
 
   // ---------- Sales / Collections / Balances data ----------
@@ -3003,13 +3014,22 @@
   function getCurrentScreenId(){
     return currentScreenId || 'mainMenuScreen';
   }
-  history.pushState({ app:true }, '', location.href);
+
+  // Push a big one-time buffer of guard states. A single guard entry can be
+  // consumed faster than JS can re-push it if the user presses/swipes back
+  // several times in quick succession — a deep buffer absorbs that reliably.
+  // (We deliberately do NOT keep topping this up after every pop: that would
+  // grow history without bound over a long session.)
+  const BACK_GUARD_BUFFER = 40;
+  for(let i=0;i<BACK_GUARD_BUFFER;i++){
+    history.pushState({ app:true }, '', location.href);
+  }
 
   let suppressNextPopstate = false;
   function confirmExitYes(){
     document.getElementById('exitConfirmModal').classList.remove('open');
     suppressNextPopstate = true;
-    window.history.back(); // consume our guard entry; next real back press will then exit naturally
+    window.history.go(-BACK_GUARD_BUFFER); // consume the whole guard buffer at once
   }
   function confirmExitNo(){
     document.getElementById('exitConfirmModal').classList.remove('open');
@@ -3019,14 +3039,10 @@
     if(suppressNextPopstate){ suppressNextPopstate = false; return; }
     const cur = getCurrentScreenId();
     if(cur === 'mainMenuScreen'){
-      // Re-trap immediately: while the custom confirm dialog is open, back button
-      // should not have already let the app close underneath it.
-      history.pushState({ app:true }, '', location.href);
       document.getElementById('exitConfirmModal').classList.add('open');
     } else {
       const action = BACK_ACTIONS[cur];
       if(action) action();
-      history.pushState({ app:true }, '', location.href);
     }
   });
 
