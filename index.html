@@ -412,7 +412,7 @@
   .modal .mdesc{ color:var(--muted); font-size:.82rem; margin-bottom:20px; }
   .field{ text-align:right; margin-bottom:13px; }
   .field label{ display:block; font-size:.76rem; color:var(--muted); margin-bottom:5px; font-weight:600; }
-  .field input{ width:100%; padding:11px 14px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem; color:var(--ink); }
+  .field input, .field select{ width:100%; padding:11px 14px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem; color:var(--ink); background:#fff; }
   .ac-field{ position:relative; margin-bottom:18px; }
   .ac-field input{
     width:100%; padding:15px 46px 15px 18px; border-radius:14px; border:1.5px solid var(--line);
@@ -779,7 +779,22 @@
       </div>
       <div class="field"><label for="cAddr">العنوان بالتفصيل</label><input id="cAddr" required></div>
       <div class="match-note" id="matchNote"></div>
-      <div class="pay-note">الدفع: عند الاستلام فقط</div>
+      <div class="field">
+        <label for="payMethod">طريقة الدفع</label>
+        <select id="payMethod" required>
+          <option value="">اختر طريقة الدفع</option>
+          <option value="نقدي">نقدي</option>
+          <option value="نقدي سيارة">نقدي سيارة</option>
+          <option value="أجل 15 يوم">أجل 15 يوم</option>
+          <option value="أجل 30 يوم">أجل 30 يوم</option>
+          <option value="دفع جزء والباقي بعد 10 أيام">دفع جزء والباقي بعد 10 أيام</option>
+          <option value="أخرى">أخرى (حدد التفاصيل تحت)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="payNote">تفاصيل إضافية عن الدفع (اختياري)</label>
+        <input id="payNote" placeholder="مثلاً: دفع 500 جنيه والباقي بعد 10 أيام">
+      </div>
       <div class="modal-actions">
         <button type="button" class="ghost-btn" onclick="closeCheckout()">رجوع</button>
         <button type="submit" class="full-btn" style="flex:1">تأكيد الطلب</button>
@@ -2004,7 +2019,9 @@
           cName: document.getElementById('cName').value,
           custCode: document.getElementById('custCode').value,
           cPhone: document.getElementById('cPhone').value,
-          cAddr: document.getElementById('cAddr').value
+          cAddr: document.getElementById('cAddr').value,
+          payMethod: document.getElementById('payMethod').value,
+          payNote: document.getElementById('payNote').value
         } : null
       };
       localStorage.setItem(draftKey(), JSON.stringify(draft));
@@ -2031,6 +2048,8 @@
       setVal('custCode', saved.form.custCode);
       setVal('cPhone', saved.form.cPhone);
       setVal('cAddr', saved.form.cAddr);
+      setVal('payMethod', saved.form.payMethod);
+      setVal('payNote', saved.form.payNote);
     }
     updateCartUI();
     showToast('استرجعنا آخر طلبية كنت بتجهزها');
@@ -2231,6 +2250,7 @@
         <div style="font-size:.78rem;color:var(--muted);display:flex;justify-content:space-between;">
           <span>${o.name} — كود ${o.custCode}</span><span>${o.dateStr}</span>
         </div>
+        ${o.paymentText ? `<div style="font-size:.72rem;color:var(--muted);">الدفع: ${o.paymentText}</div>` : ''}
       </div>`;
     });
     html += '</div>';
@@ -2591,11 +2611,14 @@
     const custCodeInput = document.getElementById('custCode').value.trim();
     const phone = document.getElementById('cPhone').value.trim();
     const addr = document.getElementById('cAddr').value.trim();
+    const payMethod = document.getElementById('payMethod').value.trim();
+    const payNote = document.getElementById('payNote').value.trim();
 
-    if(!repName || !name || !phone || !addr){
+    if(!repName || !name || !phone || !addr || !payMethod){
       showToast('من فضلك املأ كل الحقول قبل التأكيد');
       return;
     }
+    const paymentText = payMethod + (payNote ? ' — ' + payNote : '');
     if(Object.keys(cart).length === 0){
       showToast('الحقيبة فارغة');
       return;
@@ -2664,12 +2687,12 @@
       `العنوان: ${addr}\n\n` +
       `المنتجات:\n${itemLines.join('\n')}\n\n` +
       `الإجمالي: ${fmt(subtotal)} ج.م\n` +
-      `الدفع: عند الاستلام`;
+      `الدفع: ${paymentText}`;
     const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
     lastWaUrl = waUrl;
     window.open(waUrl, '_blank'); // always notify the store owner, regardless of what happens with the file-share step below
 
-    const orderRecord = { orderNo, dateStr, repName, custCode: displayCode, name, phone, addr, items, subtotal, txtContent, txtFilename, waMessage: message };
+    const orderRecord = { orderNo, dateStr, repName, custCode: displayCode, name, phone, addr, payMethod, payNote, paymentText, items, subtotal, txtContent, txtFilename, waMessage: message };
 
     // 2) Professional PDF invoice + accounting txt export, shared together on WhatsApp
     generateInvoice(orderRecord);
@@ -2780,7 +2803,7 @@
               </div>
             </div>
           </div>
-          <div style="font-size:11px; color:#64748B; text-align:left; margin-bottom:18px;">الدفع: عند الاستلام</div>` : `
+          <div style="font-size:11px; color:#64748B; text-align:left; margin-bottom:18px;">الدفع: ${order.paymentText || order.payMethod || 'غير محدد'}</div>` : `
           <div style="display:flex; justify-content:space-between; align-items:center; margin:18px 0 8px;">
             <span style="font-size:11px; color:#64748B;">تابع في الصفحة التالية...</span>
             <div style="background:#EAF1F8; border-radius:10px; padding:10px 16px; display:flex; gap:10px; align-items:center;">
