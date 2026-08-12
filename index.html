@@ -760,11 +760,6 @@
     <div class="field" style="flex:1;"><label for="vrDailyTargetSales">الهدف اليومي — بيع</label><input id="vrDailyTargetSales" type="number" inputmode="decimal" placeholder="0"></div>
     <div class="field" style="flex:1;"><label for="vrDailyTargetCollection">الهدف اليومي — تحصيل</label><input id="vrDailyTargetCollection" type="number" inputmode="decimal" placeholder="0"></div>
   </div>
-  <div style="display:flex; gap:10px;">
-    <div class="field" style="flex:1;"><label for="vrWeeklyTarget">الهدف الاسبوعي (اختياري)</label><input id="vrWeeklyTarget" type="number" inputmode="decimal"></div>
-    <div class="field" style="flex:1;"><label for="vrWeeklyPrev">ما قبله (اسبوعي)</label><input id="vrWeeklyPrev" type="number" inputmode="decimal"></div>
-  </div>
-
   <div style="font-size:.82rem; font-weight:800; color:var(--ink); margin:16px 0 8px;">المحلات اللي تمت زيارتها</div>
   <div id="vrRowsBody" style="display:flex; flex-direction:column; gap:10px;"></div>
   <button type="button" class="ghost-btn" style="width:100%; margin-top:10px;" onclick="addVisitRow()">+ إضافة صف</button>
@@ -781,7 +776,7 @@
   </div>
   <div class="mdesc" style="margin-top:-6px;">الإدارة هتقارن هدفك ده بالمبيعات والتحصيل الفعلي المسجل في حسابات الشركة أول ما تتحدث.</div>
 
-  <button class="full-btn" style="margin-top:10px;" onclick="submitVisitReport()">تأكيد وحفظ التقرير</button>
+  <button class="full-btn" id="vrSubmitBtn" style="margin-top:10px;" onclick="submitVisitReport()">تأكيد وحفظ التقرير</button>
 </div>
 
 <div id="visitReportsAdminScreen" class="report-screen" style="display:none;">
@@ -2181,6 +2176,7 @@
     if(vrBtn) vrBtn.style.display = (currentRep && currentRep.code != null) ? 'flex' : 'none';
     const vrAdminBtn = document.getElementById('visitReportsAdminBtn');
     if(vrAdminBtn) vrAdminBtn.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    if(typeof detachVisitReportListeners === 'function') detachVisitReportListeners();
   }
 
   // ---------- Route plan (خط السير) ----------
@@ -2232,12 +2228,17 @@
   let visitRowSeq = 0;
   let vrAdminListenerRef = null;
   let vrActiveRepListenerRef = null;
+  function detachVisitReportListeners(){
+    if(vrAdminListenerRef){ try{ vrAdminListenerRef.off('value'); }catch(e){} vrAdminListenerRef = null; }
+    if(vrActiveRepListenerRef){ try{ vrActiveRepListenerRef.off('value'); }catch(e){} vrActiveRepListenerRef = null; }
+  }
 
   function todayISO(){
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
   function currentMonthPrefix(){ return todayISO().slice(0,7); } // "YYYY-MM"
+  function monthPrefixToIntPrefix(monthPrefix){ return parseInt(monthPrefix.replace('-',''), 10); } // "2026-08" -> 202608
 
   // Convert "YYYY-MM-DD" -> integer YYYYMMDD to match SALES_TX/COLL_TX date format.
   function isoToDateInt(iso){ return parseInt(iso.replace(/-/g,''), 10); }
@@ -2254,34 +2255,34 @@
     const d = isoToDateInt(iso);
     return COLL_TX.reduce((s, r) => (r[2] === repCode && r[0] === d) ? s + r[4] : s, 0);
   }
+  // Same idea but summed across the whole current month — used for the monthly
+  // target progress panel. Reads straight from real accounting data, not from
+  // what reps typed into their visit reports.
+  function getActualSalesForRepMonth(repCode, monthPrefix){
+    const p = monthPrefixToIntPrefix(monthPrefix);
+    return SALES_TX.reduce((s, r) => (r[3] === repCode && Math.floor(r[0]/100) === p) ? s + r[4]*r[5] : s, 0);
+  }
+  function getActualCollectionForRepMonth(repCode, monthPrefix){
+    const p = monthPrefixToIntPrefix(monthPrefix);
+    return COLL_TX.reduce((s, r) => (r[2] === repCode && Math.floor(r[0]/100) === p) ? s + r[4] : s, 0);
+  }
 
-  function computeMonthSummary(repCode, cb){
-    if(!fbDb){ cb({ sales:0, collection:0 }); return; }
+  function computeMonthSummary(repCode){
     const prefix = currentMonthPrefix();
-    fbDb.ref('visitReports/' + repCode).once('value').then(snap => {
-      const data = snap.val() || {};
-      let sales = 0, collection = 0;
-      Object.values(data).forEach(r => {
-        if((r.date || '').startsWith(prefix)){
-          sales += r.totalSales || 0;
-          collection += r.totalCollection || 0;
-        }
-      });
-      cb({ sales, collection });
-    }).catch(() => cb({ sales:0, collection:0 }));
+    return {
+      sales: getActualSalesForRepMonth(repCode, prefix),
+      collection: getActualCollectionForRepMonth(repCode, prefix)
+    };
   }
 
   function renderTargetPanel(repCode){
     const target = getRepMonthlyTarget(repCode);
     document.getElementById('vrTargetMonthly').textContent = fmt(target) + ' ج.م';
-    document.getElementById('vrMonthSales').textContent = '...';
-    document.getElementById('vrMonthCollection').textContent = '...';
-    computeMonthSummary(repCode, ({ sales, collection }) => {
-      const salesPct = target ? Math.round((sales / target) * 100) : 0;
-      const collPct = target ? Math.round((collection / target) * 100) : 0;
-      document.getElementById('vrMonthSales').textContent = `${fmt(sales)} ج.م (${salesPct}%)`;
-      document.getElementById('vrMonthCollection').textContent = `${fmt(collection)} ج.م (${collPct}%)`;
-    });
+    const { sales, collection } = computeMonthSummary(repCode);
+    const salesPct = target ? Math.round((sales / target) * 100) : 0;
+    const collPct = target ? Math.round((collection / target) * 100) : 0;
+    document.getElementById('vrMonthSales').textContent = `${fmt(sales)} ج.م (${salesPct}%)`;
+    document.getElementById('vrMonthCollection').textContent = `${fmt(collection)} ج.م (${collPct}%)`;
   }
 
   function openVisitReportForm(){
@@ -2293,14 +2294,15 @@
     currentScreenId = 'visitReportScreen';
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
+    detachVisitReportListeners();
 
     document.getElementById('vrRepNameDisplay').textContent = 'المندوب: ' + (currentRep ? currentRep.name : '');
     document.getElementById('vrDate').value = todayISO();
     document.getElementById('vrRegion').value = '';
     document.getElementById('vrDailyTargetSales').value = '';
     document.getElementById('vrDailyTargetCollection').value = '';
-    document.getElementById('vrWeeklyTarget').value = '';
-    document.getElementById('vrWeeklyPrev').value = '';
+    const submitBtn = document.getElementById('vrSubmitBtn');
+    if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'تأكيد وحفظ التقرير'; }
     visitRows = [];
     visitRowSeq = 0;
     addVisitRow();
@@ -2419,8 +2421,6 @@
       monthlyTarget: getRepMonthlyTarget(currentRep.code),
       dailyTargetSales: document.getElementById('vrDailyTargetSales').value ? parseFloat(document.getElementById('vrDailyTargetSales').value) : null,
       dailyTargetCollection: document.getElementById('vrDailyTargetCollection').value ? parseFloat(document.getElementById('vrDailyTargetCollection').value) : null,
-      weeklyTarget: document.getElementById('vrWeeklyTarget').value || null,
-      weeklyPrev: document.getElementById('vrWeeklyPrev').value || null,
       totalSales,
       totalCollection,
       rows: filledRows.map(r => ({
@@ -2436,16 +2436,30 @@
       showToast('لا يوجد اتصال بالسيرفر دلوقتي، حاول تاني');
       return;
     }
+    const btn = document.getElementById('vrSubmitBtn');
+    if(btn){ btn.disabled = true; btn.textContent = 'جاري الحفظ...'; }
+    // Safety timeout: if the write hasn't resolved after 10s (very weak connection),
+    // re-enable the button so the person isn't stuck looking at a frozen screen.
+    const resetBtn = () => { if(btn){ btn.disabled = false; btn.textContent = 'تأكيد وحفظ التقرير'; } };
+    const timeoutId = setTimeout(() => {
+      resetBtn();
+      showToast('السيرفر بياخد وقت أطول من المعتاد، تأكد من الاتصال بالإنترنت وحاول تاني لو محفظش');
+    }, 10000);
     try{
       fbDb.ref('visitReports/' + currentRep.code).push(report)
         .then(() => {
+          clearTimeout(timeoutId);
           showToast('تم حفظ التقرير بنجاح');
           openAccountScreen();
         })
         .catch(() => {
+          clearTimeout(timeoutId);
+          resetBtn();
           showToast('حصل خطأ أثناء حفظ التقرير، حاول تاني');
         });
     }catch(e){
+      clearTimeout(timeoutId);
+      resetBtn();
       showToast('حصل خطأ أثناء حفظ التقرير، حاول تاني');
     }
   }
@@ -2524,14 +2538,7 @@
     vrCurrentReports = data;
     const list = document.getElementById('vrAdminList');
     const target = getRepMonthlyTarget(repCode);
-    const prefix = currentMonthPrefix();
-    let monthSales = 0, monthCollection = 0;
-    Object.values(data).forEach(r => {
-      if((r.date||'').startsWith(prefix)){
-        monthSales += r.totalSales || 0;
-        monthCollection += r.totalCollection || 0;
-      }
-    });
+    const { sales: monthSales, collection: monthCollection } = computeMonthSummary(repCode);
     const salesPct = target ? Math.round((monthSales/target)*100) : 0;
     const collPct = target ? Math.round((monthCollection/target)*100) : 0;
 
@@ -2609,7 +2616,6 @@
         <div><b>التاريخ:</b> ${r.date || ''}</div>
         <div><b>المنطقة:</b> ${r.region || ''}</div>
         <div><b>الهدف الشهري:</b> ${fmt(target)} ج.م</div>
-        ${r.weeklyTarget ? `<div><b>الهدف الاسبوعي:</b> ${r.weeklyTarget} (ما قبله: ${r.weeklyPrev || 0})</div>` : ''}
         <div><b>إجمالي البيع (المُدخل):</b> ${fmt(r.totalSales||0)} ج.م</div>
         <div><b>إجمالي التحصيل (المُدخل):</b> ${fmt(r.totalCollection||0)} ج.م</div>
       </div>
