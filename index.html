@@ -2079,7 +2079,13 @@
 
   const PLACEHOLDER_ICON = `<svg viewBox="0 0 64 64" fill="none" stroke="#1770AC" stroke-width="1.5"><rect x="24" y="26" width="16" height="26" rx="4"/><rect x="27" y="14" width="10" height="12" rx="2"/><rect x="29" y="8" width="6" height="8" rx="2"/></svg>`;
 
+  // Formats "الفرق" (difference = actual - claimed) with a +/- sign, used everywhere
+  // we compare what a rep reported against what's actually posted in the accounts.
   function fmt(n){ return n.toLocaleString('en-US'); }
+  function fmtDiff(diff){
+    const sign = diff > 0 ? '+' : (diff < 0 ? '−' : '');
+    return sign + fmt(Math.abs(diff)) + ' ج.م';
+  }
   function unitLabel(u){ return u === 'carton' ? 'كرتونة' : 'قطعة'; }
   function unitPrice(p, u){ return u === 'carton' ? p.cartonPrice : p.price; }
   function unitMax(p, u){ return u === 'carton' ? Math.floor((p.stock||0) / (p.cartonSize||1)) : (p.stock||0); }
@@ -2243,6 +2249,17 @@
   // Convert "YYYY-MM-DD" -> integer YYYYMMDD to match SALES_TX/COLL_TX date format.
   function isoToDateInt(iso){ return parseInt(iso.replace(/-/g,''), 10); }
 
+  // Sales entered on the day itself are usually posted into the accounting system
+  // the NEXT day ("بتضرب اليوم اللي بعده") — so verification against real invoices
+  // must look at the day AFTER the visit, not the visit date itself.
+  function addDaysISO(iso, days){
+    const [y,m,d] = iso.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    dt.setDate(dt.getDate() + days);
+    return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+  }
+  function invoicePostingDate(visitDateISO){ return addDaysISO(visitDateISO, 1); }
+
   // Actual sales/collections for a rep on a given day, straight from the real
   // accounting data (SALES_TX/COLL_TX) — this is what verifies whether a rep's
   // self-reported daily target was genuinely achieved, and updates automatically
@@ -2254,6 +2271,12 @@
   function getActualCollectionForRepDate(repCode, iso){
     const d = isoToDateInt(iso);
     return COLL_TX.reduce((s, r) => (r[2] === repCode && r[0] === d) ? s + r[4] : s, 0);
+  }
+  // Actual sales for one specific customer on a given day — used to check a rep's
+  // claimed per-shop sale amount against the real invoice for that customer.
+  function getActualSalesForCustomerDate(custCode, iso){
+    const d = isoToDateInt(iso);
+    return SALES_TX.reduce((s, r) => (r[2] === custCode && r[0] === d) ? s + r[4]*r[5] : s, 0);
   }
   // Same idea but summed across the whole current month — used for the monthly
   // target progress panel. Reads straight from real accounting data, not from
@@ -2558,12 +2581,17 @@
       entries.map(([id, r]) => {
         let verifyBadge = '';
         if(r.dailyTargetSales != null || r.dailyTargetCollection != null){
-          const actualSales = getActualSalesForRepDate(repCode, r.date);
-          const actualCollection = getActualCollectionForRepDate(repCode, r.date);
-          const salesOk = r.dailyTargetSales == null || actualSales >= r.dailyTargetSales;
-          const collOk = r.dailyTargetCollection == null || actualCollection >= r.dailyTargetCollection;
+          const actualSales = getActualSalesForRepDate(repCode, invoicePostingDate(r.date));
+          const actualCollection = getActualCollectionForRepDate(repCode, invoicePostingDate(r.date));
+          const salesDiff = actualSales - (r.dailyTargetSales || 0);
+          const collDiff = actualCollection - (r.dailyTargetCollection || 0);
+          const salesOk = r.dailyTargetSales == null || salesDiff >= 0;
+          const collOk = r.dailyTargetCollection == null || collDiff >= 0;
           const ok = salesOk && collOk;
-          verifyBadge = `<div style="font-size:.72rem; font-weight:800; color:${ok ? '#1E8E5A' : '#C0392B'};">${ok ? '✓ حقق هدفه اليومي (حسب الحسابات الفعلية)' : '✗ لم يحقق هدفه اليومي (حسب الحسابات الفعلية)'}</div>`;
+          const diffParts = [];
+          if(r.dailyTargetSales != null) diffParts.push('فرق البيع ' + fmtDiff(salesDiff));
+          if(r.dailyTargetCollection != null) diffParts.push('فرق التحصيل ' + fmtDiff(collDiff));
+          verifyBadge = `<div style="font-size:.72rem; font-weight:800; color:${ok ? '#1E8E5A' : '#C0392B'};">${ok ? '✓' : '✗'} ${diffParts.join(' — ')}</div>`;
         }
         return `
         <div class="stmt-bal-card" style="flex-direction:column;align-items:stretch;gap:6px;cursor:pointer;" onclick="showVisitReportDetail('${id}')">
@@ -2582,7 +2610,19 @@
   function showVisitReportDetail(id){
     const r = vrCurrentReports[id];
     if(!r) return;
-    const rowsHtml = (r.rows||[]).map((row, i) => `
+    const postingDate = invoicePostingDate(r.date);
+    const rowsHtml = (r.rows||[]).map((row, i) => {
+      let rowVerify = '';
+      if(row.custCode != null && row.sale != null){
+        const actualCustSale = getActualSalesForCustomerDate(row.custCode, postingDate);
+        const diff = actualCustSale - row.sale;
+        const rowOk = diff >= 0;
+        rowVerify = `<div style="font-size:.74rem; margin-top:4px; padding-top:4px; border-top:1px dashed var(--line);">
+          <div>اتبلغ: ${fmt(row.sale)} ج.م — فعلي بعد ضرب الفاتورة (${postingDate}): ${fmt(actualCustSale)} ج.م</div>
+          <div style="font-weight:800; color:${rowOk ? '#1E8E5A' : '#C0392B'};">الفرق: ${fmtDiff(diff)} ${rowOk ? '✓ مطابق' : '✗ مش مطابق'}</div>
+        </div>`;
+      }
+      return `
       <div style="border:1.5px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px;">
         <div style="display:flex; justify-content:space-between; font-weight:800; font-size:.86rem;">
           <span>${i+1}. ${row.shop || ''}</span>
@@ -2591,21 +2631,33 @@
         ${row.phone ? `<div style="font-size:.76rem; color:var(--muted);">${row.phone}</div>` : ''}
         ${row.collection != null ? `<div style="font-size:.76rem; color:#1E8E5A; font-weight:700;">تحصيل ${fmt(row.collection)} ج.م</div>` : ''}
         ${row.notes ? `<div style="font-size:.76rem; color:var(--muted); margin-top:4px;">${row.notes}</div>` : ''}
-      </div>`).join('') || '<p style="text-align:center;color:var(--muted);">مفيش محلات مسجلة</p>';
+        ${rowVerify}
+      </div>`;
+    }).join('') || '<p style="text-align:center;color:var(--muted);">مفيش محلات مسجلة</p>';
 
     const target = r.monthlyTarget || getRepMonthlyTarget(r.repCode);
 
     let verifyHtml = '';
     if(r.dailyTargetSales != null || r.dailyTargetCollection != null){
-      const actualSales = getActualSalesForRepDate(r.repCode, r.date);
-      const actualCollection = getActualCollectionForRepDate(r.repCode, r.date);
-      const salesOk = r.dailyTargetSales == null || actualSales >= r.dailyTargetSales;
-      const collOk = r.dailyTargetCollection == null || actualCollection >= r.dailyTargetCollection;
+      const actualSales = getActualSalesForRepDate(r.repCode, postingDate);
+      const actualCollection = getActualCollectionForRepDate(r.repCode, postingDate);
+      const salesDiff = actualSales - (r.dailyTargetSales || 0);
+      const collDiff = actualCollection - (r.dailyTargetCollection || 0);
+      const salesOk = r.dailyTargetSales == null || salesDiff >= 0;
+      const collOk = r.dailyTargetCollection == null || collDiff >= 0;
       verifyHtml = `
-      <div style="background:#FFF9EC; border:1px solid #F0DFA8; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:6px;">
-        <div style="font-weight:800; font-size:.82rem; color:#8A6D1D;">مقارنة الهدف اليومي بالفعلي (من حسابات الشركة)</div>
-        ${r.dailyTargetSales != null ? `<div style="display:flex;justify-content:space-between;font-size:.82rem;"><span>هدف البيع: ${fmt(r.dailyTargetSales)} ج.م</span><b style="color:${salesOk?'#1E8E5A':'#C0392B'};">فعلي: ${fmt(actualSales)} ج.م ${salesOk?'✓':'✗'}</b></div>` : ''}
-        ${r.dailyTargetCollection != null ? `<div style="display:flex;justify-content:space-between;font-size:.82rem;"><span>هدف التحصيل: ${fmt(r.dailyTargetCollection)} ج.م</span><b style="color:${collOk?'#1E8E5A':'#C0392B'};">فعلي: ${fmt(actualCollection)} ج.م ${collOk?'✓':'✗'}</b></div>` : ''}
+      <div style="background:#FFF9EC; border:1px solid #F0DFA8; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:8px;">
+        <div style="font-weight:800; font-size:.82rem; color:#8A6D1D;">مقارنة الهدف اليومي بالفعلي — بعد ضرب الفواتير (${postingDate})</div>
+        ${r.dailyTargetSales != null ? `
+        <div style="font-size:.82rem;">
+          <div>اتبلغ (هدف البيع): ${fmt(r.dailyTargetSales)} ج.م — فعلي: ${fmt(actualSales)} ج.م</div>
+          <div style="font-weight:800; color:${salesOk?'#1E8E5A':'#C0392B'};">الفرق: ${fmtDiff(salesDiff)} ${salesOk?'✓':'✗'}</div>
+        </div>` : ''}
+        ${r.dailyTargetCollection != null ? `
+        <div style="font-size:.82rem;">
+          <div>اتبلغ (هدف التحصيل): ${fmt(r.dailyTargetCollection)} ج.م — فعلي: ${fmt(actualCollection)} ج.م</div>
+          <div style="font-weight:800; color:${collOk?'#1E8E5A':'#C0392B'};">الفرق: ${fmtDiff(collDiff)} ${collOk?'✓':'✗'}</div>
+        </div>` : ''}
       </div>`;
     }
 
