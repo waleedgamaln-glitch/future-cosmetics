@@ -755,6 +755,11 @@
     <div class="field" style="flex:1;"><label for="vrDate">التاريخ</label><input id="vrDate" type="date"></div>
     <div class="field" style="flex:1;"><label for="vrRegion">المنطقة</label><input id="vrRegion" placeholder="اسم المنطقة"></div>
   </div>
+  <div style="font-size:.82rem; font-weight:800; color:var(--ink); margin:10px 0 4px;">هدفك النهارده (بيع وتحصيل)</div>
+  <div style="display:flex; gap:10px;">
+    <div class="field" style="flex:1;"><label for="vrDailyTargetSales">الهدف اليومي — بيع</label><input id="vrDailyTargetSales" type="number" inputmode="decimal" placeholder="0"></div>
+    <div class="field" style="flex:1;"><label for="vrDailyTargetCollection">الهدف اليومي — تحصيل</label><input id="vrDailyTargetCollection" type="number" inputmode="decimal" placeholder="0"></div>
+  </div>
   <div style="display:flex; gap:10px;">
     <div class="field" style="flex:1;"><label for="vrWeeklyTarget">الهدف الاسبوعي (اختياري)</label><input id="vrWeeklyTarget" type="number" inputmode="decimal"></div>
     <div class="field" style="flex:1;"><label for="vrWeeklyPrev">ما قبله (اسبوعي)</label><input id="vrWeeklyPrev" type="number" inputmode="decimal"></div>
@@ -766,14 +771,15 @@
 
   <div style="display:flex; gap:10px; margin-top:18px;">
     <div class="field" style="flex:1;">
-      <label>إجمالي البيع</label>
+      <label>إجمالي البيع (المُدخل يدويًا)</label>
       <div class="stmt-bal-card" style="justify-content:center; font-weight:900; font-family:'JetBrains Mono',monospace;" id="vrTotalSalesDisplay">0 ج.م</div>
     </div>
     <div class="field" style="flex:1;">
-      <label>إجمالي التحصيل</label>
+      <label>إجمالي التحصيل (المُدخل يدويًا)</label>
       <div class="stmt-bal-card" style="justify-content:center; font-weight:900; font-family:'JetBrains Mono',monospace;" id="vrTotalCollectionDisplay">0 ج.م</div>
     </div>
   </div>
+  <div class="mdesc" style="margin-top:-6px;">الإدارة هتقارن هدفك ده بالمبيعات والتحصيل الفعلي المسجل في حسابات الشركة أول ما تتحدث.</div>
 
   <button class="full-btn" style="margin-top:10px;" onclick="submitVisitReport()">تأكيد وحفظ التقرير</button>
 </div>
@@ -1910,6 +1916,14 @@
   // invoice's date — not from the last time they paid anything.
   const ARREARS_MIN_DAYS = 30;
 
+  // Manual safety-valve: customers confirmed by Waleed as actually settled (balance
+  // zero in the real accounting system) even though our reconstructed SALES_TX/COLL_TX
+  // ledger shows them as unpaid — almost always because a real collection/return for
+  // them is missing from the periodic exports we've processed. Add customer codes here
+  // whenever a false "متأخرات" is confirmed, to clear it immediately without waiting
+  // for the missing collection data to be uploaded.
+  const ARREARS_MANUAL_CLEAR = [4246, 171, 7437]; // منظفات اولاد رضوان-بولاق / منظفات الفرسان / الجزيره بلاست
+
   function computeArrears(repCode){
     const custBySameRep = CUSTOMERS.filter(c => c.repCode === repCode);
     const custByName = {};
@@ -1939,6 +1953,13 @@
 
     const rows = [];
     custBySameRep.forEach(c => {
+      if(ARREARS_MANUAL_CLEAR.includes(c.code)) return;
+      // Safety net: if we have this customer's live reconciled balance (from the
+      // official "كشف حساب العملاء" upload) and it shows them settled/credit, trust
+      // that over our own reconstructed ledger, which can lag behind real payments.
+      const officialBal = CUST_BALANCES[c.code];
+      if(officialBal && officialBal[1] <= 1) return;
+
       const events = eventsByCust[c.code];
       if(!events || !events.length) return;
       events.sort((a,b) => a.date - b.date);
@@ -2218,6 +2239,22 @@
   }
   function currentMonthPrefix(){ return todayISO().slice(0,7); } // "YYYY-MM"
 
+  // Convert "YYYY-MM-DD" -> integer YYYYMMDD to match SALES_TX/COLL_TX date format.
+  function isoToDateInt(iso){ return parseInt(iso.replace(/-/g,''), 10); }
+
+  // Actual sales/collections for a rep on a given day, straight from the real
+  // accounting data (SALES_TX/COLL_TX) — this is what verifies whether a rep's
+  // self-reported daily target was genuinely achieved, and updates automatically
+  // whenever Waleed uploads a fresh data export.
+  function getActualSalesForRepDate(repCode, iso){
+    const d = isoToDateInt(iso);
+    return SALES_TX.reduce((s, r) => (r[3] === repCode && r[0] === d) ? s + r[4]*r[5] : s, 0);
+  }
+  function getActualCollectionForRepDate(repCode, iso){
+    const d = isoToDateInt(iso);
+    return COLL_TX.reduce((s, r) => (r[2] === repCode && r[0] === d) ? s + r[4] : s, 0);
+  }
+
   function computeMonthSummary(repCode, cb){
     if(!fbDb){ cb({ sales:0, collection:0 }); return; }
     const prefix = currentMonthPrefix();
@@ -2260,6 +2297,8 @@
     document.getElementById('vrRepNameDisplay').textContent = 'المندوب: ' + (currentRep ? currentRep.name : '');
     document.getElementById('vrDate').value = todayISO();
     document.getElementById('vrRegion').value = '';
+    document.getElementById('vrDailyTargetSales').value = '';
+    document.getElementById('vrDailyTargetCollection').value = '';
     document.getElementById('vrWeeklyTarget').value = '';
     document.getElementById('vrWeeklyPrev').value = '';
     visitRows = [];
@@ -2378,6 +2417,8 @@
       date,
       region,
       monthlyTarget: getRepMonthlyTarget(currentRep.code),
+      dailyTargetSales: document.getElementById('vrDailyTargetSales').value ? parseFloat(document.getElementById('vrDailyTargetSales').value) : null,
+      dailyTargetCollection: document.getElementById('vrDailyTargetCollection').value ? parseFloat(document.getElementById('vrDailyTargetCollection').value) : null,
       weeklyTarget: document.getElementById('vrWeeklyTarget').value || null,
       weeklyPrev: document.getElementById('vrWeeklyPrev').value || null,
       totalSales,
@@ -2507,7 +2548,17 @@
       return;
     }
     list.innerHTML = summaryHtml + '<div style="display:flex;flex-direction:column;gap:10px;">' +
-      entries.map(([id, r]) => `
+      entries.map(([id, r]) => {
+        let verifyBadge = '';
+        if(r.dailyTargetSales != null || r.dailyTargetCollection != null){
+          const actualSales = getActualSalesForRepDate(repCode, r.date);
+          const actualCollection = getActualCollectionForRepDate(repCode, r.date);
+          const salesOk = r.dailyTargetSales == null || actualSales >= r.dailyTargetSales;
+          const collOk = r.dailyTargetCollection == null || actualCollection >= r.dailyTargetCollection;
+          const ok = salesOk && collOk;
+          verifyBadge = `<div style="font-size:.72rem; font-weight:800; color:${ok ? '#1E8E5A' : '#C0392B'};">${ok ? '✓ حقق هدفه اليومي (حسب الحسابات الفعلية)' : '✗ لم يحقق هدفه اليومي (حسب الحسابات الفعلية)'}</div>`;
+        }
+        return `
         <div class="stmt-bal-card" style="flex-direction:column;align-items:stretch;gap:6px;cursor:pointer;" onclick="showVisitReportDetail('${id}')">
           <div style="display:flex;justify-content:space-between;font-weight:800;">
             <span>${r.date || ''}</span><span>${r.region || ''}</span>
@@ -2516,7 +2567,9 @@
             <span>عدد المحلات: ${(r.rows||[]).length}</span>
             <span>البيع: ${fmt(r.totalSales||0)} ج.م — التحصيل: ${fmt(r.totalCollection||0)} ج.م</span>
           </div>
-        </div>`).join('') + '</div>';
+          ${verifyBadge}
+        </div>`;
+      }).join('') + '</div>';
   }
 
   function showVisitReportDetail(id){
@@ -2534,6 +2587,21 @@
       </div>`).join('') || '<p style="text-align:center;color:var(--muted);">مفيش محلات مسجلة</p>';
 
     const target = r.monthlyTarget || getRepMonthlyTarget(r.repCode);
+
+    let verifyHtml = '';
+    if(r.dailyTargetSales != null || r.dailyTargetCollection != null){
+      const actualSales = getActualSalesForRepDate(r.repCode, r.date);
+      const actualCollection = getActualCollectionForRepDate(r.repCode, r.date);
+      const salesOk = r.dailyTargetSales == null || actualSales >= r.dailyTargetSales;
+      const collOk = r.dailyTargetCollection == null || actualCollection >= r.dailyTargetCollection;
+      verifyHtml = `
+      <div style="background:#FFF9EC; border:1px solid #F0DFA8; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-weight:800; font-size:.82rem; color:#8A6D1D;">مقارنة الهدف اليومي بالفعلي (من حسابات الشركة)</div>
+        ${r.dailyTargetSales != null ? `<div style="display:flex;justify-content:space-between;font-size:.82rem;"><span>هدف البيع: ${fmt(r.dailyTargetSales)} ج.م</span><b style="color:${salesOk?'#1E8E5A':'#C0392B'};">فعلي: ${fmt(actualSales)} ج.م ${salesOk?'✓':'✗'}</b></div>` : ''}
+        ${r.dailyTargetCollection != null ? `<div style="display:flex;justify-content:space-between;font-size:.82rem;"><span>هدف التحصيل: ${fmt(r.dailyTargetCollection)} ج.م</span><b style="color:${collOk?'#1E8E5A':'#C0392B'};">فعلي: ${fmt(actualCollection)} ج.م ${collOk?'✓':'✗'}</b></div>` : ''}
+      </div>`;
+    }
+
     const body = document.getElementById('visitReportDetailBody');
     body.innerHTML = `
       <div style="background:#F3F8FC; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:4px;">
@@ -2542,9 +2610,10 @@
         <div><b>المنطقة:</b> ${r.region || ''}</div>
         <div><b>الهدف الشهري:</b> ${fmt(target)} ج.م</div>
         ${r.weeklyTarget ? `<div><b>الهدف الاسبوعي:</b> ${r.weeklyTarget} (ما قبله: ${r.weeklyPrev || 0})</div>` : ''}
-        <div><b>إجمالي البيع:</b> ${fmt(r.totalSales||0)} ج.م</div>
-        <div><b>إجمالي التحصيل:</b> ${fmt(r.totalCollection||0)} ج.م</div>
+        <div><b>إجمالي البيع (المُدخل):</b> ${fmt(r.totalSales||0)} ج.م</div>
+        <div><b>إجمالي التحصيل (المُدخل):</b> ${fmt(r.totalCollection||0)} ج.م</div>
       </div>
+      ${verifyHtml}
       ${rowsHtml}`;
     document.getElementById('visitReportDetailModal').classList.add('open');
   }
