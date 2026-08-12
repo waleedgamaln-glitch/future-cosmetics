@@ -745,16 +745,18 @@
   <h2>تقرير الزيارات اليومي</h2>
   <div class="mdesc" id="vrRepNameDisplay" style="margin:-6px 0 14px;"></div>
 
+  <div id="vrTargetPanel" style="background:#F3F8FC; border:1px solid #DCE8F2; border-radius:10px; padding:12px 14px; margin-bottom:16px; display:flex; flex-direction:column; gap:6px; font-size:.8rem;">
+    <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">الهدف الشهري</span><b id="vrTargetMonthly" style="font-family:'JetBrains Mono',monospace;">—</b></div>
+    <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">مبيعات الشهر لحد دلوقتي</span><b id="vrMonthSales" style="font-family:'JetBrains Mono',monospace;">—</b></div>
+    <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">تحصيل الشهر لحد دلوقتي</span><b id="vrMonthCollection" style="font-family:'JetBrains Mono',monospace;">—</b></div>
+  </div>
+
   <div style="display:flex; gap:10px;">
     <div class="field" style="flex:1;"><label for="vrDate">التاريخ</label><input id="vrDate" type="date"></div>
     <div class="field" style="flex:1;"><label for="vrRegion">المنطقة</label><input id="vrRegion" placeholder="اسم المنطقة"></div>
   </div>
   <div style="display:flex; gap:10px;">
-    <div class="field" style="flex:1;"><label for="vrMonthlyTarget">الهدف الشهري</label><input id="vrMonthlyTarget" type="number" inputmode="decimal"></div>
-    <div class="field" style="flex:1;"><label for="vrMonthlyPrev">ما قبله (شهري)</label><input id="vrMonthlyPrev" type="number" inputmode="decimal"></div>
-  </div>
-  <div style="display:flex; gap:10px;">
-    <div class="field" style="flex:1;"><label for="vrWeeklyTarget">الهدف الاسبوعي</label><input id="vrWeeklyTarget" type="number" inputmode="decimal"></div>
+    <div class="field" style="flex:1;"><label for="vrWeeklyTarget">الهدف الاسبوعي (اختياري)</label><input id="vrWeeklyTarget" type="number" inputmode="decimal"></div>
     <div class="field" style="flex:1;"><label for="vrWeeklyPrev">ما قبله (اسبوعي)</label><input id="vrWeeklyPrev" type="number" inputmode="decimal"></div>
   </div>
 
@@ -767,7 +769,10 @@
       <label>إجمالي البيع</label>
       <div class="stmt-bal-card" style="justify-content:center; font-weight:900; font-family:'JetBrains Mono',monospace;" id="vrTotalSalesDisplay">0 ج.م</div>
     </div>
-    <div class="field" style="flex:1;"><label for="vrTotalCollection">إجمالي التحصيل</label><input id="vrTotalCollection" type="number" inputmode="decimal" placeholder="0"></div>
+    <div class="field" style="flex:1;">
+      <label>إجمالي التحصيل</label>
+      <div class="stmt-bal-card" style="justify-content:center; font-weight:900; font-family:'JetBrains Mono',monospace;" id="vrTotalCollectionDisplay">0 ج.م</div>
+    </div>
   </div>
 
   <button class="full-btn" style="margin-top:10px;" onclick="submitVisitReport()">تأكيد وحفظ التقرير</button>
@@ -1033,6 +1038,11 @@
   let currentRep = null; // {code:number|null, name:string, isAdmin:boolean}
 
   const FULL_ACCESS_REP_CODES = [1, 2]; // عميل اداره / وليد جمال
+
+  // Fixed monthly sales targets per rep (heuristic by first-name gender): 1,000,000 male / 250,000 female.
+  // Waleed can adjust individual values here if a specific rep's target differs.
+  const REP_MONTHLY_TARGET = {"1":1000000,"2":1000000,"3":250000,"4":1000000,"5":250000,"6":250000,"7":250000,"8":1000000,"9":1000000,"10":1000000,"11":1000000,"12":250000,"13":1000000,"14":1000000,"15":1000000,"16":1000000,"17":1000000,"18":250000,"19":1000000,"20":250000,"21":250000,"22":1000000,"23":1000000,"24":1000000,"25":250000,"26":1000000,"27":250000,"28":1000000,"29":1000000,"30":250000,"31":1000000,"32":250000,"33":1000000,"34":1000000,"35":250000,"36":1000000,"37":1000000,"38":250000,"39":1000000,"40":250000,"41":1000000,"42":1000000,"43":250000,"44":1000000,"45":1000000,"46":250000,"47":1000000,"48":250000,"49":1000000,"50":1000000,"51":250000,"52":250000,"53":1000000,"54":1000000,"55":1000000,"56":1000000,"57":1000000,"58":1000000,"59":1000000,"60":1000000,"61":1000000,"62":1000000,"63":1000000,"64":1000000,"65":1000000,"66":1000000,"67":1000000,"68":1000000,"69":1000000,"70":1000000,"71":1000000,"72":1000000,"73":1000000,"74":1000000,"75":250000,"76":250000,"77":1000000,"78":1000000,"79":250000,"80":1000000,"81":250000,"82":1000000,"83":1000000,"84":1000000,"85":1000000,"86":1000000,"87":1000000,"88":1000000,"89":250000,"90":250000,"91":250000,"92":1000000,"93":1000000,"94":1000000,"95":250000,"96":1000000,"97":1000000,"98":1000000,"99":250000,"100":1000000,"101":250000,"102":250000,"103":250000,"104":1000000,"105":250000,"106":1000000,"107":1000000,"108":250000,"109":250000,"110":1000000,"111":1000000,"112":1000000,"113":250000,"114":250000,"115":250000,"116":250000,"117":250000,"118":1000000,"119":250000,"120":250000,"121":1000000,"122":1000000,"123":1000000,"124":250000,"125":1000000,"126":1000000,"127":1000000,"128":1000000,"129":1000000,"130":1000000,"131":250000,"132":250000,"133":1000000,"134":1000000,"135":1000000,"136":250000,"137":1000000,"138":1000000,"139":250000,"140":1000000,"141":1000000,"142":1000000,"143":1000000,"144":1000000,"145":1000000,"146":1000000,"147":1000000,"148":1000000,"149":1000000,"150":1000000,"151":1000000,"152":250000,"153":250000,"154":1000000,"155":1000000,"156":1000000,"157":1000000,"158":1000000,"159":1000000,"160":1000000,"161":250000,"162":1000000,"163":1000000,"164":1000000,"165":1000000,"166":250000,"167":1000000,"168":250000,"169":250000,"170":1000000,"171":1000000,"172":1000000,"173":1000000};
+  function getRepMonthlyTarget(repCode){ return REP_MONTHLY_TARGET[String(repCode)] || 1000000; }
 
   // ---------- Local password override (per-device only) ----------
   function pwOverrideKey(user){ return 'fc_pw_override_' + user; }
@@ -2200,10 +2210,41 @@
   let visitRows = [];
   let visitRowSeq = 0;
   let vrAdminListenerRef = null;
+  let vrActiveRepListenerRef = null;
 
   function todayISO(){
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function currentMonthPrefix(){ return todayISO().slice(0,7); } // "YYYY-MM"
+
+  function computeMonthSummary(repCode, cb){
+    if(!fbDb){ cb({ sales:0, collection:0 }); return; }
+    const prefix = currentMonthPrefix();
+    fbDb.ref('visitReports/' + repCode).once('value').then(snap => {
+      const data = snap.val() || {};
+      let sales = 0, collection = 0;
+      Object.values(data).forEach(r => {
+        if((r.date || '').startsWith(prefix)){
+          sales += r.totalSales || 0;
+          collection += r.totalCollection || 0;
+        }
+      });
+      cb({ sales, collection });
+    }).catch(() => cb({ sales:0, collection:0 }));
+  }
+
+  function renderTargetPanel(repCode){
+    const target = getRepMonthlyTarget(repCode);
+    document.getElementById('vrTargetMonthly').textContent = fmt(target) + ' ج.م';
+    document.getElementById('vrMonthSales').textContent = '...';
+    document.getElementById('vrMonthCollection').textContent = '...';
+    computeMonthSummary(repCode, ({ sales, collection }) => {
+      const salesPct = target ? Math.round((sales / target) * 100) : 0;
+      const collPct = target ? Math.round((collection / target) * 100) : 0;
+      document.getElementById('vrMonthSales').textContent = `${fmt(sales)} ج.م (${salesPct}%)`;
+      document.getElementById('vrMonthCollection').textContent = `${fmt(collection)} ج.م (${collPct}%)`;
+    });
   }
 
   function openVisitReportForm(){
@@ -2219,21 +2260,19 @@
     document.getElementById('vrRepNameDisplay').textContent = 'المندوب: ' + (currentRep ? currentRep.name : '');
     document.getElementById('vrDate').value = todayISO();
     document.getElementById('vrRegion').value = '';
-    document.getElementById('vrMonthlyTarget').value = '';
-    document.getElementById('vrMonthlyPrev').value = '';
     document.getElementById('vrWeeklyTarget').value = '';
     document.getElementById('vrWeeklyPrev').value = '';
-    document.getElementById('vrTotalCollection').value = '';
     visitRows = [];
     visitRowSeq = 0;
     addVisitRow();
     addVisitRow();
     addVisitRow();
+    if(currentRep && currentRep.code != null) renderTargetPanel(currentRep.code);
   }
 
   function addVisitRow(){
     visitRowSeq += 1;
-    visitRows.push({ id: visitRowSeq, shop:'', phone:'', sale:'', notes:'' });
+    visitRows.push({ id: visitRowSeq, shop:'', phone:'', sale:'', collection:'', notes:'' });
     renderVisitRows();
   }
 
@@ -2245,7 +2284,47 @@
   function updateVisitRowField(id, field, value){
     const row = visitRows.find(r => r.id === id);
     if(row) row[field] = value;
-    if(field === 'sale') updateVisitTotals();
+    if(field === 'sale' || field === 'collection') updateVisitTotals();
+  }
+
+  // ---- Shop-name autocomplete (matches CUSTOMERS by code or name substring) ----
+  function vrShopMatches(q){
+    const ql = q.trim().toLowerCase();
+    if(!ql) return [];
+    let list = repFilter(CUSTOMERS);
+    if(/^\d+$/.test(ql)){
+      list = list.filter(c => String(c.code).includes(ql));
+    } else {
+      list = list.filter(c => c.name.toLowerCase().includes(ql));
+    }
+    return list.slice(0, 30);
+  }
+
+  function vrShopInput(id, value){
+    updateVisitRowField(id, 'shop', value);
+    const dd = document.getElementById('vrShopDD_' + id);
+    if(!dd) return;
+    const matches = vrShopMatches(value);
+    if(!matches.length){ dd.classList.remove('show'); dd.innerHTML=''; return; }
+    dd.innerHTML = matches.map(c => `
+      <div class="ac-item" onclick='window.__pickVisitShop(${id}, ${c.code})'>
+        <div class="ac-name">${c.name}</div>
+        <div class="ac-meta">كود ${c.code} · ${c.phone || 'بدون تليفون'}</div>
+      </div>`).join('');
+    dd.classList.add('show');
+  }
+  window.__pickVisitShop = function(rowId, custCode){
+    const c = CUSTOMERS.find(x => x.code === custCode);
+    if(!c) return;
+    const row = visitRows.find(r => r.id === rowId);
+    if(row){ row.shop = c.name; row.phone = c.phone || ''; row.custCode = c.code; }
+    renderVisitRows();
+  };
+  function vrShopBlur(id){
+    setTimeout(() => {
+      const dd = document.getElementById('vrShopDD_' + id);
+      if(dd) dd.classList.remove('show');
+    }, 150);
   }
 
   function renderVisitRows(){
@@ -2256,18 +2335,26 @@
           <span style="font-size:.74rem; color:var(--muted); font-weight:700;">محل رقم ${i+1}</span>
           <button type="button" onclick="removeVisitRow(${r.id})" style="background:none; border:none; color:#C0392B; font-size:.8rem; cursor:pointer;">حذف ✕</button>
         </div>
-        <input placeholder="اسم المحل" value="${(r.shop||'').replace(/"/g,'&quot;')}" oninput="updateVisitRowField(${r.id},'shop',this.value)" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.86rem;">
+        <div class="ac-field" style="margin-bottom:0;">
+          <input placeholder="اسم المحل أو كوده" value="${(r.shop||'').replace(/"/g,'&quot;')}" oninput="vrShopInput(${r.id},this.value)" onblur="vrShopBlur(${r.id})" autocomplete="off" style="padding:11px 40px 11px 14px; font-size:.86rem; border-radius:8px;">
+          <div class="ac-dropdown" id="vrShopDD_${r.id}"></div>
+        </div>
         <div style="display:flex; gap:8px;">
           <input placeholder="رقم التليفون" value="${(r.phone||'').replace(/"/g,'&quot;')}" oninput="updateVisitRowField(${r.id},'phone',this.value)" inputmode="tel" style="flex:1; padding:9px 12px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.86rem;">
-          <input placeholder="البيع" value="${r.sale||''}" oninput="updateVisitRowField(${r.id},'sale',this.value)" type="number" inputmode="decimal" style="flex:1; padding:9px 12px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.86rem;">
         </div>
-        <input placeholder="ملاحظات (تحصيل، اقفال، دين، ...الخ)" value="${(r.notes||'').replace(/"/g,'&quot;')}" oninput="updateVisitRowField(${r.id},'notes',this.value)" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.86rem;">
+        <div style="display:flex; gap:8px;">
+          <input placeholder="البيع" value="${r.sale||''}" oninput="updateVisitRowField(${r.id},'sale',this.value)" type="number" inputmode="decimal" style="flex:1; padding:9px 12px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.86rem;">
+          <input placeholder="التحصيل" value="${r.collection||''}" oninput="updateVisitRowField(${r.id},'collection',this.value)" type="number" inputmode="decimal" style="flex:1; padding:9px 12px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.86rem;">
+        </div>
+        <input placeholder="ملاحظات (اقفال، دين، هيحصل الأسبوع الجاي...الخ)" value="${(r.notes||'').replace(/"/g,'&quot;')}" oninput="updateVisitRowField(${r.id},'notes',this.value)" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.86rem;">
       </div>`).join('');
   }
 
   function updateVisitTotals(){
-    const total = visitRows.reduce((s, r) => s + (parseFloat(r.sale) || 0), 0);
-    document.getElementById('vrTotalSalesDisplay').textContent = fmt(total) + ' ج.م';
+    const totalSales = visitRows.reduce((s, r) => s + (parseFloat(r.sale) || 0), 0);
+    const totalCollection = visitRows.reduce((s, r) => s + (parseFloat(r.collection) || 0), 0);
+    document.getElementById('vrTotalSalesDisplay').textContent = fmt(totalSales) + ' ج.م';
+    document.getElementById('vrTotalCollectionDisplay').textContent = fmt(totalCollection) + ' ج.م';
   }
 
   function submitVisitReport(){
@@ -2283,20 +2370,24 @@
     }
     const filledRows = visitRows.filter(r => (r.shop||'').trim());
     const totalSales = visitRows.reduce((s, r) => s + (parseFloat(r.sale) || 0), 0);
-    const totalCollectionInput = document.getElementById('vrTotalCollection').value;
+    const totalCollection = visitRows.reduce((s, r) => s + (parseFloat(r.collection) || 0), 0);
 
     const report = {
       repCode: currentRep.code,
       repName: currentRep.name,
       date,
       region,
-      monthlyTarget: document.getElementById('vrMonthlyTarget').value || null,
-      monthlyPrev: document.getElementById('vrMonthlyPrev').value || null,
+      monthlyTarget: getRepMonthlyTarget(currentRep.code),
       weeklyTarget: document.getElementById('vrWeeklyTarget').value || null,
       weeklyPrev: document.getElementById('vrWeeklyPrev').value || null,
       totalSales,
-      totalCollection: totalCollectionInput ? parseFloat(totalCollectionInput) : null,
-      rows: filledRows.map(r => ({ shop:r.shop, phone:r.phone||'', sale: r.sale ? parseFloat(r.sale) : null, notes:r.notes||'' })),
+      totalCollection,
+      rows: filledRows.map(r => ({
+        shop:r.shop, phone:r.phone||'', custCode: r.custCode || null,
+        sale: r.sale ? parseFloat(r.sale) : null,
+        collection: r.collection ? parseFloat(r.collection) : null,
+        notes:r.notes||''
+      })),
       createdAt: Date.now()
     };
 
@@ -2329,12 +2420,37 @@
     if(bag) bag.style.display = 'none';
 
     const sel = document.getElementById('vrAdminRepSelect');
-    const reps = [...REPS].sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-    sel.innerHTML = reps.map(r => `<option value="${r.code}">${r.name} (${r.code})</option>`).join('');
-    if(currentRep && currentRep.code != null && reps.some(r => r.code === currentRep.code)){
-      sel.value = String(currentRep.code);
+    sel.innerHTML = '<option value="">جاري تحميل قائمة المناديب...</option>';
+    document.getElementById('vrAdminList').innerHTML = '';
+
+    if(!fbDb){
+      sel.innerHTML = '<option value="">لا يوجد اتصال بالسيرفر</option>';
+      return;
     }
-    loadVisitReportsForRep();
+    if(vrActiveRepListenerRef){
+      try{ vrActiveRepListenerRef.off('value'); }catch(e){}
+      vrActiveRepListenerRef = null;
+    }
+    // "الفعليين فقط": show only reps who have actually submitted at least one report
+    vrActiveRepListenerRef = fbDb.ref('visitReports');
+    vrActiveRepListenerRef.on('value', snap => {
+      const data = snap.val() || {};
+      const activeCodes = Object.keys(data).map(c => parseInt(c, 10));
+      const reps = REPS.filter(r => activeCodes.includes(r.code)).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+      if(!reps.length){
+        sel.innerHTML = '<option value="">مفيش تقارير متسجلة لأي مندوب لسه</option>';
+        document.getElementById('vrAdminList').innerHTML = '';
+        return;
+      }
+      const prevValue = sel.value;
+      sel.innerHTML = reps.map(r => `<option value="${r.code}">${r.name} (${r.code})</option>`).join('');
+      if(prevValue && reps.some(r => String(r.code) === prevValue)){
+        sel.value = prevValue;
+      } else if(currentRep && currentRep.code != null && reps.some(r => r.code === currentRep.code)){
+        sel.value = String(currentRep.code);
+      }
+      loadVisitReportsForRep();
+    });
   }
 
   function loadVisitReportsForRep(){
@@ -2366,12 +2482,31 @@
   function renderVisitReportsList(repCode, data){
     vrCurrentReports = data;
     const list = document.getElementById('vrAdminList');
+    const target = getRepMonthlyTarget(repCode);
+    const prefix = currentMonthPrefix();
+    let monthSales = 0, monthCollection = 0;
+    Object.values(data).forEach(r => {
+      if((r.date||'').startsWith(prefix)){
+        monthSales += r.totalSales || 0;
+        monthCollection += r.totalCollection || 0;
+      }
+    });
+    const salesPct = target ? Math.round((monthSales/target)*100) : 0;
+    const collPct = target ? Math.round((monthCollection/target)*100) : 0;
+
+    const summaryHtml = `
+      <div style="background:#F3F8FC; border:1px solid #DCE8F2; border-radius:10px; padding:12px 14px; margin:14px 0; display:flex; flex-direction:column; gap:6px; font-size:.8rem;">
+        <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">الهدف الشهري</span><b style="font-family:'JetBrains Mono',monospace;">${fmt(target)} ج.م</b></div>
+        <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">مبيعات هذا الشهر</span><b style="font-family:'JetBrains Mono',monospace;">${fmt(monthSales)} ج.م (${salesPct}%)</b></div>
+        <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">تحصيل هذا الشهر</span><b style="font-family:'JetBrains Mono',monospace;">${fmt(monthCollection)} ج.م (${collPct}%)</b></div>
+      </div>`;
+
     const entries = Object.entries(data).sort((a,b) => (b[1].date||'').localeCompare(a[1].date||'') || (b[1].createdAt||0)-(a[1].createdAt||0));
     if(!entries.length){
-      list.innerHTML = '<p style="text-align:center;color:var(--muted);">مفيش تقارير لهذا المندوب لسه</p>';
+      list.innerHTML = summaryHtml + '<p style="text-align:center;color:var(--muted);">مفيش تقارير لهذا المندوب لسه</p>';
       return;
     }
-    list.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">' +
+    list.innerHTML = summaryHtml + '<div style="display:flex;flex-direction:column;gap:10px;">' +
       entries.map(([id, r]) => `
         <div class="stmt-bal-card" style="flex-direction:column;align-items:stretch;gap:6px;cursor:pointer;" onclick="showVisitReportDetail('${id}')">
           <div style="display:flex;justify-content:space-between;font-weight:800;">
@@ -2379,7 +2514,7 @@
           </div>
           <div style="font-size:.78rem;color:var(--muted);display:flex;justify-content:space-between;">
             <span>عدد المحلات: ${(r.rows||[]).length}</span>
-            <span>البيع: ${fmt(r.totalSales||0)} ج.م${r.totalCollection != null ? ' — التحصيل: ' + fmt(r.totalCollection) + ' ج.م' : ''}</span>
+            <span>البيع: ${fmt(r.totalSales||0)} ج.م — التحصيل: ${fmt(r.totalCollection||0)} ج.م</span>
           </div>
         </div>`).join('') + '</div>';
   }
@@ -2391,22 +2526,24 @@
       <div style="border:1.5px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px;">
         <div style="display:flex; justify-content:space-between; font-weight:800; font-size:.86rem;">
           <span>${i+1}. ${row.shop || ''}</span>
-          ${row.sale != null ? `<span style="color:#0E4A85;">${fmt(row.sale)} ج.م</span>` : ''}
+          ${row.sale != null ? `<span style="color:#0E4A85;">بيع ${fmt(row.sale)} ج.م</span>` : ''}
         </div>
         ${row.phone ? `<div style="font-size:.76rem; color:var(--muted);">${row.phone}</div>` : ''}
+        ${row.collection != null ? `<div style="font-size:.76rem; color:#1E8E5A; font-weight:700;">تحصيل ${fmt(row.collection)} ج.م</div>` : ''}
         ${row.notes ? `<div style="font-size:.76rem; color:var(--muted); margin-top:4px;">${row.notes}</div>` : ''}
       </div>`).join('') || '<p style="text-align:center;color:var(--muted);">مفيش محلات مسجلة</p>';
 
+    const target = r.monthlyTarget || getRepMonthlyTarget(r.repCode);
     const body = document.getElementById('visitReportDetailBody');
     body.innerHTML = `
       <div style="background:#F3F8FC; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:4px;">
         <div><b>المندوب:</b> ${r.repName || ''}</div>
         <div><b>التاريخ:</b> ${r.date || ''}</div>
         <div><b>المنطقة:</b> ${r.region || ''}</div>
-        ${r.monthlyTarget ? `<div><b>الهدف الشهري:</b> ${r.monthlyTarget} (ما قبله: ${r.monthlyPrev || 0})</div>` : ''}
+        <div><b>الهدف الشهري:</b> ${fmt(target)} ج.م</div>
         ${r.weeklyTarget ? `<div><b>الهدف الاسبوعي:</b> ${r.weeklyTarget} (ما قبله: ${r.weeklyPrev || 0})</div>` : ''}
         <div><b>إجمالي البيع:</b> ${fmt(r.totalSales||0)} ج.م</div>
-        ${r.totalCollection != null ? `<div><b>إجمالي التحصيل:</b> ${fmt(r.totalCollection)} ج.م</div>` : ''}
+        <div><b>إجمالي التحصيل:</b> ${fmt(r.totalCollection||0)} ج.م</div>
       </div>
       ${rowsHtml}`;
     document.getElementById('visitReportDetailModal').classList.add('open');
