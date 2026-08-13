@@ -228,6 +228,49 @@
   }
   #bagBtn:hover{ transform:translateY(-1px); background:var(--gold-soft); }
 
+  /* ---------- Notification bell (top header) ---------- */
+  #notifBellBtn{
+    position:relative; display:none; align-items:center; justify-content:center;
+    width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.16);
+    border:none; color:#fff; font-size:1.15rem; cursor:pointer; flex-shrink:0;
+  }
+  #notifBellBadge{
+    position:absolute; top:-2px; inset-inline-end:-2px; min-width:16px; height:16px;
+    border-radius:999px; background:#E4483A; color:#fff; font-size:.6rem; font-weight:800;
+    display:none; align-items:center; justify-content:center; padding:0 3px;
+    box-shadow:0 0 0 2px var(--teal-dark);
+  }
+
+  /* ---------- Bottom navigation bar ---------- */
+  #bottomNav{
+    display:none; position:fixed; bottom:0; left:0; right:0; z-index:60;
+    background:#fff; border-top:1px solid var(--line);
+    box-shadow:0 -4px 16px rgba(19,35,57,.08);
+    padding:6px 2vw calc(6px + env(safe-area-inset-bottom,0px));
+    justify-content:space-around; align-items:stretch;
+  }
+  #bottomNav.show{ display:flex; }
+  .bnav-item{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:3px; background:none; border:none; color:var(--muted); font-family:inherit;
+    font-size:.66rem; font-weight:700; padding:6px 4px; flex:1; position:relative;
+    cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .bnav-item svg{ width:22px; height:22px; }
+  .bnav-item.active{ color:var(--teal-dark); }
+  .bnav-badge{
+    position:absolute; top:0; inset-inline-end:16%; min-width:15px; height:15px;
+    border-radius:999px; background:#E4483A; color:#fff; font-size:.58rem; font-weight:800;
+    display:none; align-items:center; justify-content:center; padding:0 3px;
+  }
+  body.has-bottom-nav{ padding-bottom:64px; }
+  .chat-tab{
+    flex:1; padding:10px 8px; border-radius:10px; border:1.5px solid var(--line);
+    background:#fff; color:var(--muted); font-family:inherit; font-size:.84rem; font-weight:800;
+    cursor:pointer; transition:background .15s, color .15s, border-color .15s;
+  }
+  .chat-tab.active{ background:var(--teal-dark,#0E4A85); border-color:var(--teal-dark,#0E4A85); color:#fff; }
+
   /* ---------- Filters bar ---------- */
   .filters{
     position:sticky; top:64px; z-index:35; background:var(--paper);
@@ -561,10 +604,38 @@
   <button id="bagBtn" onclick="openCart()">
     <span>السيارة</span><span id="bagCount">(0)</span>
   </button>
+  <button id="notifBellBtn" onclick="openChatScreen()" title="الرسائل">
+    🔔<span id="notifBellBadge"></span>
+  </button>
   <span id="userNameBadge" class="user-badge" style="display:none;"></span>
   <button id="accountBtn" class="logout-btn" onclick="openAccountScreen()" style="display:none;">👤 حسابي</button>
   <button id="homeBtn" class="logout-btn" onclick="goTo('menu')" style="display:none;">القائمة</button>
 </header>
+
+<nav id="bottomNav">
+  <button class="bnav-item" id="bnavHome" onclick="goTo('menu')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 L12 4 L21 11 V20 a1 1 0 0 1-1 1 H4 a1 1 0 0 1-1-1 Z"/><path d="M9 21 V13 H15 V21"/></svg>
+    <span>القائمة</span>
+  </button>
+  <button class="bnav-item" id="bnavCart" onclick="openCart()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.4"/><circle cx="18" cy="21" r="1.4"/><path d="M2 3 h3 l2.6 12.4 a2 2 0 0 0 2 1.6 h8 a2 2 0 0 0 2-1.6 L21 7 H6"/></svg>
+    <span>السيارة</span>
+    <span class="bnav-badge" id="bnavCartBadge"></span>
+  </button>
+  <button class="bnav-item" id="bnavChat" onclick="openChatScreen()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5 H20 V16 H10 L5 20 V16 H4 Z"/></svg>
+    <span>الدردشة</span>
+    <span class="bnav-badge" id="bnavChatBadge"></span>
+  </button>
+  <button class="bnav-item" id="bnavAccount" onclick="openAccountScreen()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20 c0-4.4 3.6-7 8-7 s8 2.6 8 7"/></svg>
+    <span>حسابي</span>
+  </button>
+  <button class="bnav-item" id="bnavSettings" onclick="openSettingsScreen()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.97 7.97 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3h-4l-.3 2.9a8 8 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.97 7.97 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 1.7 1L11 21h4l.3-2.9a8 8 0 0 0 1.7-1l2.5 1 2-3.5Z"/></svg>
+    <span>الإعدادات</span>
+  </button>
+</nav>
 
 <div id="mainMenuScreen" class="menu-screen">
   <div class="menu-grid">
@@ -719,19 +790,14 @@
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="18" r="8"/><path d="M10 52 c0-10 6-16 14-16 s14 6 14 16"/><circle cx="46" cy="22" r="6"/><path d="M38 52 c0-8 4-13 8-13 s8 4 9 10"/></svg>
       <span>تقارير الزيارات (كل المناديب)</span>
     </button>
-    <button id="groupChatBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openGroupChat()">
-      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 14 H44 V38 H24 L14 48 V38 H8 Z" stroke-linejoin="round"/><circle cx="18" cy="26" r="2" fill="currentColor" stroke="none"/><circle cx="26" cy="26" r="2" fill="currentColor" stroke="none"/><circle cx="34" cy="26" r="2" fill="currentColor" stroke="none"/></svg>
-      <span>الدردشة العامة</span>
-    </button>
-    <button id="privateChatBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openPrivateChat()">
-      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 14 H44 V38 H24 L14 48 V38 H8 Z" stroke-linejoin="round"/></svg>
-      <span>الدردشة مع الإدارة</span>
-      <span id="privateChatUnreadDot" style="display:none; width:9px; height:9px; border-radius:50%; background:#C0392B; margin-inline-start:auto;"></span>
-    </button>
-    <button id="privateChatAdminBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openPrivateChatAdmin()">
-      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 14 H44 V38 H24 L14 48 V38 H8 Z" stroke-linejoin="round"/><circle cx="50" cy="12" r="8"/></svg>
-      <span>الدردشة مع المناديب</span>
-    </button>
+  </div>
+  <button class="change-pw-link" onclick="handleLogout()" style="display:block; margin:30px auto 0; text-align:center;">🚪 تسجيل خروج</button>
+</div>
+
+<div id="settingsScreen" class="report-screen" style="display:none;">
+  <button class="back-btn" onclick="goTo('menu')">‹ رجوع</button>
+  <h2>الإعدادات</h2>
+  <div class="menu-grid" style="grid-template-columns:1fr;">
     <button id="enableNotifBtn" class="menu-card" style="flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="enablePushNotifications()">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 8 a14 14 0 0 1 14 14 v10 l6 10 H12 l6-10 V22 a14 14 0 0 1 14-14 Z"/><path d="M26 50 a6 6 0 0 0 12 0"/></svg>
       <span id="enableNotifBtnLabel">تفعيل إشعارات التحديثات</span>
@@ -745,7 +811,44 @@
       <span>إعادة مزامنة المخزون اللحظي (للإدارة فقط)</span>
     </button>
   </div>
-  <button class="change-pw-link" onclick="handleLogout()" style="display:block; margin:30px auto 0; text-align:center;">🚪 تسجيل خروج</button>
+</div>
+
+<div id="chatScreen" class="report-screen" style="display:none; flex-direction:column; height:100%;">
+  <button class="back-btn" onclick="goTo('menu')">‹ رجوع</button>
+  <h2>الدردشة</h2>
+  <div id="chatTabs" style="display:flex; gap:8px; margin-bottom:12px;">
+    <button class="chat-tab active" id="chatTabBtn_group" onclick="switchChatTab('group')">العامة</button>
+    <button class="chat-tab" id="chatTabBtn_admin" onclick="switchChatTab('admin')" style="display:none;">الإدارة</button>
+    <button class="chat-tab" id="chatTabBtn_reps" onclick="switchChatTab('reps')" style="display:none;">المناديب</button>
+  </div>
+
+  <div id="chatPane_group" class="chat-pane" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+    <div id="groupChatMessages" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px 0;"></div>
+    <div style="display:flex; gap:8px; padding-top:10px; border-top:1px solid var(--line);">
+      <input id="groupChatInput" placeholder="اكتب رسالة..." style="flex:1; padding:11px 14px; border-radius:20px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;" onkeydown="if(event.key==='Enter') sendGroupChatMessage()">
+      <button class="full-btn" style="width:auto; padding:11px 20px; margin:0;" onclick="sendGroupChatMessage()">إرسال</button>
+    </div>
+  </div>
+
+  <div id="chatPane_admin" class="chat-pane" style="display:none; flex-direction:column; flex:1; min-height:0;">
+    <div id="privateChatMessages" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px 0;"></div>
+    <div style="display:flex; gap:8px; padding-top:10px; border-top:1px solid var(--line);">
+      <input id="privateChatInput" placeholder="اكتب رسالة..." style="flex:1; padding:11px 14px; border-radius:20px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;" onkeydown="if(event.key==='Enter') sendPrivateChatMessage()">
+      <button class="full-btn" style="width:auto; padding:11px 20px; margin:0;" onclick="sendPrivateChatMessage()">إرسال</button>
+    </div>
+  </div>
+
+  <div id="chatPane_reps" class="chat-pane" style="display:none; flex-direction:column; flex:1; min-height:0;">
+    <div class="field">
+      <label for="pcAdminRepSelect">اختر المندوب</label>
+      <select id="pcAdminRepSelect" onchange="loadPrivateChatForRep()"></select>
+    </div>
+    <div id="privateChatAdminMessages" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px 0;"></div>
+    <div style="display:flex; gap:8px; padding-top:10px; border-top:1px solid var(--line);">
+      <input id="privateChatAdminInput" placeholder="اكتب رسالة..." style="flex:1; padding:11px 14px; border-radius:20px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;" onkeydown="if(event.key==='Enter') sendPrivateChatAdminMessage()">
+      <button class="full-btn" style="width:auto; padding:11px 20px; margin:0;" onclick="sendPrivateChatAdminMessage()">إرسال</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-wrap" id="sendUpdateNoticeModal">
@@ -822,41 +925,6 @@
     <select id="vrAdminRepSelect" onchange="loadVisitReportsForRep()"></select>
   </div>
   <div id="vrAdminList"></div>
-</div>
-
-<div id="groupChatScreen" class="report-screen" style="display:none; flex-direction:column; height:100%;">
-  <button class="back-btn" onclick="openAccountScreen()">‹ رجوع</button>
-  <h2>الدردشة العامة</h2>
-  <div class="mdesc" style="margin:-6px 0 10px;">كل المناديب والإدارة يقدروا يشوفوا الرسائل دي</div>
-  <div id="groupChatMessages" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px 0;"></div>
-  <div style="display:flex; gap:8px; padding-top:10px; border-top:1px solid var(--line);">
-    <input id="groupChatInput" placeholder="اكتب رسالة..." style="flex:1; padding:11px 14px; border-radius:20px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;" onkeydown="if(event.key==='Enter') sendGroupChatMessage()">
-    <button class="full-btn" style="width:auto; padding:11px 20px; margin:0;" onclick="sendGroupChatMessage()">إرسال</button>
-  </div>
-</div>
-
-<div id="privateChatScreen" class="report-screen" style="display:none; flex-direction:column; height:100%;">
-  <button class="back-btn" onclick="openAccountScreen()">‹ رجوع</button>
-  <h2>الدردشة مع الإدارة</h2>
-  <div id="privateChatMessages" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px 0;"></div>
-  <div style="display:flex; gap:8px; padding-top:10px; border-top:1px solid var(--line);">
-    <input id="privateChatInput" placeholder="اكتب رسالة..." style="flex:1; padding:11px 14px; border-radius:20px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;" onkeydown="if(event.key==='Enter') sendPrivateChatMessage()">
-    <button class="full-btn" style="width:auto; padding:11px 20px; margin:0;" onclick="sendPrivateChatMessage()">إرسال</button>
-  </div>
-</div>
-
-<div id="privateChatAdminScreen" class="report-screen" style="display:none; flex-direction:column; height:100%;">
-  <button class="back-btn" onclick="openAccountScreen()">‹ رجوع</button>
-  <h2>الدردشة مع المناديب</h2>
-  <div class="field">
-    <label for="pcAdminRepSelect">اختر المندوب</label>
-    <select id="pcAdminRepSelect" onchange="loadPrivateChatForRep()"></select>
-  </div>
-  <div id="privateChatAdminMessages" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px 0;"></div>
-  <div style="display:flex; gap:8px; padding-top:10px; border-top:1px solid var(--line);">
-    <input id="privateChatAdminInput" placeholder="اكتب رسالة..." style="flex:1; padding:11px 14px; border-radius:20px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;" onkeydown="if(event.key==='Enter') sendPrivateChatAdminMessage()">
-    <button class="full-btn" style="width:auto; padding:11px 20px; margin:0;" onclick="sendPrivateChatAdminMessage()">إرسال</button>
-  </div>
 </div>
 
 <div class="modal-wrap" id="visitReportDetailModal">
@@ -1368,21 +1436,20 @@
       ub.textContent = currentRep.isAdmin ? 'الإدارة' : currentRep.name;
       ub.style.display = 'flex';
     }
-    const rsb = document.getElementById('resyncStockBtn');
-    if(rsb) rsb.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
-    const sun = document.getElementById('sendUpdateNotifBtn');
-    if(sun) sun.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
-    const gcb = document.getElementById('groupChatBtn');
-    if(gcb) gcb.style.display = currentRep ? 'flex' : 'none';
-    const pcb = document.getElementById('privateChatBtn');
-    if(pcb) pcb.style.display = (currentRep && currentRep.code != null) ? 'flex' : 'none';
-    const pcab = document.getElementById('privateChatAdminBtn');
-    if(pcab) pcab.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    const bell = document.getElementById('notifBellBtn');
+    if(bell) bell.style.display = 'flex';
+    const bnav = document.getElementById('bottomNav');
+    if(bnav) bnav.classList.add('show');
+    document.body.classList.add('has-bottom-nav');
     refreshEnableNotifBtnLabel();
     applyRepLock();
     goTo('menu');
     maybeShowDataUpdateNotice();
-    if(fbDb) watchPrivateChatUnread();
+    if(fbDb){
+      watchGroupChatUnread();
+      if(currentRep && currentRep.isAdmin) watchAdminAllChatsUnread();
+      else watchPrivateChatUnread();
+    }
   }
 
   function showLogin(){
@@ -1393,6 +1460,11 @@
     if(logo && brand) logo.src = brand.src;
     const lb = document.getElementById('logoutBtn');
     if(lb) lb.style.display = 'none';
+    const bell = document.getElementById('notifBellBtn');
+    if(bell) bell.style.display = 'none';
+    const bnav = document.getElementById('bottomNav');
+    if(bnav) bnav.classList.remove('show');
+    document.body.classList.remove('has-bottom-nav');
   }
 
   function applyRepLock(){
@@ -1420,7 +1492,7 @@
   // ---------- Screen navigation ----------
   function goTo(screen){
     const map = { menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen', orderHistory:'orderHistoryScreen', account:'accountScreen', route:'routeScreen' };
-    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -1432,6 +1504,8 @@
     }
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = (screen === 'store') ? 'flex' : 'none';
+    if(screen === 'menu') setBottomNavActive('bnavHome');
+    else if(typeof setBottomNavActive === 'function') setBottomNavActive(null);
   }
 
   function monthRange(){
@@ -1475,7 +1549,7 @@
     const [f, t] = monthRange();
     document.getElementById('reportFrom').value = f;
     document.getElementById('reportTo').value = t;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2050,7 +2124,7 @@
   }
 
   function openDebtList(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2233,7 +2307,7 @@
   }
 
   function openArrears(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2394,23 +2468,48 @@
   }
 
   function openAccountScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
     document.getElementById('accountScreen').style.display = 'block';
     currentScreenId = 'accountScreen';
+    setBottomNavActive('bnavAccount');
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
     const vrBtn = document.getElementById('visitReportBtn');
     if(vrBtn) vrBtn.style.display = (currentRep && currentRep.code != null) ? 'flex' : 'none';
     const vrAdminBtn = document.getElementById('visitReportsAdminBtn');
     if(vrAdminBtn) vrAdminBtn.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
-    refreshEnableNotifBtnLabel();
     if(typeof detachVisitReportListeners === 'function') detachVisitReportListeners();
     if(groupChatListenerRef){ try{ groupChatListenerRef.off('value'); }catch(e){} groupChatListenerRef = null; }
     if(privateChatListenerRef){ try{ privateChatListenerRef.off('value'); }catch(e){} privateChatListenerRef = null; }
     if(privateChatAdminListenerRef){ try{ privateChatAdminListenerRef.off('value'); }catch(e){} privateChatAdminListenerRef = null; }
+    refreshAdminChatUnreadState();
+  }
+
+  function openSettingsScreen(){
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    document.getElementById('settingsScreen').style.display = 'block';
+    currentScreenId = 'settingsScreen';
+    setBottomNavActive('bnavSettings');
+    const bag = document.getElementById('bagBtn');
+    if(bag) bag.style.display = 'none';
+    const rsb = document.getElementById('resyncStockBtn');
+    if(rsb) rsb.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    const sun = document.getElementById('sendUpdateNotifBtn');
+    if(sun) sun.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    refreshEnableNotifBtnLabel();
+  }
+
+  function setBottomNavActive(activeId){
+    ['bnavHome','bnavCart','bnavChat','bnavAccount','bnavSettings'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.classList.toggle('active', id === activeId);
+    });
   }
 
   // ---------- Route plan (خط السير) ----------
@@ -2441,7 +2540,7 @@
   }
 
   function openRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2535,7 +2634,7 @@
   }
 
   function openVisitReportForm(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2714,7 +2813,7 @@
   }
 
   function openVisitReportsAdmin(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2942,21 +3041,65 @@
   }
 
   // ---- Group chat ----
-  let groupChatListenerRef = null;
-  function openGroupChat(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+  // ---------- Unified chat screen (tabs: العامة / الإدارة / المناديب) ----------
+  let currentChatTab = 'group';
+  let chatUnreadState = { group: false, admin: false, reps: false };
+
+  function updateChatBadges(){
+    const anyUnread = chatUnreadState.group || chatUnreadState.admin || chatUnreadState.reps;
+    const bell = document.getElementById('notifBellBadge');
+    const bnav = document.getElementById('bnavChatBadge');
+    [bell, bnav].forEach(el => {
+      if(!el) return;
+      el.style.display = anyUnread ? 'flex' : 'none';
+    });
+  }
+
+  function openChatScreen(){
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
-    document.getElementById('groupChatScreen').style.display = 'flex';
-    currentScreenId = 'groupChatScreen';
+    document.getElementById('chatScreen').style.display = 'flex';
+    currentScreenId = 'chatScreen';
+    setBottomNavActive('bnavChat');
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
+
+    const isAdmin = currentRep && currentRep.isAdmin;
+    const isRep = currentRep && currentRep.code != null;
+    document.getElementById('chatTabBtn_admin').style.display = (isRep && !isAdmin) ? 'block' : 'none';
+    document.getElementById('chatTabBtn_reps').style.display = isAdmin ? 'block' : 'none';
+
+    // default to whichever tab has unread messages, else the group tab
+    let defaultTab = 'group';
+    if(chatUnreadState.admin && !isAdmin) defaultTab = 'admin';
+    else if(chatUnreadState.reps && isAdmin) defaultTab = 'reps';
+    switchChatTab(defaultTab);
+  }
+
+  function switchChatTab(tab){
+    currentChatTab = tab;
+    ['group','admin','reps'].forEach(t => {
+      const btn = document.getElementById('chatTabBtn_' + t);
+      const pane = document.getElementById('chatPane_' + t);
+      if(btn) btn.classList.toggle('active', t === tab);
+      if(pane) pane.style.display = (t === tab) ? 'flex' : 'none';
+    });
+    if(tab === 'group') startGroupChatListener();
+    else if(tab === 'admin') startPrivateChatListener();
+    else if(tab === 'reps') openPrivateChatAdminPane();
+  }
+
+  // ---- Group chat ----
+  let groupChatListenerRef = null;
+  function startGroupChatListener(){
     if(!fbDb) return;
     if(groupChatListenerRef){ try{ groupChatListenerRef.off('value'); }catch(e){} }
     groupChatListenerRef = fbDb.ref('chats/group/messages');
     groupChatListenerRef.on('value', snap => {
       renderChatMessages('groupChatMessages', snap.val(), m => currentRep && m.senderCode === (currentRep.code != null ? currentRep.code : 'admin'));
+      markGroupChatSeen(snap.val());
     });
   }
   function sendGroupChatMessage(){
@@ -2970,20 +3113,35 @@
     });
     input.value = '';
   }
-
-  // ---- Private chat: rep side ----
-  let privateChatListenerRef = null;
-  function openPrivateChat(){
-    if(!currentRep || currentRep.code == null){ showToast('الدردشة الخاصة متاحة للمناديب فقط'); return; }
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el) el.style.display = 'none';
-    });
-    document.getElementById('privateChatScreen').style.display = 'flex';
-    currentScreenId = 'privateChatScreen';
-    const bag = document.getElementById('bagBtn');
-    if(bag) bag.style.display = 'none';
+  function markGroupChatSeen(messagesObj){
+    const entries = Object.values(messagesObj || {});
+    if(!entries.length) return;
+    const lastTs = Math.max(...entries.map(m => m.ts || 0));
+    try{ localStorage.setItem('lastSeenGroupChat', String(lastTs)); }catch(e){}
+    chatUnreadState.group = false;
+    updateChatBadges();
+  }
+  let groupChatUnreadListenerRef = null;
+  function watchGroupChatUnread(){
     if(!fbDb) return;
+    if(groupChatUnreadListenerRef){ try{ groupChatUnreadListenerRef.off('value'); }catch(e){} }
+    groupChatUnreadListenerRef = fbDb.ref('chats/group/messages');
+    groupChatUnreadListenerRef.on('value', snap => {
+      const entries = Object.values(snap.val() || {});
+      if(!entries.length) return;
+      let lastSeen = 0;
+      try{ lastSeen = parseInt(localStorage.getItem('lastSeenGroupChat') || '0', 10); }catch(e){}
+      const myKey = currentRep && currentRep.code != null ? currentRep.code : 'admin';
+      const isOpen = currentScreenId === 'chatScreen' && currentChatTab === 'group';
+      chatUnreadState.group = !isOpen && entries.some(m => m.senderCode !== myKey && m.ts > lastSeen);
+      updateChatBadges();
+    });
+  }
+
+  // ---- Private chat: rep side (chats with "الإدارة") ----
+  let privateChatListenerRef = null;
+  function startPrivateChatListener(){
+    if(!currentRep || currentRep.code == null || !fbDb) return;
     if(privateChatListenerRef){ try{ privateChatListenerRef.off('value'); }catch(e){} }
     privateChatListenerRef = fbDb.ref('chats/private/' + currentRep.code + '/messages');
     privateChatListenerRef.on('value', snap => {
@@ -3001,20 +3159,14 @@
     input.value = '';
   }
 
-  // ---- Private chat: admin side ----
+  // ---- Private chat: admin side (chats with "المناديب") ----
   let privateChatAdminListenerRef = null;
-  function openPrivateChatAdmin(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el) el.style.display = 'none';
-    });
-    document.getElementById('privateChatAdminScreen').style.display = 'flex';
-    currentScreenId = 'privateChatAdminScreen';
-    const bag = document.getElementById('bagBtn');
-    if(bag) bag.style.display = 'none';
+  function openPrivateChatAdminPane(){
     const sel = document.getElementById('pcAdminRepSelect');
-    const reps = [...REPS].sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-    sel.innerHTML = reps.map(r => `<option value="${r.code}">${r.name} (${r.code})</option>`).join('');
+    if(!sel.options.length){
+      const reps = [...REPS].sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+      sel.innerHTML = reps.map(r => `<option value="${r.code}">${r.name} (${r.code})</option>`).join('');
+    }
     loadPrivateChatForRep();
   }
   function loadPrivateChatForRep(){
@@ -3026,6 +3178,7 @@
     privateChatAdminListenerRef.on('value', snap => {
       if(document.getElementById('pcAdminRepSelect').value !== String(repCode)) return; // stale listener
       renderChatMessages('privateChatAdminMessages', snap.val(), m => m.senderCode === 'admin');
+      markPrivateChatAdminSeen(repCode, snap.val());
     });
   }
   function sendPrivateChatAdminMessage(){
@@ -3040,30 +3193,68 @@
     input.value = '';
   }
 
-  // ---- Unread indicator (rep's private chat button) ----
-  let privateChatUnreadListenerRef = null;
+  // ---- Unread tracking ----
   function markPrivateChatSeen(messagesObj){
     if(!currentRep || currentRep.code == null) return;
     const entries = Object.values(messagesObj || {});
     if(!entries.length) return;
     const lastTs = Math.max(...entries.map(m => m.ts || 0));
     try{ localStorage.setItem('lastSeenPrivateChat_' + currentRep.code, String(lastTs)); }catch(e){}
-    const dot = document.getElementById('privateChatUnreadDot');
-    if(dot) dot.style.display = 'none';
+    chatUnreadState.admin = false;
+    updateChatBadges();
   }
+  let privateChatUnreadListenerRef = null;
   function watchPrivateChatUnread(){
     if(!fbDb || !currentRep || currentRep.code == null) return;
     if(privateChatUnreadListenerRef){ try{ privateChatUnreadListenerRef.off('value'); }catch(e){} }
     privateChatUnreadListenerRef = fbDb.ref('chats/private/' + currentRep.code + '/messages');
     privateChatUnreadListenerRef.on('value', snap => {
-      const data = snap.val() || {};
-      const entries = Object.values(data);
+      const entries = Object.values(snap.val() || {});
       if(!entries.length) return;
       let lastSeen = 0;
       try{ lastSeen = parseInt(localStorage.getItem('lastSeenPrivateChat_' + currentRep.code) || '0', 10); }catch(e){}
-      const hasUnread = entries.some(m => m.senderCode === 'admin' && m.ts > lastSeen);
-      const dot = document.getElementById('privateChatUnreadDot');
-      if(dot) dot.style.display = hasUnread ? 'block' : 'none';
+      const isOpen = currentScreenId === 'chatScreen' && currentChatTab === 'admin';
+      chatUnreadState.admin = !isOpen && entries.some(m => m.senderCode === 'admin' && m.ts > lastSeen);
+      updateChatBadges();
+    });
+  }
+
+  function markPrivateChatAdminSeen(repCode, messagesObj){
+    const entries = Object.values(messagesObj || {});
+    if(!entries.length) return;
+    const lastTs = Math.max(...entries.map(m => m.ts || 0));
+    try{ localStorage.setItem('lastSeenPrivateChatAdmin_' + repCode, String(lastTs)); }catch(e){}
+    refreshAdminChatUnreadState();
+  }
+  let adminAllChatsListenerRef = null;
+  let adminChatsSnapshotCache = {};
+  function refreshAdminChatUnreadState(){
+    const isOpenReps = currentScreenId === 'chatScreen' && currentChatTab === 'reps';
+    const openRepCode = isOpenReps ? (document.getElementById('pcAdminRepSelect').value || null) : null;
+    let anyUnread = false;
+    Object.entries(adminChatsSnapshotCache).forEach(([repCode, messages]) => {
+      const entries = Object.values(messages || {});
+      if(!entries.length) return;
+      let lastSeen = 0;
+      try{ lastSeen = parseInt(localStorage.getItem('lastSeenPrivateChatAdmin_' + repCode) || '0', 10); }catch(e){}
+      const isThisOpen = openRepCode === String(repCode);
+      const hasUnread = !isThisOpen && entries.some(m => m.senderCode !== 'admin' && m.ts > lastSeen);
+      if(hasUnread) anyUnread = true;
+    });
+    chatUnreadState.reps = anyUnread;
+    updateChatBadges();
+  }
+  function watchAdminAllChatsUnread(){
+    if(!fbDb || !currentRep || !currentRep.isAdmin) return;
+    if(adminAllChatsListenerRef){ try{ adminAllChatsListenerRef.off('value'); }catch(e){} }
+    adminAllChatsListenerRef = fbDb.ref('chats/private');
+    adminAllChatsListenerRef.on('value', snap => {
+      const data = snap.val() || {};
+      adminChatsSnapshotCache = {};
+      Object.entries(data).forEach(([repCode, node]) => {
+        adminChatsSnapshotCache[repCode] = (node && node.messages) || {};
+      });
+      refreshAdminChatUnreadState();
     });
   }
 
@@ -3160,7 +3351,7 @@
   }
 
   function openOrderHistory(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','groupChatScreen','privateChatScreen','privateChatAdminScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3380,6 +3571,11 @@
     const keys = Object.keys(cart);
     const count = keys.reduce((s,k) => s + cart[k].qty, 0);
     document.getElementById('bagCount').textContent = `(${count})`;
+    const bnavBadge = document.getElementById('bnavCartBadge');
+    if(bnavBadge){
+      bnavBadge.textContent = count > 0 ? String(count) : '';
+      bnavBadge.style.display = count > 0 ? 'flex' : 'none';
+    }
     const body = document.getElementById('drawerBody');
     if(keys.length === 0){
       body.innerHTML = '<div class="empty-note">حقيبتك فارغة حتى الآن</div>';
@@ -3426,8 +3622,8 @@
     saveDraft();
   }
 
-  function openCart(){ document.getElementById('drawer').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
-  function closeCart(){ document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+  function openCart(){ document.getElementById('drawer').classList.add('open'); document.getElementById('overlay').classList.add('open'); setBottomNavActive('bnavCart'); }
+  function closeCart(){ document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); setBottomNavActive(currentScreenId === 'mainMenuScreen' ? 'bnavHome' : null); }
   function openCheckout(){ closeCart(); document.getElementById('checkoutModal').classList.add('open'); }
   function closeCheckout(){ document.getElementById('checkoutModal').classList.remove('open'); }
   let lastWaUrl = '';
@@ -3973,9 +4169,8 @@
     'routeScreen': () => openAccountScreen(),
     'visitReportScreen': () => openAccountScreen(),
     'visitReportsAdminScreen': () => openAccountScreen(),
-    'groupChatScreen': () => openAccountScreen(),
-    'privateChatScreen': () => openAccountScreen(),
-    'privateChatAdminScreen': () => openAccountScreen()
+    'chatScreen': () => goTo('menu'),
+    'settingsScreen': () => goTo('menu')
   };
   function getCurrentScreenId(){
     return currentScreenId || 'mainMenuScreen';
