@@ -17,6 +17,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
@@ -718,12 +719,33 @@
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="18" r="8"/><path d="M10 52 c0-10 6-16 14-16 s14 6 14 16"/><circle cx="46" cy="22" r="6"/><path d="M38 52 c0-8 4-13 8-13 s8 4 9 10"/></svg>
       <span>تقارير الزيارات (كل المناديب)</span>
     </button>
+    <button id="enableNotifBtn" class="menu-card" style="flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="enablePushNotifications()">
+      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 8 a14 14 0 0 1 14 14 v10 l6 10 H12 l6-10 V22 a14 14 0 0 1 14-14 Z"/><path d="M26 50 a6 6 0 0 0 12 0"/></svg>
+      <span id="enableNotifBtnLabel">تفعيل إشعارات التحديثات</span>
+    </button>
+    <button id="sendUpdateNotifBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openSendUpdateNotice()">
+      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 14 L58 32 L6 50 L14 32 Z" stroke-linejoin="round"/></svg>
+      <span>إرسال إشعار تحديث بيانات لكل المناديب</span>
+    </button>
     <button id="resyncStockBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="resyncLiveStock()">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 32 a20 20 0 0 1 34-14 M52 32 a20 20 0 0 1-34 14"/><path d="M46 10 v10 h-10 M18 54 v-10 h10"/></svg>
       <span>إعادة مزامنة المخزون اللحظي (للإدارة فقط)</span>
     </button>
   </div>
   <button class="change-pw-link" onclick="handleLogout()" style="display:block; margin:30px auto 0; text-align:center;">🚪 تسجيل خروج</button>
+</div>
+
+<div class="modal-wrap" id="sendUpdateNoticeModal">
+  <div class="modal">
+    <h3>إرسال إشعار تحديث بيانات</h3>
+    <div class="mdesc" style="margin-bottom:14px;">هيوصل إشعار فوري لكل المناديب اللي فعّلوا الإشعارات، حتى لو التطبيق مقفول عندهم.</div>
+    <div class="field"><label for="notifDateLabel">تاريخ التحديث (يظهر في الإشعار)</label><input id="notifDateLabel"></div>
+    <div class="field"><label for="notifCategories">شمل التحديث (سطر لكل بند)</label>
+      <textarea id="notifCategories" rows="4" style="width:100%; padding:11px 14px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;"></textarea>
+    </div>
+    <button class="full-btn" onclick="sendUpdateNotice()">إرسال الإشعار الآن</button>
+    <button class="ghost-btn" style="width:100%; margin-top:10px;" onclick="closeSendUpdateNotice()">إلغاء</button>
+  </div>
 </div>
 
 <div id="routeScreen" class="report-screen" style="display:none;">
@@ -1013,6 +1035,8 @@
         });
         if(changed) renderProducts();
       });
+
+      watchDataUpdateNotice();
     }catch(e){ console.warn('Firebase init failed', e); }
   }
 
@@ -1060,30 +1084,130 @@
   const REP_MONTHLY_TARGET = {"1":1000000,"2":1000000,"3":250000,"4":1000000,"5":250000,"6":250000,"7":250000,"8":1000000,"9":1000000,"10":1000000,"11":1000000,"12":250000,"13":1000000,"14":1000000,"15":1000000,"16":1000000,"17":1000000,"18":250000,"19":1000000,"20":250000,"21":250000,"22":1000000,"23":1000000,"24":1000000,"25":250000,"26":1000000,"27":250000,"28":1000000,"29":1000000,"30":250000,"31":1000000,"32":250000,"33":1000000,"34":1000000,"35":250000,"36":1000000,"37":1000000,"38":250000,"39":1000000,"40":250000,"41":1000000,"42":1000000,"43":250000,"44":1000000,"45":1000000,"46":250000,"47":1000000,"48":250000,"49":1000000,"50":1000000,"51":250000,"52":250000,"53":1000000,"54":1000000,"55":1000000,"56":1000000,"57":1000000,"58":1000000,"59":1000000,"60":1000000,"61":1000000,"62":1000000,"63":1000000,"64":1000000,"65":1000000,"66":1000000,"67":1000000,"68":1000000,"69":1000000,"70":1000000,"71":1000000,"72":1000000,"73":1000000,"74":1000000,"75":250000,"76":250000,"77":1000000,"78":1000000,"79":250000,"80":1000000,"81":250000,"82":1000000,"83":1000000,"84":1000000,"85":1000000,"86":1000000,"87":1000000,"88":1000000,"89":250000,"90":250000,"91":250000,"92":1000000,"93":1000000,"94":1000000,"95":250000,"96":1000000,"97":1000000,"98":1000000,"99":250000,"100":1000000,"101":250000,"102":250000,"103":250000,"104":1000000,"105":250000,"106":1000000,"107":1000000,"108":250000,"109":250000,"110":1000000,"111":1000000,"112":1000000,"113":250000,"114":250000,"115":250000,"116":250000,"117":250000,"118":1000000,"119":250000,"120":250000,"121":1000000,"122":1000000,"123":1000000,"124":250000,"125":1000000,"126":1000000,"127":1000000,"128":1000000,"129":1000000,"130":1000000,"131":250000,"132":250000,"133":1000000,"134":1000000,"135":1000000,"136":250000,"137":1000000,"138":1000000,"139":250000,"140":1000000,"141":1000000,"142":1000000,"143":1000000,"144":1000000,"145":1000000,"146":1000000,"147":1000000,"148":1000000,"149":1000000,"150":1000000,"151":1000000,"152":250000,"153":250000,"154":1000000,"155":1000000,"156":1000000,"157":1000000,"158":1000000,"159":1000000,"160":1000000,"161":250000,"162":1000000,"163":1000000,"164":1000000,"165":1000000,"166":250000,"167":1000000,"168":250000,"169":250000,"170":1000000,"171":1000000,"172":1000000,"173":1000000};
   function getRepMonthlyTarget(repCode){ return REP_MONTHLY_TARGET[String(repCode)] || 1000000; }
 
-  // Bumped every time Waleed deploys a fresh data merge (prices/stock/balances/invoices).
-  // Shown once per user as a one-time "data refreshed" notice after their next login;
-  // update the "version" (and the summary) whenever a new data update is deployed.
-  const DATA_UPDATE_INFO = {
+  // Fallback shown only if Firebase can't be reached (e.g. first paint, offline).
+  // The live/real version now comes from Firebase at systemInfo/dataUpdate — see
+  // watchDataUpdateNotice() below — so this notice works instantly for anyone with
+  // the app open, and (once the Cloud Function is deployed) as a real push
+  // notification even when the app is fully closed.
+  const DATA_UPDATE_INFO_FALLBACK = {
     version: '2026-08-13',
     dateLabel: '13 أغسطس 2026',
     categories: ['أرصدة المخزون', 'كشف حساب العملاء', 'المقبوضات', 'فواتير المبيعات']
   };
 
-  function maybeShowDataUpdateNotice(){
+  function showDataUpdateNoticeFrom(info){
+    if(!info || !info.version) return;
     let lastSeen = null;
     try{ lastSeen = localStorage.getItem('lastSeenDataUpdateVersion'); }catch(e){}
-    if(lastSeen === DATA_UPDATE_INFO.version) return;
+    if(lastSeen === info.version) return;
     const list = document.getElementById('dataUpdateCategories');
-    if(list) list.innerHTML = DATA_UPDATE_INFO.categories.map(c => `<li>${c}</li>`).join('');
+    const categories = Array.isArray(info.categories) ? info.categories : String(info.categories || '').split('\n').filter(Boolean);
+    if(list) list.innerHTML = categories.map(c => `<li>${c}</li>`).join('');
     const dateEl = document.getElementById('dataUpdateDate');
-    if(dateEl) dateEl.textContent = DATA_UPDATE_INFO.dateLabel;
+    if(dateEl) dateEl.textContent = info.dateLabel || '';
     const modal = document.getElementById('dataUpdateModal');
     if(modal) modal.classList.add('open');
-    try{ localStorage.setItem('lastSeenDataUpdateVersion', DATA_UPDATE_INFO.version); }catch(e){}
+    try{ localStorage.setItem('lastSeenDataUpdateVersion', info.version); }catch(e){}
   }
   function closeDataUpdateNotice(){
     const modal = document.getElementById('dataUpdateModal');
     if(modal) modal.classList.remove('open');
+  }
+  // Kept for any older call sites; now just forwards to the fallback so a
+  // never-connected device still shows something reasonable on first login.
+  function maybeShowDataUpdateNotice(){
+    if(!fbDb) showDataUpdateNoticeFrom(DATA_UPDATE_INFO_FALLBACK);
+  }
+
+  // Live-listens to systemInfo/dataUpdate. Whenever Waleed (as admin) sends a new
+  // update notice via "إرسال إشعار تحديث بيانات لكل المناديب", every device with the
+  // app open right now sees the modal INSTANTLY — no re-login needed. A deployed
+  // Cloud Function (see the code Claude provided separately) also fires a real OS
+  // push notification from the same write, reaching devices even if the app is closed.
+  let dataUpdateWatcherAttached = false;
+  function watchDataUpdateNotice(){
+    if(!fbDb || dataUpdateWatcherAttached) return;
+    dataUpdateWatcherAttached = true;
+    fbDb.ref('systemInfo/dataUpdate').on('value', snap => {
+      const info = snap.val();
+      if(info) showDataUpdateNoticeFrom(info);
+    });
+  }
+
+  // ---------- Push notifications (OneSignal) ----------
+  // Real OneSignal App ID for Future Cosmetics (set up 2026-08-13). To actually
+  // SEND an update notice to everyone, log into onesignal.com → Messages →
+  // "New Push" → "Send to All Subscribers".
+  const ONESIGNAL_APP_ID = '73d28d31-eb8c-4b5b-9696-90725cd322ee';
+  let oneSignalReady = false;
+
+  function notifPermissionState(){
+    if(!('Notification' in window)) return 'unsupported';
+    return Notification.permission; // 'default' | 'granted' | 'denied'
+  }
+
+  function refreshEnableNotifBtnLabel(){
+    const label = document.getElementById('enableNotifBtnLabel');
+    if(!label) return;
+    const state = notifPermissionState();
+    if(state === 'unsupported') label.textContent = 'الإشعارات غير مدعومة على المتصفح ده';
+    else if(state === 'granted') label.textContent = '✓ الإشعارات مفعّلة';
+    else if(state === 'denied') label.textContent = 'الإشعارات ممنوعة — فعّلها من إعدادات المتصفح';
+    else label.textContent = 'تفعيل إشعارات التحديثات';
+  }
+
+  function initOneSignal(){
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async (OneSignal) => {
+      await OneSignal.init({ appId: ONESIGNAL_APP_ID });
+      oneSignalReady = true;
+      refreshEnableNotifBtnLabel();
+    });
+  }
+
+  async function enablePushNotifications(){
+    if(!('Notification' in window) || !('serviceWorker' in navigator)){
+      showToast('الجهاز/المتصفح ده مش بيدعم الإشعارات');
+      return;
+    }
+    if(!oneSignalReady || typeof OneSignal === 'undefined'){
+      showToast('خدمة الإشعارات لسه بتحمّل، حاول تاني بعد ثانيتين');
+      return;
+    }
+    try{
+      await OneSignal.Notifications.requestPermission();
+      refreshEnableNotifBtnLabel();
+      if(Notification.permission === 'granted'){
+        if(currentRep){
+          const key = currentRep.code != null ? String(currentRep.code) : 'admin';
+          OneSignal.login(key); // tags this subscriber with the rep code, for reference in the OneSignal dashboard
+        }
+        showToast('تم تفعيل الإشعارات بنجاح');
+      } else {
+        showToast('محتاجين إذن الإشعارات عشان تشتغل الخاصية دي');
+      }
+    }catch(e){
+      showToast('حصل خطأ أثناء تفعيل الإشعارات، حاول تاني');
+    }
+  }
+
+  function openSendUpdateNotice(){
+    document.getElementById('notifDateLabel').value = new Date().toLocaleDateString('ar-EG', { day:'numeric', month:'long', year:'numeric' });
+    document.getElementById('notifCategories').value = 'أرصدة المخزون\nكشف حساب العملاء\nالمقبوضات\nفواتير المبيعات';
+    document.getElementById('sendUpdateNoticeModal').classList.add('open');
+  }
+  function closeSendUpdateNotice(){
+    document.getElementById('sendUpdateNoticeModal').classList.remove('open');
+  }
+  function sendUpdateNotice(){
+    if(!fbDb){ showToast('لا يوجد اتصال بالسيرفر دلوقتي'); return; }
+    const dateLabel = document.getElementById('notifDateLabel').value.trim();
+    const categories = document.getElementById('notifCategories').value.split('\n').map(s => s.trim()).filter(Boolean);
+    if(!dateLabel || !categories.length){ showToast('من فضلك املأ التاريخ وبنود التحديث'); return; }
+    const info = { version: 'v' + Date.now(), dateLabel, categories, ts: Date.now() };
+    fbDb.ref('systemInfo/dataUpdate').set(info)
+      .then(() => { showToast('تم إرسال الإشعار لكل المناديب'); closeSendUpdateNotice(); })
+      .catch(() => showToast('حصل خطأ أثناء الإرسال'));
   }
 
   // ---------- Local password override (per-device only) ----------
@@ -1198,6 +1322,9 @@
     }
     const rsb = document.getElementById('resyncStockBtn');
     if(rsb) rsb.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    const sun = document.getElementById('sendUpdateNotifBtn');
+    if(sun) sun.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    refreshEnableNotifBtnLabel();
     applyRepLock();
     goTo('menu');
     maybeShowDataUpdateNotice();
@@ -2224,6 +2351,7 @@
     if(vrBtn) vrBtn.style.display = (currentRep && currentRep.code != null) ? 'flex' : 'none';
     const vrAdminBtn = document.getElementById('visitReportsAdminBtn');
     if(vrAdminBtn) vrAdminBtn.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    refreshEnableNotifBtnLabel();
     if(typeof detachVisitReportListeners === 'function') detachVisitReportListeners();
   }
 
@@ -3606,6 +3734,7 @@
   checkSession();
   if(currentRep) restoreDraft();
   initLiveStock();
+  initOneSignal();
 
   // ---------- In-app back navigation (mobile swipe/hardware back) ----------
   // Instead of letting the OS/browser close the app on the first back gesture,
