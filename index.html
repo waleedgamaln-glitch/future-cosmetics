@@ -815,7 +815,13 @@
 
 <div id="chatScreen" class="report-screen" style="display:none; flex-direction:column; height:100%;">
   <button class="back-btn" onclick="goTo('menu')">‹ رجوع</button>
-  <h2>الدردشة</h2>
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <h2 style="margin:0;">الدردشة</h2>
+    <button id="gameIconBtn" onclick="openGameModal()" title="لعبة XO" style="background:none; border:none; cursor:pointer; padding:6px; display:flex; align-items:center; position:relative;">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--brand, #2F5597)" stroke-width="2"><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+      <span id="gameUnreadDot" style="display:none; position:absolute; top:2px; right:2px; width:9px; height:9px; border-radius:50%; background:#E14D4D;"></span>
+    </button>
+  </div>
   <div id="chatTabs" style="display:flex; gap:8px; margin-bottom:12px;">
     <button class="chat-tab active" id="chatTabBtn_group" onclick="switchChatTab('group')">العامة</button>
     <button class="chat-tab" id="chatTabBtn_admin" onclick="switchChatTab('admin')" style="display:none;">الإدارة</button>
@@ -861,6 +867,35 @@
     </div>
     <button class="full-btn" onclick="sendUpdateNotice()">إرسال الإشعار الآن</button>
     <button class="ghost-btn" style="width:100%; margin-top:10px;" onclick="closeSendUpdateNotice()">إلغاء</button>
+  </div>
+</div>
+
+<div class="modal-wrap" id="gameModal">
+  <div class="modal" style="max-width:400px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <h3 style="margin:0;">لعبة XO</h3>
+      <button onclick="closeGameModal()" style="background:none; border:none; color:var(--muted); font-size:1.3rem; line-height:1; padding:4px 8px; cursor:pointer;">✕</button>
+    </div>
+
+    <div id="gameLobby">
+      <div style="font-size:.82rem; font-weight:800; color:var(--ink); margin-bottom:8px;">تحدى مندوب جديد</div>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <select id="gameOpponentSelect" style="flex:1; padding:11px 14px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;"></select>
+        <button class="full-btn" style="width:auto; padding:11px 20px; margin:0; white-space:nowrap;" onclick="startNewGame()">تحدى</button>
+      </div>
+      <div style="font-size:.82rem; font-weight:800; color:var(--ink); margin-bottom:8px;">ألعابك</div>
+      <div id="gameActiveList" style="display:flex; flex-direction:column; gap:8px; max-height:40vh; overflow-y:auto;">
+        <div class="mdesc">مفيش ألعاب لسه</div>
+      </div>
+    </div>
+
+    <div id="gameBoardView" style="display:none;">
+      <button class="ghost-btn" style="padding:6px 12px; margin-bottom:10px; width:auto;" onclick="backToGameLobby()">‹ رجوع للقائمة</button>
+      <div style="text-align:center; margin-bottom:6px; font-weight:800;" id="gameOpponentName"></div>
+      <div style="text-align:center; margin-bottom:14px; color:var(--muted); font-size:.9rem;" id="gameStatusText"></div>
+      <div id="gameBoardGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:260px; margin:0 auto 16px;"></div>
+      <button class="full-btn" id="gameRematchBtn" style="display:none;" onclick="startNewGame(true)">لعبة جديدة</button>
+    </div>
   </div>
 </div>
 
@@ -3191,6 +3226,191 @@
       senderCode: 'admin', senderName: currentRep.name, text, ts: Date.now()
     });
     input.value = '';
+  }
+
+  // ---- Tic-Tac-Toe (XO) game: real-time multiplayer between reps via Firebase ----
+  let currentGameId = null;
+  let gameBoardListenerRef = null;
+  let myGamesListenerRef = null;
+  let myGamesCache = {}; // gameId -> game data
+  const WIN_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+  function checkGameWinner(board){
+    for(const [a,b,c] of WIN_LINES){
+      if(board[a] && board[a] === board[b] && board[b] === board[c]) return board[a];
+    }
+    if(board.every(v => v)) return 'draw';
+    return null;
+  }
+
+  function openGameModal(){
+    if(!currentRep) return;
+    const sel = document.getElementById('gameOpponentSelect');
+    const opponents = REPS.filter(r => r.code !== currentRep.code).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    sel.innerHTML = opponents.map(r => `<option value="${r.code}">${r.name} (${r.code})</option>`).join('');
+    document.getElementById('gameModal').classList.add('open');
+    document.getElementById('gameLobby').style.display = 'block';
+    document.getElementById('gameBoardView').style.display = 'none';
+    watchMyGames();
+  }
+  function closeGameModal(){
+    document.getElementById('gameModal').classList.remove('open');
+    if(gameBoardListenerRef){ try{ gameBoardListenerRef.off('value'); }catch(e){} gameBoardListenerRef = null; }
+    currentGameId = null;
+  }
+  function backToGameLobby(){
+    if(gameBoardListenerRef){ try{ gameBoardListenerRef.off('value'); }catch(e){} gameBoardListenerRef = null; }
+    currentGameId = null;
+    document.getElementById('gameLobby').style.display = 'block';
+    document.getElementById('gameBoardView').style.display = 'none';
+  }
+
+  function watchMyGames(){
+    if(!fbDb || !currentRep) return;
+    if(myGamesListenerRef){ try{ myGamesListenerRef.off('value'); }catch(e){} }
+    myGamesListenerRef = fbDb.ref('userGames/' + currentRep.code);
+    myGamesListenerRef.on('value', snap => {
+      const ids = Object.keys(snap.val() || {});
+      if(!ids.length){
+        myGamesCache = {};
+        renderGamesList();
+        return;
+      }
+      let remaining = ids.length;
+      ids.forEach(gid => {
+        fbDb.ref('games/' + gid).once('value').then(gsnap => {
+          const g = gsnap.val();
+          if(g) myGamesCache[gid] = g; else delete myGamesCache[gid];
+          remaining--;
+          if(remaining <= 0) renderGamesList();
+        });
+      });
+    });
+  }
+
+  function renderGamesList(){
+    const list = document.getElementById('gameActiveList');
+    if(!currentRep) return;
+    const entries = Object.entries(myGamesCache).sort((a,b) => (b[1].updatedAt||0) - (a[1].updatedAt||0));
+    if(!entries.length){
+      list.innerHTML = '<div class="mdesc">مفيش ألعاب لسه</div>';
+      return;
+    }
+    list.innerHTML = entries.map(([gid, g]) => {
+      const oppCode = Object.keys(g.players || {}).find(c => c !== String(currentRep.code));
+      const oppName = (g.players && g.players[oppCode]) || 'مندوب';
+      let statusLabel;
+      if(g.status === 'finished'){
+        if(g.winner === 'draw') statusLabel = 'تعادل';
+        else if(String(g.winner) === String(currentRep.code)) statusLabel = 'فزت 🎉';
+        else statusLabel = 'خسرت';
+      } else {
+        statusLabel = String(g.turn) === String(currentRep.code) ? 'دورك' : 'دور الخصم';
+      }
+      return `<button class="menu-card" style="flex-direction:row; justify-content:space-between; padding:12px 16px;" onclick="openExistingGame('${gid}')">
+        <span>${oppName}</span>
+        <span style="color:var(--muted); font-size:.82rem;">${statusLabel}</span>
+      </button>`;
+    }).join('');
+  }
+
+  function startNewGame(fromRematch){
+    if(!currentRep || !fbDb) return;
+    let opponentCode, opponentName;
+    if(fromRematch === true && currentGameId && myGamesCache[currentGameId]){
+      const g = myGamesCache[currentGameId];
+      opponentCode = Object.keys(g.players || {}).find(c => c !== String(currentRep.code));
+      opponentName = g.players[opponentCode];
+    } else {
+      const sel = document.getElementById('gameOpponentSelect');
+      opponentCode = sel.value;
+      const opp = REPS.find(r => String(r.code) === String(opponentCode));
+      opponentName = opp ? opp.name : 'مندوب';
+    }
+    if(!opponentCode){ showToast('اختار مندوب الأول'); return; }
+    const gameId = fbDb.ref('games').push().key;
+    const players = {};
+    players[currentRep.code] = currentRep.name;
+    players[opponentCode] = opponentName;
+    const symbols = {};
+    symbols[currentRep.code] = 'X';
+    symbols[opponentCode] = 'O';
+    const game = {
+      players, symbols,
+      board: {},
+      turn: currentRep.code,
+      status: 'active',
+      winner: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    fbDb.ref('games/' + gameId).set(game).then(() => {
+      fbDb.ref('userGames/' + currentRep.code + '/' + gameId).set(true);
+      fbDb.ref('userGames/' + opponentCode + '/' + gameId).set(true);
+      openExistingGame(gameId);
+    });
+  }
+
+  function openExistingGame(gameId){
+    if(!fbDb || !currentRep) return;
+    currentGameId = gameId;
+    document.getElementById('gameLobby').style.display = 'none';
+    document.getElementById('gameBoardView').style.display = 'block';
+    if(gameBoardListenerRef){ try{ gameBoardListenerRef.off('value'); }catch(e){} }
+    gameBoardListenerRef = fbDb.ref('games/' + gameId);
+    gameBoardListenerRef.on('value', snap => {
+      const g = snap.val();
+      if(!g) return;
+      myGamesCache[gameId] = g;
+      renderGameBoard(g);
+    });
+  }
+
+  function renderGameBoard(g){
+    if(!currentRep) return;
+    const oppCode = Object.keys(g.players || {}).find(c => c !== String(currentRep.code));
+    document.getElementById('gameOpponentName').textContent = (g.players && g.players[oppCode]) || 'مندوب';
+    const grid = document.getElementById('gameBoardGrid');
+    const board = [];
+    for(let i = 0; i < 9; i++) board.push((g.board && g.board[i]) || null);
+    grid.innerHTML = board.map((v, i) => `
+      <button onclick="gameCellClick(${i})" style="aspect-ratio:1; font-size:1.8rem; font-weight:900; border-radius:10px; border:1.5px solid var(--line); background:#F8FAFC; color:${v === 'X' ? '#2F5597' : '#E14D4D'}; cursor:${!v && g.status === 'active' ? 'pointer' : 'default'};">${v || ''}</button>
+    `).join('');
+    const statusEl = document.getElementById('gameStatusText');
+    const rematchBtn = document.getElementById('gameRematchBtn');
+    if(g.status === 'finished'){
+      if(g.winner === 'draw') statusEl.textContent = 'تعادل!';
+      else if(String(g.winner) === String(currentRep.code)) statusEl.textContent = 'فزت! 🎉';
+      else statusEl.textContent = 'خسرت، حظ أوفر المرة الجاية';
+      rematchBtn.style.display = 'block';
+    } else {
+      statusEl.textContent = String(g.turn) === String(currentRep.code) ? 'دورك (X أو O)' : 'دور الخصم...';
+      rematchBtn.style.display = 'none';
+    }
+  }
+
+  function gameCellClick(i){
+    if(!currentGameId || !currentRep || !fbDb) return;
+    const g = myGamesCache[currentGameId];
+    if(!g || g.status !== 'active') return;
+    if(String(g.turn) !== String(currentRep.code)) return;
+    const board = [];
+    for(let k = 0; k < 9; k++) board.push((g.board && g.board[k]) || null);
+    if(board[i]) return;
+    const mySymbol = g.symbols[currentRep.code];
+    board[i] = mySymbol;
+    const winner = checkGameWinner(board);
+    const oppCode = Object.keys(g.players || {}).find(c => c !== String(currentRep.code));
+    const boardObj = {};
+    board.forEach((v, idx) => { if(v) boardObj[idx] = v; });
+    const update = { board: boardObj, updatedAt: Date.now() };
+    if(winner){
+      update.status = 'finished';
+      update.winner = winner === mySymbol ? currentRep.code : (winner === 'draw' ? 'draw' : oppCode);
+    } else {
+      update.turn = oppCode;
+    }
+    fbDb.ref('games/' + currentGameId).update(update);
   }
 
   // ---- Unread tracking ----
