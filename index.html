@@ -608,8 +608,6 @@
     🔔<span id="notifBellBadge"></span>
   </button>
   <span id="userNameBadge" class="user-badge" style="display:none;"></span>
-  <button id="accountBtn" class="logout-btn" onclick="openAccountScreen()" style="display:none;">👤 حسابي</button>
-  <button id="homeBtn" class="logout-btn" onclick="goTo('menu')" style="display:none;">القائمة</button>
 </header>
 
 <nav id="bottomNav">
@@ -873,28 +871,61 @@
 <div class="modal-wrap" id="gameModal">
   <div class="modal" style="max-width:400px;">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-      <h3 style="margin:0;">لعبة XO</h3>
+      <h3 style="margin:0;">الألعاب</h3>
       <button onclick="closeGameModal()" style="background:none; border:none; color:var(--muted); font-size:1.3rem; line-height:1; padding:4px 8px; cursor:pointer;">✕</button>
     </div>
 
-    <div id="gameLobby">
-      <div style="font-size:.82rem; font-weight:800; color:var(--ink); margin-bottom:8px;">تحدى مندوب جديد</div>
-      <div style="display:flex; gap:8px; margin-bottom:16px;">
-        <select id="gameOpponentSelect" style="flex:1; padding:11px 14px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;"></select>
-        <button class="full-btn" style="width:auto; padding:11px 20px; margin:0; white-space:nowrap;" onclick="startNewGame()">تحدى</button>
+    <div style="display:flex; gap:8px; margin-bottom:14px;">
+      <button class="chat-tab active" id="gameTabBtn_xo" onclick="switchGameTab('xo')" style="flex:1;">XO</button>
+      <button class="chat-tab" id="gameTabBtn_snake" onclick="switchGameTab('snake')" style="flex:1;">🐍 الدودة</button>
+    </div>
+
+    <div id="gameTabPane_xo">
+      <div id="gameLobby">
+        <div style="font-size:.82rem; font-weight:800; color:var(--ink); margin-bottom:8px;">تحدى مندوب جديد</div>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <select id="gameOpponentSelect" style="flex:1; padding:11px 14px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;"></select>
+          <button class="full-btn" style="width:auto; padding:11px 20px; margin:0; white-space:nowrap;" onclick="startNewGame()">تحدى</button>
+        </div>
+        <button class="ghost-btn" style="width:100%; margin-bottom:16px;" onclick="startComputerGame()">🤖 العب ضد الكمبيوتر</button>
+        <div style="font-size:.82rem; font-weight:800; color:var(--ink); margin-bottom:8px;">ألعابك</div>
+        <div id="gameActiveList" style="display:flex; flex-direction:column; gap:8px; max-height:40vh; overflow-y:auto;">
+          <div class="mdesc">مفيش ألعاب لسه</div>
+        </div>
       </div>
-      <div style="font-size:.82rem; font-weight:800; color:var(--ink); margin-bottom:8px;">ألعابك</div>
-      <div id="gameActiveList" style="display:flex; flex-direction:column; gap:8px; max-height:40vh; overflow-y:auto;">
-        <div class="mdesc">مفيش ألعاب لسه</div>
+
+      <div id="gameBoardView" style="display:none;">
+        <button class="ghost-btn" style="padding:6px 12px; margin-bottom:10px; width:auto;" onclick="backToGameLobby()">‹ رجوع للقائمة</button>
+        <div style="text-align:center; margin-bottom:2px; font-weight:800;" id="gameOpponentName"></div>
+        <div style="text-align:center; margin-bottom:6px; font-weight:900; color:var(--brand,#2F5597); font-size:.95rem;" id="gameScoreText"></div>
+        <div style="text-align:center; margin-bottom:14px; color:var(--muted); font-size:.9rem;" id="gameStatusText"></div>
+        <div id="gameBoardGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:260px; margin:0 auto 16px;"></div>
+        <button class="full-btn" id="gameRematchBtn" style="display:none;" onclick="startNewGame(true)">لعبة جديدة</button>
       </div>
     </div>
 
-    <div id="gameBoardView" style="display:none;">
-      <button class="ghost-btn" style="padding:6px 12px; margin-bottom:10px; width:auto;" onclick="backToGameLobby()">‹ رجوع للقائمة</button>
-      <div style="text-align:center; margin-bottom:6px; font-weight:800;" id="gameOpponentName"></div>
-      <div style="text-align:center; margin-bottom:14px; color:var(--muted); font-size:.9rem;" id="gameStatusText"></div>
-      <div id="gameBoardGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:260px; margin:0 auto 16px;"></div>
-      <button class="full-btn" id="gameRematchBtn" style="display:none;" onclick="startNewGame(true)">لعبة جديدة</button>
+    <div id="gameTabPane_snake" style="display:none;">
+      <div id="snakeIntro">
+        <div class="mdesc" style="margin-bottom:10px;">العب لوحدك وحاول تسجل أعلى نقاط - النتيجة بتتسجل في لوحة الصدارة.</div>
+        <button class="full-btn" onclick="startSnakeGame()">ابدأ اللعب</button>
+        <div style="font-size:.82rem; font-weight:800; color:var(--ink); margin:16px 0 8px;">🏆 لوحة الصدارة</div>
+        <div id="snakeLeaderboard" style="display:flex; flex-direction:column; gap:6px; max-height:35vh; overflow-y:auto;">
+          <div class="mdesc">لسه مفيش نتايج</div>
+        </div>
+      </div>
+      <div id="snakePlayArea" style="display:none; text-align:center;">
+        <div style="margin-bottom:8px; font-weight:800;">النقاط: <span id="snakeScoreLive">0</span></div>
+        <canvas id="snakeCanvas" width="260" height="260" style="background:#0E2A47; border-radius:10px; touch-action:none;"></canvas>
+        <div style="display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(2,48px); gap:6px; justify-content:center; margin-top:12px;">
+          <div></div>
+          <button onclick="snakeSetDir(0,-1)" style="border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:1.2rem;">⬆️</button>
+          <div></div>
+          <button onclick="snakeSetDir(-1,0)" style="border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:1.2rem;">⬅️</button>
+          <button onclick="snakeSetDir(0,1)" style="border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:1.2rem;">⬇️</button>
+          <button onclick="snakeSetDir(1,0)" style="border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:1.2rem;">➡️</button>
+        </div>
+        <button class="ghost-btn" style="width:100%; margin-top:14px;" onclick="stopSnakeGame()">إنهاء</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1154,6 +1185,16 @@
     messagingSenderId: "230098517688",
     appId: "1:230098517688:web:97c1838564fdeda5117e4d"
   };
+  // مندوبين مستبعدين من قوائم اللعب/الدردشة (حسابات إدارية/أونلاين/جملة مش مناديب فعليين)
+  const REP_EXCLUDE_KEYWORDS = ['اداره','إداره','ادارة','إدارة','مباشر','اونلاين','أونلاين','اون لاين','جملة','قطاع','مبيعات الشركة','عجز','امازون','ريتاج','ريتيل','بوبانا','ميلانو','كارميد','هيرو','كوزمو','برلنتي'];
+  function isRealRep(rep){
+    if(!rep || !rep.name) return false;
+    const n = rep.name;
+    return !REP_EXCLUDE_KEYWORDS.some(k => n.includes(k));
+  }
+  function getRealReps(){
+    return REPS.filter(isRealRep);
+  }
   let fbDb = null;
 
   function initLiveStock(){
@@ -1462,10 +1503,6 @@
     if(scr) scr.style.display = 'none';
     const lb = document.getElementById('logoutBtn');
     if(lb) lb.style.display = 'inline-block';
-    const hb = document.getElementById('homeBtn');
-    if(hb) hb.style.display = 'inline-block';
-    const ab = document.getElementById('accountBtn');
-    if(ab) ab.style.display = 'inline-block';
     const ub = document.getElementById('userNameBadge');
     if(ub && currentRep){
       ub.textContent = currentRep.isAdmin ? 'الإدارة' : currentRep.name;
@@ -1484,7 +1521,41 @@
       watchGroupChatUnread();
       if(currentRep && currentRep.isAdmin) watchAdminAllChatsUnread();
       else watchPrivateChatUnread();
+      setupPresence();
     }
+  }
+
+  // ---------- حالة الأونلاين (نقطة خضراء) ----------
+  let presenceRef = null;
+  let onlinePresenceCache = {};
+  let presenceListenerRef = null;
+  function setupPresence(){
+    if(!fbDb || !currentRep || currentRep.code == null) return;
+    presenceRef = fbDb.ref('presence/' + currentRep.code);
+    presenceRef.set({ name: currentRep.name, ts: Date.now() });
+    presenceRef.onDisconnect().remove();
+    if(presenceListenerRef){ try{ presenceListenerRef.off('value'); }catch(e){} }
+    presenceListenerRef = fbDb.ref('presence');
+    presenceListenerRef.on('value', snap => {
+      onlinePresenceCache = snap.val() || {};
+      // حدّث أي قوائم مفتوحة فيها نقطة الأونلاين
+      if(document.getElementById('gameModal').classList.contains('open')) renderGameOpponentOptions();
+      renderSnakeLeaderboard();
+      const repsPane = document.getElementById('chatPane_reps');
+      const repsSel = document.getElementById('pcAdminRepSelect');
+      if(repsPane && repsSel && repsPane.style.display !== 'none' && repsSel.options.length){
+        const prevVal = repsSel.value;
+        const reps = getRealReps().sort((a,b) => (isRepOnline(b.code)?1:0) - (isRepOnline(a.code)?1:0) || a.name.localeCompare(b.name, 'ar'));
+        repsSel.innerHTML = reps.map(r => `<option value="${r.code}">${isRepOnline(r.code) ? '🟢 ' : '⚪ '}${r.name} (${r.code})</option>`).join('');
+        if(prevVal) repsSel.value = prevVal;
+      }
+    });
+  }
+  function isRepOnline(code){
+    return !!(onlinePresenceCache && onlinePresenceCache[code]);
+  }
+  function onlineDotHtml(code){
+    return isRepOnline(code) ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2ECC71;margin-inline-end:5px;vertical-align:middle;"></span>' : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#C7CFDA;margin-inline-end:5px;vertical-align:middle;"></span>';
   }
 
   function showLogin(){
@@ -1500,6 +1571,8 @@
     const bnav = document.getElementById('bottomNav');
     if(bnav) bnav.classList.remove('show');
     document.body.classList.remove('has-bottom-nav');
+    if(presenceRef){ try{ presenceRef.remove(); }catch(e){} presenceRef = null; }
+    if(presenceListenerRef){ try{ presenceListenerRef.off('value'); }catch(e){} presenceListenerRef = null; }
   }
 
   function applyRepLock(){
@@ -3198,10 +3271,10 @@
   let privateChatAdminListenerRef = null;
   function openPrivateChatAdminPane(){
     const sel = document.getElementById('pcAdminRepSelect');
-    if(!sel.options.length){
-      const reps = [...REPS].sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-      sel.innerHTML = reps.map(r => `<option value="${r.code}">${r.name} (${r.code})</option>`).join('');
-    }
+    const prevVal = sel.value;
+    const reps = getRealReps().sort((a,b) => (isRepOnline(b.code)?1:0) - (isRepOnline(a.code)?1:0) || a.name.localeCompare(b.name, 'ar'));
+    sel.innerHTML = reps.map(r => `<option value="${r.code}">${isRepOnline(r.code) ? '🟢 ' : '⚪ '}${r.name} (${r.code})</option>`).join('');
+    if(prevVal && reps.some(r => String(r.code) === String(prevVal))) sel.value = prevVal;
     loadPrivateChatForRep();
   }
   function loadPrivateChatForRep(){
@@ -3245,24 +3318,113 @@
 
   function openGameModal(){
     if(!currentRep) return;
-    const sel = document.getElementById('gameOpponentSelect');
-    const opponents = REPS.filter(r => r.code !== currentRep.code).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-    sel.innerHTML = opponents.map(r => `<option value="${r.code}">${r.name} (${r.code})</option>`).join('');
+    renderGameOpponentOptions();
     document.getElementById('gameModal').classList.add('open');
+    switchGameTab('xo');
     document.getElementById('gameLobby').style.display = 'block';
     document.getElementById('gameBoardView').style.display = 'none';
     watchMyGames();
+    renderSnakeLeaderboard();
+  }
+
+  function renderGameOpponentOptions(){
+    if(!currentRep) return;
+    const sel = document.getElementById('gameOpponentSelect');
+    if(!sel) return;
+    const prevVal = sel.value;
+    const opponents = getRealReps().filter(r => r.code !== currentRep.code)
+      .sort((a,b) => (isRepOnline(b.code)?1:0) - (isRepOnline(a.code)?1:0) || a.name.localeCompare(b.name, 'ar'));
+    sel.innerHTML = opponents.map(r => `<option value="${r.code}">${isRepOnline(r.code) ? '🟢 ' : '⚪ '}${r.name} (${r.code})</option>`).join('');
+    if(prevVal && opponents.some(r => String(r.code) === String(prevVal))) sel.value = prevVal;
+  }
+
+  function switchGameTab(tab){
+    const xoBtn = document.getElementById('gameTabBtn_xo');
+    const snakeBtn = document.getElementById('gameTabBtn_snake');
+    const xoPane = document.getElementById('gameTabPane_xo');
+    const snakePane = document.getElementById('gameTabPane_snake');
+    if(!xoBtn || !snakeBtn || !xoPane || !snakePane) return;
+    xoBtn.classList.toggle('active', tab === 'xo');
+    snakeBtn.classList.toggle('active', tab === 'snake');
+    xoPane.style.display = tab === 'xo' ? 'block' : 'none';
+    snakePane.style.display = tab === 'snake' ? 'block' : 'none';
+    if(tab === 'snake') renderSnakeLeaderboard();
   }
   function closeGameModal(){
     document.getElementById('gameModal').classList.remove('open');
     if(gameBoardListenerRef){ try{ gameBoardListenerRef.off('value'); }catch(e){} gameBoardListenerRef = null; }
     currentGameId = null;
+    stopSnakeGame();
   }
   function backToGameLobby(){
     if(gameBoardListenerRef){ try{ gameBoardListenerRef.off('value'); }catch(e){} gameBoardListenerRef = null; }
     currentGameId = null;
+    vsComputerMode = false;
+    localGameState = null;
+    if(headToHeadListenerRef){ try{ headToHeadListenerRef.off('value'); }catch(e){} headToHeadListenerRef = null; }
     document.getElementById('gameLobby').style.display = 'block';
     document.getElementById('gameBoardView').style.display = 'none';
+  }
+
+  // ---------- XO ضد الكمبيوتر ----------
+  let vsComputerMode = false;
+  let localGameState = null;
+  function startComputerGame(){
+    if(!currentRep) return;
+    vsComputerMode = true;
+    currentGameId = null;
+    localGameState = {
+      players: { [currentRep.code]: currentRep.name, computer: 'الكمبيوتر 🤖' },
+      symbols: { [currentRep.code]: 'X', computer: 'O' },
+      board: {}, turn: currentRep.code, status: 'active', winner: null
+    };
+    document.getElementById('gameLobby').style.display = 'none';
+    document.getElementById('gameBoardView').style.display = 'block';
+    document.getElementById('gameScoreText').textContent = '';
+    renderGameBoard(localGameState);
+  }
+  function computerPickMove(board){
+    const mySym = 'O', oppSym = 'X';
+    // فوز لو ممكن
+    for(const line of WIN_LINES){
+      const vals = line.map(i => board[i]);
+      if(vals.filter(v => v === mySym).length === 2 && vals.includes(null)){
+        return line[vals.indexOf(null)];
+      }
+    }
+    // صد الخصم
+    for(const line of WIN_LINES){
+      const vals = line.map(i => board[i]);
+      if(vals.filter(v => v === oppSym).length === 2 && vals.includes(null)){
+        return line[vals.indexOf(null)];
+      }
+    }
+    if(board[4] === null) return 4;
+    const corners = [0,2,6,8].filter(i => board[i] === null);
+    if(corners.length) return corners[Math.floor(Math.random() * corners.length)];
+    const empty = board.map((v,i) => v === null ? i : null).filter(v => v !== null);
+    return empty[Math.floor(Math.random() * empty.length)];
+  }
+
+  // ---------- نقاط تراكمية بين مندوبين (بدل قائمة كسبت/خسرت) ----------
+  let headToHeadListenerRef = null;
+  function pairKey(a, b){
+    const x = Number(a), y = Number(b);
+    return x < y ? (x + '_' + y) : (y + '_' + x);
+  }
+  function watchHeadToHead(myCode, oppCode, myName, oppName){
+    if(!fbDb) return;
+    if(headToHeadListenerRef){ try{ headToHeadListenerRef.off('value'); }catch(e){} }
+    headToHeadListenerRef = fbDb.ref('headToHead/' + pairKey(myCode, oppCode));
+    headToHeadListenerRef.on('value', snap => {
+      const d = snap.val() || {};
+      const el = document.getElementById('gameScoreText');
+      if(el) el.textContent = `${myName} ${d[myCode] || 0}  -  ${d[oppCode] || 0} ${oppName}`;
+    });
+  }
+  function recordHeadToHeadWin(winnerCode, myCode, oppCode){
+    if(!fbDb || winnerCode === 'draw') return;
+    fbDb.ref('headToHead/' + pairKey(myCode, oppCode) + '/' + winnerCode).transaction(cur => (cur || 0) + 1);
   }
 
   function watchMyGames(){
@@ -3351,6 +3513,13 @@
     });
   }
 
+  function updateGameScoreFromBoard(g){
+    if(!currentRep) return;
+    const oppCode = Object.keys(g.players || {}).find(c => c !== String(currentRep.code));
+    const oppName = (g.players && g.players[oppCode]) || 'مندوب';
+    if(oppCode && oppCode !== 'computer') watchHeadToHead(currentRep.code, oppCode, currentRep.name, oppName);
+  }
+
   function openExistingGame(gameId){
     if(!fbDb || !currentRep) return;
     currentGameId = gameId;
@@ -3362,6 +3531,7 @@
       const g = snap.val();
       if(!g) return;
       myGamesCache[gameId] = g;
+      updateGameScoreFromBoard(g);
       renderGameBoard(g);
     });
   }
@@ -3378,6 +3548,7 @@
     `).join('');
     const statusEl = document.getElementById('gameStatusText');
     const rematchBtn = document.getElementById('gameRematchBtn');
+    rematchBtn.onclick = vsComputerMode ? () => startComputerGame() : () => startNewGame(true);
     if(g.status === 'finished'){
       if(g.winner === 'draw') statusEl.textContent = 'تعادل!';
       else if(String(g.winner) === String(currentRep.code)) statusEl.textContent = 'فزت! 🎉';
@@ -3390,7 +3561,12 @@
   }
 
   function gameCellClick(i){
-    if(!currentGameId || !currentRep || !fbDb) return;
+    if(!currentRep) return;
+    if(vsComputerMode){
+      gameCellClickComputer(i);
+      return;
+    }
+    if(!currentGameId || !fbDb) return;
     const g = myGamesCache[currentGameId];
     if(!g || g.status !== 'active') return;
     if(String(g.turn) !== String(currentRep.code)) return;
@@ -3407,10 +3583,159 @@
     if(winner){
       update.status = 'finished';
       update.winner = winner === mySymbol ? currentRep.code : (winner === 'draw' ? 'draw' : oppCode);
+      recordHeadToHeadWin(update.winner, currentRep.code, oppCode);
     } else {
       update.turn = oppCode;
     }
     fbDb.ref('games/' + currentGameId).update(update);
+  }
+
+  function gameCellClickComputer(i){
+    const g = localGameState;
+    if(!g || g.status !== 'active') return;
+    if(String(g.turn) !== String(currentRep.code)) return;
+    const board = [];
+    for(let k = 0; k < 9; k++) board.push((g.board && g.board[k]) || null);
+    if(board[i]) return;
+    board[i] = 'X';
+    let winner = checkGameWinner(board);
+    if(!winner){
+      const boardObj = {}; board.forEach((v,idx) => { if(v) boardObj[idx] = v; });
+      g.board = boardObj; g.turn = 'computer';
+      renderGameBoard(g);
+      setTimeout(() => {
+        const b2 = []; for(let k=0;k<9;k++) b2.push((g.board && g.board[k]) || null);
+        const move = computerPickMove(b2);
+        if(move != null) b2[move] = 'O';
+        const w2 = checkGameWinner(b2);
+        const boardObj2 = {}; b2.forEach((v,idx) => { if(v) boardObj2[idx] = v; });
+        g.board = boardObj2;
+        if(w2){ g.status = 'finished'; g.winner = w2 === 'X' ? currentRep.code : (w2 === 'draw' ? 'draw' : 'computer'); }
+        else { g.turn = currentRep.code; }
+        renderGameBoard(g);
+      }, 450);
+      return;
+    }
+    const boardObj = {}; board.forEach((v,idx) => { if(v) boardObj[idx] = v; });
+    g.board = boardObj;
+    g.status = 'finished';
+    g.winner = winner === 'X' ? currentRep.code : (winner === 'draw' ? 'draw' : 'computer');
+    renderGameBoard(g);
+  }
+
+  // ---------- لعبة الدودة (Snake) - فردية بأعلى نقاط ----------
+  const SNAKE_CELL = 20, SNAKE_COLS = 13, SNAKE_ROWS = 13;
+  let snakeState = null;
+  let snakeLoopId = null;
+  let snakeKeyHandler = null;
+  function startSnakeGame(){
+    document.getElementById('snakeIntro').style.display = 'none';
+    document.getElementById('snakePlayArea').style.display = 'block';
+    snakeState = {
+      snake: [{x:6,y:6},{x:5,y:6},{x:4,y:6}],
+      dir: {x:1,y:0}, pendingDir: {x:1,y:0},
+      food: snakeRandomFood([{x:6,y:6},{x:5,y:6},{x:4,y:6}]),
+      score: 0, alive: true
+    };
+    document.getElementById('snakeScoreLive').textContent = '0';
+    snakeDrawFrame();
+    if(snakeLoopId) clearInterval(snakeLoopId);
+    snakeLoopId = setInterval(snakeTick, 160);
+    if(snakeKeyHandler) document.removeEventListener('keydown', snakeKeyHandler);
+    snakeKeyHandler = (e) => {
+      if(e.key === 'ArrowUp') snakeSetDir(0,-1);
+      else if(e.key === 'ArrowDown') snakeSetDir(0,1);
+      else if(e.key === 'ArrowLeft') snakeSetDir(-1,0);
+      else if(e.key === 'ArrowRight') snakeSetDir(1,0);
+    };
+    document.addEventListener('keydown', snakeKeyHandler);
+  }
+  function snakeRandomFood(snakeArr){
+    let f;
+    do{
+      f = { x: Math.floor(Math.random()*SNAKE_COLS), y: Math.floor(Math.random()*SNAKE_ROWS) };
+    } while(snakeArr.some(s => s.x === f.x && s.y === f.y));
+    return f;
+  }
+  function snakeSetDir(dx, dy){
+    if(!snakeState || !snakeState.alive) return;
+    if(snakeState.dir.x === -dx && snakeState.dir.y === -dy) return; // منع الرجوع بالعكس
+    snakeState.pendingDir = {x:dx, y:dy};
+  }
+  function snakeTick(){
+    if(!snakeState || !snakeState.alive) return;
+    snakeState.dir = snakeState.pendingDir;
+    const head = snakeState.snake[0];
+    const newHead = { x: head.x + snakeState.dir.x, y: head.y + snakeState.dir.y };
+    if(newHead.x < 0 || newHead.y < 0 || newHead.x >= SNAKE_COLS || newHead.y >= SNAKE_ROWS || snakeState.snake.some(s => s.x === newHead.x && s.y === newHead.y)){
+      snakeGameOver();
+      return;
+    }
+    snakeState.snake.unshift(newHead);
+    if(newHead.x === snakeState.food.x && newHead.y === snakeState.food.y){
+      snakeState.score += 10;
+      document.getElementById('snakeScoreLive').textContent = snakeState.score;
+      snakeState.food = snakeRandomFood(snakeState.snake);
+    } else {
+      snakeState.snake.pop();
+    }
+    snakeDrawFrame();
+  }
+  function snakeDrawFrame(){
+    const cv = document.getElementById('snakeCanvas');
+    if(!cv || !snakeState) return;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#0E2A47'; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillStyle = '#2FA5D8';
+    ctx.fillRect(snakeState.food.x*SNAKE_CELL+2, snakeState.food.y*SNAKE_CELL+2, SNAKE_CELL-4, SNAKE_CELL-4);
+    snakeState.snake.forEach((s, idx) => {
+      ctx.fillStyle = idx === 0 ? '#EAF6FC' : '#8FD3F4';
+      ctx.fillRect(s.x*SNAKE_CELL+1, s.y*SNAKE_CELL+1, SNAKE_CELL-2, SNAKE_CELL-2);
+    });
+  }
+  function snakeGameOver(){
+    snakeState.alive = false;
+    if(snakeLoopId) clearInterval(snakeLoopId);
+    snakeLoopId = null;
+    showToast('انتهت اللعبة! نقاطك: ' + snakeState.score);
+    snakeSubmitScore(snakeState.score);
+  }
+  function snakeSubmitScore(score){
+    if(!fbDb || !currentRep || !score) return;
+    const ref = fbDb.ref('snakeScores/' + currentRep.code);
+    ref.transaction(cur => {
+      if(!cur || score > (cur.score || 0)) return { name: currentRep.name, score, ts: Date.now() };
+      return cur;
+    });
+  }
+  function stopSnakeGame(){
+    if(snakeLoopId){ clearInterval(snakeLoopId); snakeLoopId = null; }
+    if(snakeKeyHandler){ document.removeEventListener('keydown', snakeKeyHandler); snakeKeyHandler = null; }
+    snakeState = null;
+    const intro = document.getElementById('snakeIntro');
+    const play = document.getElementById('snakePlayArea');
+    if(intro) intro.style.display = 'block';
+    if(play) play.style.display = 'none';
+    renderSnakeLeaderboard();
+  }
+  function renderSnakeLeaderboard(){
+    const list = document.getElementById('snakeLeaderboard');
+    if(!list || !fbDb) return;
+    fbDb.ref('snakeScores').once('value').then(snap => {
+      const data = snap.val() || {};
+      const realCodes = new Set(getRealReps().map(r => String(r.code)));
+      const entries = Object.entries(data)
+        .filter(([code]) => realCodes.has(String(code)))
+        .sort((a,b) => (b[1].score||0) - (a[1].score||0))
+        .slice(0, 10);
+      if(!entries.length){ list.innerHTML = '<div class="mdesc">لسه مفيش نتايج</div>'; return; }
+      list.innerHTML = entries.map(([code, d], idx) => `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px;">
+          <span>${idx+1}. ${onlineDotHtml(code)}${d.name || 'مندوب'}</span>
+          <span style="font-weight:900; color:var(--brand,#2F5597);">${d.score || 0}</span>
+        </div>
+      `).join('');
+    });
   }
 
   // ---- Unread tracking ----
