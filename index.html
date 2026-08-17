@@ -19,6 +19,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --teal-dark:#0E4A85; --teal:#1770AC; --teal-soft:#DCEEFB;
@@ -545,7 +546,7 @@
     @page { size: A4 landscape; margin: 10mm; }
     html, body { background:#fff !important; }
     /* Hide all app chrome: header, bottom nav, floating buttons, modals, splash/login, cart bar */
-    header.top, #bottomNav, #globalDownloadPdfBtn, #globalPrintBtn,
+    header.top, #bottomNav, #globalDownloadPdfBtn, #globalPrintBtn, #globalExcelBtn,
     .overlay, .drawer, .modal-wrap, #splashScreen, #loginScreen,
     .back-btn, .apply-btn, #bagBtn, #notifBellBtn, #userNameBadge,
     .date-range-bar input, .date-range-bar select, .date-range-bar button,
@@ -643,6 +644,7 @@
 
 <button id="globalDownloadPdfBtn" onclick="downloadCurrentScreenPDF()" style="display:none; position:fixed; bottom:76px; left:16px; z-index:500; background:var(--brand,#2F5597); color:#fff; border:none; border-radius:50%; width:52px; height:52px; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.25); font-size:1.4rem; cursor:pointer;" title="تحميل PDF">⬇</button>
 <button id="globalPrintBtn" onclick="printCurrentScreen()" style="display:none; position:fixed; bottom:140px; left:16px; z-index:500; background:var(--teal-dark,#1F6F78); color:#fff; border:none; border-radius:50%; width:52px; height:52px; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.25); font-size:1.4rem; cursor:pointer;" title="طباعة">🖨️</button>
+<button id="globalExcelBtn" onclick="exportCurrentScreenExcel()" style="display:none; position:fixed; bottom:204px; left:16px; z-index:500; background:#1D7A46; color:#fff; border:none; border-radius:50%; width:52px; height:52px; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.25); font-size:1.3rem; cursor:pointer;" title="تصدير Excel">📊</button>
 
 <nav id="bottomNav">
   <button class="bnav-item" id="bnavCart" onclick="openCart()">
@@ -2135,11 +2137,13 @@
   function updateGlobalDownloadBtn(){
     const btn = document.getElementById('globalDownloadPdfBtn');
     const printBtn = document.getElementById('globalPrintBtn');
+    const excelBtn = document.getElementById('globalExcelBtn');
     const cfg = SCREEN_DOWNLOAD_CONFIG[currentScreenId];
     const bodyEl = cfg ? document.getElementById(cfg.bodyId) : null;
     const hasContent = !!(cfg && bodyEl && bodyEl.innerHTML.trim());
     if(btn) btn.style.display = hasContent ? 'flex' : 'none';
     if(printBtn) printBtn.style.display = hasContent ? 'flex' : 'none';
+    if(excelBtn) excelBtn.style.display = hasContent ? 'flex' : 'none';
   }
 
   // Prints the currently active report screen using the browser's native
@@ -2177,6 +2181,50 @@
     // Fallback in case afterprint doesn't fire on some browsers
     setTimeout(cleanup, 5000);
     window.print();
+  }
+
+  // Exports the currently active report to an .xlsx file. Prefers any real
+  // <table> elements in the report body (most reports render as tables);
+  // falls back to reading label/value "stat card" pairs for screens like
+  // the totals summary that render cards instead of a table.
+  function exportCurrentScreenExcel(){
+    const cfg = SCREEN_DOWNLOAD_CONFIG[currentScreenId];
+    if(!cfg || typeof XLSX === 'undefined') return;
+    const bodyEl = document.getElementById(cfg.bodyId);
+    if(!bodyEl) return;
+
+    const title = (cfg.getTitle && cfg.getTitle()) || 'تقرير';
+    const wb = XLSX.utils.book_new();
+    const tables = bodyEl.querySelectorAll('table');
+
+    if(tables.length){
+      tables.forEach((table, i) => {
+        const ws = XLSX.utils.table_to_sheet(table);
+        const sheetName = (tables.length > 1 ? `جدول ${i+1}` : 'البيانات').slice(0, 31);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
+    } else {
+      // Fallback: pull label/value pairs out of stat cards (e.g. totals screen)
+      const rows = [];
+      bodyEl.querySelectorAll('.stmt-bal-card, .card').forEach(card => {
+        const spans = card.querySelectorAll('span');
+        if(spans.length >= 2){
+          rows.push([spans[0].textContent.trim(), spans[1].textContent.trim()]);
+        }
+      });
+      if(!rows.length){
+        const text = bodyEl.textContent.trim();
+        if(text) rows.push([text]);
+      }
+      if(!rows.length){
+        showToast('لا توجد بيانات لتصديرها');
+        return;
+      }
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'البيانات');
+    }
+
+    XLSX.writeFile(wb, sanitizeFilename(title) + '.xlsx');
   }
 
   async function downloadCurrentScreenPDF(){
