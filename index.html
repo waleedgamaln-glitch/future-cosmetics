@@ -2083,7 +2083,14 @@
   // Any report/statement screen listed here gets a floating PDF-download
   // button automatically, without needing per-screen download buttons.
   const SCREEN_DOWNLOAD_CONFIG = {
-    reportScreen: { bodyId:'reportBody', getTitle: () => (document.getElementById('reportTitle') || {}).textContent || 'تقرير' },
+    reportScreen: { bodyId:'reportBody', getTitle: () => {
+      const base = (document.getElementById('reportTitle') || {}).textContent || 'تقرير';
+      const fromEl = document.getElementById('reportFrom'), toEl = document.getElementById('reportTo');
+      if(fromEl && toEl && fromEl.value && toEl.value && fromEl.offsetParent !== null){
+        return `${base} (من ${fromEl.value} إلى ${toEl.value})`;
+      }
+      return base;
+    } },
     statementScreen: { bodyId:'statementBody', getTitle: () => 'كشف حساب عميل' },
     itemStatementScreen: { bodyId:'itemStatementBody', getTitle: () => 'كشف مبيعات عميل بالأصناف' },
     debtListScreen: { bodyId:'debtListBody', getTitle: () => 'كشف حساب العملاء' },
@@ -2119,21 +2126,57 @@
     try{
       const title = cfg.getTitle() || 'تقرير';
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:fixed; top:0; left:-9999px; width:800px; background:#fff; padding:24px; font-family:inherit; direction:rtl;';
+      wrap.style.cssText = 'position:fixed; top:0; left:-99999px; display:inline-block; background:#fff; padding:24px; font-family:inherit; direction:rtl;';
       const titleEl = document.createElement('h2');
-      titleEl.style.cssText = 'text-align:center; margin:0 0 16px;';
+      titleEl.style.cssText = 'text-align:center; margin:0 0 16px; white-space:nowrap;';
       titleEl.textContent = title;
       wrap.appendChild(titleEl);
-      wrap.appendChild(bodyEl.cloneNode(true));
+      const clone = bodyEl.cloneNode(true);
+      // Strip any scroll/height clipping on the clone so wide/tall tables
+      // (e.g. المبيعات بالشركات pivot table) render in full instead of being
+      // cut off to whatever was visible on screen.
+      clone.querySelectorAll('*').forEach(el => {
+        const cs = getComputedStyle(el);
+        if(['auto','scroll'].includes(cs.overflow) || ['auto','scroll'].includes(cs.overflowX) || ['auto','scroll'].includes(cs.overflowY)){
+          el.style.overflow = 'visible';
+          el.style.maxHeight = 'none';
+          el.style.maxWidth = 'none';
+          el.style.height = 'auto';
+        }
+      });
+      wrap.appendChild(clone);
       document.body.appendChild(wrap);
+
       const canvas = await html2canvas(wrap, { scale:2, backgroundColor:'#ffffff', useCORS:true });
       document.body.removeChild(wrap);
+
       const { jsPDF } = window.jspdf;
-      const imgData = canvas.toDataURL('image/png');
-      const pdfWidth = 595;
-      const pdfHeight = canvas.height * (pdfWidth / canvas.width);
-      const pdf = new jsPDF({ unit:'pt', format:[pdfWidth, pdfHeight] });
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+      const pdf = new jsPDF({ unit:'pt', format:'a4', orientation });
+      const pageWpt = pdf.internal.pageSize.getWidth();
+      const pageHpt = pdf.internal.pageSize.getHeight();
+      const margin = 24;
+      const printableW = pageWpt - margin * 2;
+      const printableH = pageHpt - margin * 2;
+      const scale = printableW / canvas.width;
+      const pageHeightPx = Math.max(1, Math.floor(printableH / scale));
+
+      let renderedY = 0, pageIndex = 0;
+      while(renderedY < canvas.height){
+        const sliceH = Math.min(pageHeightPx, canvas.height - renderedY);
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceH;
+        const ctx = pageCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        ctx.drawImage(canvas, 0, renderedY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        const imgData = pageCanvas.toDataURL('image/png');
+        if(pageIndex > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', margin, margin, printableW, sliceH * scale);
+        renderedY += sliceH;
+        pageIndex++;
+      }
       pdf.save(sanitizeFilename(title) + '.pdf');
     }catch(err){
       showToast('حصل خطأ أثناء تجهيز PDF');
@@ -2651,7 +2694,7 @@
 
     const filterSel = document.getElementById('invLogRepFilter');
     if(filterSel && !filterSel.options.length){
-      const reps = REPS.slice().sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+      const reps = getRealReps().slice().sort((a,b) => a.name.localeCompare(b.name, 'ar'));
       filterSel.innerHTML = '<option value="">كل المناديب</option>' +
         reps.map(r => `<option value="${r.code}">${r.name}</option>`).join('');
     }
