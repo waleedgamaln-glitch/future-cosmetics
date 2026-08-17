@@ -20,6 +20,7 @@
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
   :root{
     --teal-dark:#0E4A85; --teal:#1770AC; --teal-soft:#DCEEFB;
@@ -2183,11 +2184,155 @@
     window.print();
   }
 
+  const ARABIC_MONTH_NAMES = ['يناير','فبراير','مارس','ابريل','مايو','يونيو','يوليو','اغسطس','سبتمبر','اكتوبر','نوفمبر','ديسمبر'];
+  function arabicDateLabel(dateInt){
+    const s = String(dateInt);
+    const y = s.slice(0,4), m = parseInt(s.slice(4,6),10), d = parseInt(s.slice(6,8),10);
+    return { day: d, month: ARABIC_MONTH_NAMES[m-1], year: y };
+  }
+
+  // Builds the company-sales pivot workbook in the exact fixed template used
+  // by the accounting system's own export: title row, bordered header/data
+  // cells with accounting-style "-" for zero, and a blue-highlighted totals
+  // row. Requires ExcelJS (loaded via CDN) since it needs real cell styling,
+  // which the free SheetJS build cannot write.
+  async function buildCompanySalesWorkbook(from, to){
+    const perRepCompany = {};
+    const companyTotals = {};
+    const repTotals = {};
+    SALES_COMPANY_TX.forEach(r => {
+      const [d, rep, company, t, amt] = r;
+      if(d < from || d > to) return;
+      const val = t * amt;
+      if(!perRepCompany[rep]) perRepCompany[rep] = {};
+      perRepCompany[rep][company] = (perRepCompany[rep][company] || 0) + val;
+      companyTotals[company] = (companyTotals[company] || 0) + val;
+      repTotals[rep] = (repTotals[rep] || 0) + val;
+    });
+    const companies = Object.entries(companyTotals)
+      .filter(([c,v]) => v !== 0)
+      .sort((a,b) => b[1]-a[1])
+      .map(([c]) => c);
+    const repCols = Object.entries(repTotals)
+      .filter(([rep,v]) => v !== 0)
+      .sort((a,b) => b[1]-a[1])
+      .map(([rep]) => parseInt(rep, 10));
+    if(!repCols.length || !companies.length) return null;
+
+    const fromLabel = arabicDateLabel(from);
+    const toLabel = arabicDateLabel(to);
+    const titleText = fromLabel.year === toLabel.year
+      ? `مبيعات المندوبين بالشركات من ${fromLabel.day} ${fromLabel.month} الى ${toLabel.day} ${toLabel.month} ${toLabel.year}`
+      : `مبيعات المندوبين بالشركات من ${fromLabel.day} ${fromLabel.month} ${fromLabel.year} الى ${toLabel.day} ${toLabel.month} ${toLabel.year}`;
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Table1', { views: [{ rightToLeft: true }] });
+    const colCount = 1 + repCols.length + 1; // company + reps + total
+
+    ws.mergeCells(1, 1, 1, colCount);
+    const titleCell = ws.getCell(1, 1);
+    titleCell.value = titleText;
+    titleCell.font = { name: 'Sakkal Majalla', size: 20 };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 40;
+
+    const thinBorder = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} };
+    const acctFmt = '_-* #,##0_-;\\-* #,##0_-;_-* "-"??_-;_-@_-';
+
+    const headerRow = ws.getRow(2);
+    headerRow.getCell(1).value = 'الشركة';
+    repCols.forEach((rep, i) => {
+      headerRow.getCell(2+i).value = REP_MAP[rep] || ('مندوب ' + rep);
+    });
+    headerRow.getCell(colCount).value = 'الإجمالي';
+    for(let c=1;c<=colCount;c++){
+      const cell = headerRow.getCell(c);
+      cell.font = { name: 'Sakkal Majalla', size: 12 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = thinBorder;
+      if(c>1) cell.numFmt = acctFmt;
+    }
+    headerRow.height = 28;
+
+    companies.forEach((company, rIdx) => {
+      const row = ws.getRow(3 + rIdx);
+      row.getCell(1).value = company;
+      repCols.forEach((rep, i) => {
+        const v = (perRepCompany[rep] && perRepCompany[rep][company]) || 0;
+        row.getCell(2+i).value = Math.round(v);
+      });
+      row.getCell(colCount).value = Math.round(companyTotals[company]);
+      for(let c=1;c<=colCount;c++){
+        const cell = row.getCell(c);
+        cell.font = { name: 'Sakkal Majalla', size: 12 };
+        cell.alignment = { horizontal: c===1 ? 'right' : 'center', vertical: 'middle' };
+        cell.border = thinBorder;
+        if(c>1) cell.numFmt = acctFmt;
+      }
+      row.height = 18;
+    });
+
+    const totalRowIdx = 3 + companies.length;
+    const totalRow = ws.getRow(totalRowIdx);
+    totalRow.getCell(1).value = 'الإجمالي';
+    let grandTotal = 0;
+    repCols.forEach((rep, i) => {
+      grandTotal += repTotals[rep];
+      totalRow.getCell(2+i).value = Math.round(repTotals[rep]);
+    });
+    totalRow.getCell(colCount).value = Math.round(grandTotal);
+    for(let c=1;c<=colCount;c++){
+      const cell = totalRow.getCell(c);
+      cell.font = { name: 'Sakkal Majalla', size: 12, color: { argb: 'FFFFFFFF' } };
+      cell.alignment = { horizontal: c===1 ? 'right' : 'center', vertical: 'middle' };
+      cell.border = thinBorder;
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0070C0' } };
+      if(c>1) cell.numFmt = acctFmt;
+    }
+    totalRow.height = 20;
+
+    ws.getColumn(1).width = 20.75;
+    for(let c=2;c<=colCount;c++) ws.getColumn(c).width = 12.6;
+
+    return { workbook: wb, titleText };
+  }
+
+  async function exportCompanySalesExcelTemplate(){
+    const fromEl = document.getElementById('reportFrom'), toEl = document.getElementById('reportTo');
+    const from = dateStrToInt(fromEl.value || '2026-01-01');
+    const to = dateStrToInt(toEl.value || '2026-12-31');
+    if(typeof ExcelJS === 'undefined'){
+      showToast('تعذر تحميل مكتبة تصدير الإكسل، حاول تاني');
+      return;
+    }
+    const result = await buildCompanySalesWorkbook(from, to);
+    if(!result){
+      showToast('لا توجد بيانات في هذه الفترة');
+      return;
+    }
+    const buf = await result.workbook.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = sanitizeFilename(result.titleText) + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
   // Exports the currently active report to an .xlsx file. Prefers any real
   // <table> elements in the report body (most reports render as tables);
   // falls back to reading label/value "stat card" pairs for screens like
   // the totals summary that render cards instead of a table.
   function exportCurrentScreenExcel(){
+    // The company-sales pivot has its own fixed, precisely-styled template
+    // matching the accounting system's native export (see buildCompanySalesWorkbook).
+    if(currentScreenId === 'reportScreen' && currentReportType === 'companies' && currentRep && currentRep.isAdmin){
+      exportCompanySalesExcelTemplate();
+      return;
+    }
     const cfg = SCREEN_DOWNLOAD_CONFIG[currentScreenId];
     if(!cfg || typeof XLSX === 'undefined') return;
     const bodyEl = document.getElementById(cfg.bodyId);
