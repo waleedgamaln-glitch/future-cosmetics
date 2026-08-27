@@ -1043,12 +1043,10 @@
   <div id="invoiceLogBody">جاري التحميل...</div>
 </div>
 
-<div class="modal-wrap" id="visitReportDetailModal">
-  <div class="modal">
-    <h3>تفاصيل التقرير</h3>
-    <div id="visitReportDetailBody" style="max-height:60vh; overflow-y:auto;"></div>
-    <button class="ghost-btn" style="width:100%; margin-top:14px;" onclick="closeVisitReportDetail()">إغلاق</button>
-  </div>
+<div id="visitReportDetailScreen" class="report-screen" style="display:none;">
+  <button class="back-btn" onclick="closeVisitReportDetail()">‹ رجوع</button>
+  <h2>تفاصيل التقرير</h2>
+  <div id="visitReportDetailBody"></div>
 </div>
 
 <div class="modal-wrap" id="dataUpdateModal">
@@ -1686,7 +1684,7 @@
   // ---------- Screen navigation ----------
   function goTo(screen){
     const map = { menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen', orderHistory:'orderHistoryScreen', account:'accountScreen', route:'routeScreen' };
-    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -1744,7 +1742,7 @@
     const [f, t] = monthRange();
     document.getElementById('reportFrom').value = f;
     document.getElementById('reportTo').value = t;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2218,6 +2216,7 @@
     arrearsScreen: { bodyId:'arrearsBody', getTitle: () => 'متأخرات العملاء' },
     orderHistoryScreen: { bodyId:'orderHistoryBody', getTitle: () => 'سجل الفواتير' },
     visitReportsAdminScreen: { bodyId:'vrAdminList', getTitle: () => 'تقارير الزيارات' },
+    visitReportDetailScreen: { bodyId:'visitReportDetailBody', getTitle: () => visitReportDetailTitle },
     carRouteScreen: { bodyId:'carRouteBody', getTitle: () => {
       const f = document.getElementById('carRouteFrom'), t = document.getElementById('carRouteTo');
       const range = (f && f.value && t && t.value) ? ` (من ${f.value} إلى ${t.value})` : '';
@@ -2681,7 +2680,7 @@
   }
 
   function openDebtList(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2865,7 +2864,7 @@
   }
 
   function openArrears(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3064,7 +3063,7 @@
   let carRouteData = null;
 
   function openAccountsHub(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3079,7 +3078,7 @@
   }
 
   function openCarRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3114,7 +3113,7 @@
   // rep's own approved orders and which car/distributor is handling them.
   // No edit/move controls here; those stay admin-only in carRouteScreen.
   function openMyRouteLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3340,7 +3339,7 @@
   function printSingleCarRoute(car){ withSingleCarFilter(car, () => { printCurrentScreen(); return Promise.resolve(); }); }
 
   function openInvoiceLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3474,7 +3473,7 @@
   }
 
   function openAccountScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3494,7 +3493,7 @@
   }
 
   function openSettingsScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3546,7 +3545,7 @@
   }
 
   function openRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3592,23 +3591,49 @@
   }
   function invoicePostingDate(visitDateISO){ return addDaysISO(visitDateISO, 1); }
 
-  // Actual sales/collections for a rep on a given day, straight from the real
-  // accounting data (SALES_TX/COLL_TX) — this is what verifies whether a rep's
-  // self-reported daily target was genuinely achieved, and updates automatically
-  // whenever Waleed uploads a fresh data export.
-  function getActualSalesForRepDate(repCode, iso){
-    const d = isoToDateInt(iso);
-    return SALES_TX.reduce((s, r) => (r[3] === repCode && r[0] === d) ? s + r[4]*r[5] : s, 0);
+  // Builds the set of date-ints to check: invoices, collections, and returns
+  // for a visit don't always land in the accounting system exactly the next
+  // day -- they can trickle in over a few days. We check a 3-day window
+  // starting the day after the visit.
+  const VERIFY_WINDOW_DAYS = 3;
+  function verifyWindowDateInts(visitDateISO){
+    const ints = [];
+    let cur = invoicePostingDate(visitDateISO);
+    for(let i=0;i<VERIFY_WINDOW_DAYS;i++){
+      ints.push(isoToDateInt(cur));
+      cur = addDaysISO(cur, 1);
+    }
+    return ints;
   }
-  function getActualCollectionForRepDate(repCode, iso){
-    const d = isoToDateInt(iso);
-    return COLL_TX.reduce((s, r) => (r[2] === repCode && r[0] === d) ? s + r[4] : s, 0);
+
+  // Actual sales/collections for a rep across the 3-day verification window,
+  // straight from the real accounting data (SALES_TX/COLL_TX) -- this is what
+  // verifies whether a rep's self-reported daily target was genuinely
+  // achieved, and updates automatically whenever Waleed uploads a fresh data
+  // export. Returns (مرتجع بيع) carry type -1 in SALES_TX, so multiplying by
+  // type already nets them out of the total automatically.
+  function getActualSalesForRepDate(repCode, visitDateISO){
+    const days = new Set(verifyWindowDateInts(visitDateISO));
+    return SALES_TX.reduce((s, r) => (r[3] === repCode && days.has(r[0])) ? s + r[4]*r[5] : s, 0);
   }
-  // Actual sales for one specific customer on a given day — used to check a rep's
-  // claimed per-shop sale amount against the real invoice for that customer.
-  function getActualSalesForCustomerDate(custCode, iso){
-    const d = isoToDateInt(iso);
-    return SALES_TX.reduce((s, r) => (r[2] === custCode && r[0] === d) ? s + r[4]*r[5] : s, 0);
+  function getActualCollectionForRepDate(repCode, visitDateISO){
+    const days = new Set(verifyWindowDateInts(visitDateISO));
+    return COLL_TX.reduce((s, r) => (r[2] === repCode && days.has(r[0])) ? s + r[4] : s, 0);
+  }
+  // Actual sales for one specific customer across the 3-day window -- used to
+  // check a rep's claimed per-shop sale amount against the real invoice for
+  // that customer. Nets out returns the same way as above.
+  function getActualSalesForCustomerDate(custCode, visitDateISO){
+    const days = new Set(verifyWindowDateInts(visitDateISO));
+    return SALES_TX.reduce((s, r) => (r[2] === custCode && days.has(r[0])) ? s + r[4]*r[5] : s, 0);
+  }
+  // Actual collection for one specific customer across the 3-day window.
+  // COLL_TX doesn't carry a customer code (only the debtor's name as
+  // exported), so this matches by rep + exact customer name + date range.
+  function getActualCollectionForCustomerDate(repCode, custName, visitDateISO){
+    if(!custName) return 0;
+    const days = new Set(verifyWindowDateInts(visitDateISO));
+    return COLL_TX.reduce((s, r) => (r[2] === repCode && days.has(r[0]) && r[3] === custName) ? s + r[4] : s, 0);
   }
   // Same idea but summed across the whole current month — used for the monthly
   // target progress panel. Reads straight from real accounting data, not from
@@ -3641,7 +3666,7 @@
   }
 
   function openVisitReportForm(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3833,7 +3858,7 @@
   }
 
   function openVisitReportsAdmin(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3929,8 +3954,8 @@
       entries.map(([id, r]) => {
         let verifyBadge = '';
         if(r.dailyTargetSales != null || r.dailyTargetCollection != null){
-          const actualSales = getActualSalesForRepDate(repCode, invoicePostingDate(r.date));
-          const actualCollection = getActualCollectionForRepDate(repCode, invoicePostingDate(r.date));
+          const actualSales = getActualSalesForRepDate(repCode, r.date);
+          const actualCollection = getActualCollectionForRepDate(repCode, r.date);
           const salesDiff = actualSales - (r.dailyTargetSales || 0);
           const collDiff = actualCollection - (r.dailyTargetCollection || 0);
           const salesOk = r.dailyTargetSales == null || salesDiff >= 0;
@@ -3958,17 +3983,27 @@
   function showVisitReportDetail(id){
     const r = vrCurrentReports[id];
     if(!r) return;
-    const postingDate = invoicePostingDate(r.date);
+    const windowInts = verifyWindowDateInts(r.date);
+    const windowLabel = `${windowInts[0]} — ${windowInts[windowInts.length-1]}`;
     const rowsHtml = (r.rows||[]).map((row, i) => {
       let rowVerify = '';
+      const parts = [];
       if(row.custCode != null && row.sale != null){
-        const actualCustSale = getActualSalesForCustomerDate(row.custCode, postingDate);
+        const actualCustSale = getActualSalesForCustomerDate(row.custCode, r.date);
         const diff = actualCustSale - row.sale;
         const rowOk = diff >= 0;
-        rowVerify = `<div style="font-size:.74rem; margin-top:4px; padding-top:4px; border-top:1px dashed var(--line);">
-          <div>اتبلغ: ${fmt(row.sale)} ج.م — فعلي بعد ضرب الفاتورة (${postingDate}): ${fmt(actualCustSale)} ج.م</div>
-          <div style="font-weight:800; color:${rowOk ? '#1E8E5A' : '#C0392B'};">الفرق: ${fmtDiff(diff)} ${rowOk ? '✓ مطابق' : '✗ مش مطابق'}</div>
-        </div>`;
+        parts.push(`<div>اتبلغ (بيع): ${fmt(row.sale)} ج.م — فعلي بعد المرتجعات خلال 3 أيام (${windowLabel}): ${fmt(actualCustSale)} ج.م</div>
+          <div style="font-weight:800; color:${rowOk ? '#1E8E5A' : '#C0392B'};">الفرق: ${fmtDiff(diff)} ${rowOk ? '✓ مطابق' : '✗ مش مطابق'}</div>`);
+      }
+      if(row.collection != null && row.shop){
+        const actualCustColl = getActualCollectionForCustomerDate(r.repCode, row.shop, r.date);
+        const collDiff = actualCustColl - row.collection;
+        const collOk = collDiff >= 0;
+        parts.push(`<div>اتبلغ (تحصيل): ${fmt(row.collection)} ج.م — فعلي خلال 3 أيام (${windowLabel}): ${fmt(actualCustColl)} ج.م</div>
+          <div style="font-weight:800; color:${collOk ? '#1E8E5A' : '#C0392B'};">الفرق: ${fmtDiff(collDiff)} ${collOk ? '✓ مطابق' : '✗ مش مطابق'}</div>`);
+      }
+      if(parts.length){
+        rowVerify = `<div style="font-size:.74rem; margin-top:4px; padding-top:4px; border-top:1px dashed var(--line); display:flex; flex-direction:column; gap:4px;">${parts.join('')}</div>`;
       }
       return `
       <div style="border:1.5px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px;">
@@ -3987,15 +4022,15 @@
 
     let verifyHtml = '';
     if(r.dailyTargetSales != null || r.dailyTargetCollection != null){
-      const actualSales = getActualSalesForRepDate(r.repCode, postingDate);
-      const actualCollection = getActualCollectionForRepDate(r.repCode, postingDate);
+      const actualSales = getActualSalesForRepDate(r.repCode, r.date);
+      const actualCollection = getActualCollectionForRepDate(r.repCode, r.date);
       const salesDiff = actualSales - (r.dailyTargetSales || 0);
       const collDiff = actualCollection - (r.dailyTargetCollection || 0);
       const salesOk = r.dailyTargetSales == null || salesDiff >= 0;
       const collOk = r.dailyTargetCollection == null || collDiff >= 0;
       verifyHtml = `
       <div style="background:#FFF9EC; border:1px solid #F0DFA8; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:8px;">
-        <div style="font-weight:800; font-size:.82rem; color:#8A6D1D;">مقارنة الهدف اليومي بالفعلي — بعد ضرب الفواتير (${postingDate})</div>
+        <div style="font-weight:800; font-size:.82rem; color:#8A6D1D;">مقارنة الهدف اليومي بالفعلي — خلال 3 أيام من تاريخ الزيارة (${windowLabel})</div>
         ${r.dailyTargetSales != null ? `
         <div style="font-size:.82rem;">
           <div>اتبلغ (هدف البيع): ${fmt(r.dailyTargetSales)} ج.م — فعلي: ${fmt(actualSales)} ج.م</div>
@@ -4021,11 +4056,29 @@
       </div>
       ${verifyHtml}
       ${rowsHtml}`;
-    document.getElementById('visitReportDetailModal').classList.add('open');
+    visitReportDetailReturnScreen = currentScreenId;
+    visitReportDetailTitle = `تفاصيل التقرير — ${r.repName || ''} — ${r.date || ''}`;
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    document.getElementById('visitReportDetailScreen').style.display = 'block';
+    currentScreenId = 'visitReportDetailScreen';
+    updateGlobalDownloadBtn();
+    setBottomNavActive(null);
+    const bag = document.getElementById('bagBtn');
+    if(bag) bag.style.display = 'none';
   }
 
+  let visitReportDetailReturnScreen = 'visitReportsAdminScreen';
+  let visitReportDetailTitle = 'تفاصيل التقرير';
+
   function closeVisitReportDetail(){
-    document.getElementById('visitReportDetailModal').classList.remove('open');
+    if(visitReportDetailReturnScreen === 'visitReportScreen'){
+      openVisitReportForm();
+    } else {
+      openVisitReportsAdmin();
+    }
   }
 
   // ---------- Internal chat (group + private with admin) ----------
@@ -4079,7 +4132,7 @@
   }
 
   function openChatScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4375,7 +4428,7 @@
   }
 
   function openOrderHistory(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
