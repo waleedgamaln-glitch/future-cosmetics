@@ -827,25 +827,9 @@
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 54 L24 14 L32 34 L40 14 L54 54" stroke-linejoin="round"/><circle cx="24" cy="14" r="4" fill="currentColor" stroke="none"/><circle cx="40" cy="14" r="4" fill="currentColor" stroke="none"/></svg>
       <span>خط السير</span>
     </button>
-    <button class="menu-card" style="flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openMyRouteLogScreen()">
-      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="26" width="40" height="16" rx="3"/><circle cx="18" cy="44" r="5"/><circle cx="42" cy="44" r="5"/><path d="M48 32 h8 l4 8 v6 h-12"/></svg>
-      <span>سجل خط سير السيارة</span>
-    </button>
     <button id="visitReportBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openVisitReportForm()">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 6 H42 L50 14 V58 H16 Z"/><path d="M42 6 V14 H50"/><path d="M23 26 h18 M23 34 h18 M23 42 h11"/><circle cx="47" cy="47" r="9"/><path d="M47 43 v4 l3 3"/></svg>
       <span>تقرير الزيارات اليومي</span>
-    </button>
-    <button id="visitReportsAdminBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openVisitReportsAdmin()">
-      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="18" r="8"/><path d="M10 52 c0-10 6-16 14-16 s14 6 14 16"/><circle cx="46" cy="22" r="6"/><path d="M38 52 c0-8 4-13 8-13 s8 4 9 10"/></svg>
-      <span>تقارير الزيارات (كل المناديب)</span>
-    </button>
-    <button id="invoiceLogAdminBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openInvoiceLogScreen()">
-      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 6 H38 L50 18 V58 H14 Z"/><path d="M38 6 V18 H50"/><path d="M22 30 h20 M22 38 h20 M22 46 h12"/><circle cx="48" cy="48" r="12"/><path d="M48 43 v10 M43 48 h10"/></svg>
-      <span>سجل فواتير المناديب (للإدارة)</span>
-    </button>
-    <button id="accountsHubBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openAccountsHub()">
-      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="14" width="48" height="36" rx="4"/><path d="M8 24 h48"/><circle cx="18" cy="34" r="3" fill="currentColor" stroke="none"/><path d="M28 34 h20 M18 42 h8"/></svg>
-      <span>الحسابات</span>
     </button>
   </div>
   <button class="change-pw-link" onclick="handleLogout()" style="display:block; margin:30px auto 0; text-align:center;">🚪 تسجيل خروج</button>
@@ -855,13 +839,21 @@
   <button class="back-btn" onclick="goTo('menu')">‹ رجوع</button>
   <h2>الحسابات</h2>
   <div class="menu-grid" style="grid-template-columns:1fr;">
-    <button class="menu-card" style="flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openInvoiceLogScreen()">
+    <button class="menu-card" style="flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openMyRouteLogScreen()">
+      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="26" width="40" height="16" rx="3"/><circle cx="18" cy="44" r="5"/><circle cx="42" cy="44" r="5"/><path d="M48 32 h8 l4 8 v6 h-12"/></svg>
+      <span>سجل خط سير السيارة</span>
+    </button>
+    <button class="menu-card acct-hub-admin-only" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openInvoiceLogScreen()">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 6 H38 L50 18 V58 H14 Z"/><path d="M38 6 V18 H50"/><path d="M22 30 h20 M22 38 h20 M22 46 h12"/></svg>
       <span>سجل الفواتير (اعتماد / رفض)</span>
     </button>
-    <button class="menu-card" style="flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openCarRouteScreen()">
+    <button class="menu-card acct-hub-admin-only" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openCarRouteScreen()">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="26" width="40" height="16" rx="3"/><circle cx="18" cy="44" r="5"/><circle cx="42" cy="44" r="5"/><path d="M48 32 h8 l4 8 v6 h-12"/></svg>
       <span>خط سير السيارة اليومي</span>
+    </button>
+    <button class="menu-card acct-hub-admin-only" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openVisitReportsAdmin()">
+      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="18" r="8"/><path d="M10 52 c0-10 6-16 14-16 s14 6 14 16"/><circle cx="46" cy="22" r="6"/><path d="M38 52 c0-8 4-13 8-13 s8 4 9 10"/></svg>
+      <span>تقارير الزيارات (كل المناديب)</span>
     </button>
   </div>
 </div>
@@ -879,7 +871,7 @@
 </div>
 
 <div id="myRouteLogScreen" class="report-screen" style="display:none;">
-  <button class="back-btn" onclick="openAccountScreen()">‹ رجوع</button>
+  <button class="back-btn" onclick="openAccountsHub()">‹ رجوع</button>
   <h2>سجل خط سير السيارة</h2>
   <p style="font-size:.76rem; color:var(--muted); margin:-6px 0 14px;">الفواتير اللي اتعملت منك واتاعتمدت، مع السيارة والموزع اللي هيوصلها.</p>
   <div class="date-range-bar" style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
@@ -1046,7 +1038,7 @@
     <label style="display:flex; align-items:center; gap:6px; font-size:.8rem;">
       <input type="checkbox" id="invLogSelectAll" onchange="toggleSelectAllInvoiceLogs(this.checked)"> تحديد الكل
     </label>
-    <button class="apply-btn" style="background:#B3261E; width:auto; padding:8px 16px;" onclick="deleteSelectedInvoiceLogs()">🗑️ حذف المحدد</button>
+    <button id="invLogDeleteBtn" class="apply-btn" style="display:none; background:#B3261E; width:auto; padding:8px 16px;" onclick="deleteSelectedInvoiceLogs()">🗑️ حذف المحدد</button>
   </div>
   <div id="invoiceLogBody">جاري التحميل...</div>
 </div>
@@ -1611,7 +1603,7 @@
     applyRepLock();
     goTo('menu');
     const acctHubMenuBtn = document.getElementById('accountsHubMenuBtn');
-    if(acctHubMenuBtn) acctHubMenuBtn.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    if(acctHubMenuBtn) acctHubMenuBtn.style.display = currentRep ? 'flex' : 'none';
     maybeShowDataUpdateNotice();
     if(fbDb){
       watchGroupChatUnread();
@@ -2226,11 +2218,6 @@
     arrearsScreen: { bodyId:'arrearsBody', getTitle: () => 'متأخرات العملاء' },
     orderHistoryScreen: { bodyId:'orderHistoryBody', getTitle: () => 'سجل الفواتير' },
     visitReportsAdminScreen: { bodyId:'vrAdminList', getTitle: () => 'تقارير الزيارات' },
-    invoiceLogScreen: { bodyId:'invoiceLogBody', getTitle: () => {
-      const d = document.getElementById('invLogDate');
-      const range = (d && d.value) ? ` (${d.value})` : '';
-      return 'سجل فواتير المناديب' + range;
-    } },
     carRouteScreen: { bodyId:'carRouteBody', getTitle: () => {
       const f = document.getElementById('carRouteFrom'), t = document.getElementById('carRouteTo');
       const range = (f && f.value && t && t.value) ? ` (من ${f.value} إلى ${t.value})` : '';
@@ -3087,6 +3074,8 @@
     setBottomNavActive(null);
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
+    const isAdmin = currentRep && currentRep.isAdmin;
+    document.querySelectorAll('.acct-hub-admin-only').forEach(el => { el.style.display = isAdmin ? 'flex' : 'none'; });
   }
 
   function openCarRouteScreen(){
@@ -3397,7 +3386,7 @@
       <div class="stmt-row" style="flex-direction:column; align-items:stretch; gap:6px;">
         <div style="display:flex; justify-content:space-between; align-items:center; font-weight:600;">
           <span style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" class="invLogSelectBox no-print" value="${r.orderNo}">
+            <input type="checkbox" class="invLogSelectBox no-print" value="${r.orderNo}" onchange="updateInvLogDeleteBtnVisibility()">
             ${escapeHtml(r.custName || 'عميل')} (${r.custCode})
           </span>
           <span>${fmt(r.subtotal)} ج.م</span>
@@ -3424,6 +3413,16 @@
 
   function toggleSelectAllInvoiceLogs(checked){
     document.querySelectorAll('.invLogSelectBox').forEach(cb => { cb.checked = checked; });
+    updateInvLogDeleteBtnVisibility();
+  }
+
+  // The delete button only appears once at least one invoice is selected,
+  // instead of always taking up space on the screen.
+  function updateInvLogDeleteBtnVisibility(){
+    const btn = document.getElementById('invLogDeleteBtn');
+    if(!btn) return;
+    const anyChecked = document.querySelector('.invLogSelectBox:checked') !== null;
+    btn.style.display = anyChecked ? 'block' : 'none';
   }
 
   // Permanently deletes the selected invoice-log records from Firebase.
@@ -3487,12 +3486,6 @@
     if(bag) bag.style.display = 'none';
     const vrBtn = document.getElementById('visitReportBtn');
     if(vrBtn) vrBtn.style.display = (currentRep && currentRep.code != null) ? 'flex' : 'none';
-    const vrAdminBtn = document.getElementById('visitReportsAdminBtn');
-    if(vrAdminBtn) vrAdminBtn.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
-    const invLogBtn = document.getElementById('invoiceLogAdminBtn');
-    if(invLogBtn) invLogBtn.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
-    const acctHubBtn = document.getElementById('accountsHubBtn');
-    if(acctHubBtn) acctHubBtn.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
     if(typeof detachVisitReportListeners === 'function') detachVisitReportListeners();
     if(groupChatListenerRef){ try{ groupChatListenerRef.off('value'); }catch(e){} groupChatListenerRef = null; }
     if(privateChatListenerRef){ try{ privateChatListenerRef.off('value'); }catch(e){} privateChatListenerRef = null; }
