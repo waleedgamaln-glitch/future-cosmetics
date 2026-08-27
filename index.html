@@ -577,6 +577,17 @@
     .print-only-header img { height:48px; width:auto; }
     .print-only-header .p-title { font-size:1.15rem; font-weight:800; color:#2F5597; }
     .print-only-header .p-dates { font-size:.85rem; color:#333; margin-top:2px; }
+
+    /* تفاصيل التقرير is short, simple content -- print it compact on a single
+       portrait A4 page instead of the wide landscape layout used for pivot
+       tables, so it doesn't spill onto extra pages for no reason. */
+    #visitReportDetailScreen.print-active { page: visitDetailPage; }
+    @page visitDetailPage { size: A4 portrait; margin: 12mm; }
+    #visitReportDetailScreen.print-active .print-only-header { margin-bottom:8px; padding-bottom:6px; }
+    #visitReportDetailScreen.print-active #visitReportDetailBody > div:first-child { padding:8px 12px !important; margin-bottom:8px !important; font-size:.8rem !important; }
+    #visitReportDetailScreen.print-active #visitReportDetailBody > div[style*="FFF9EC"] { padding:8px 10px !important; margin-bottom:8px !important; }
+    #visitReportDetailScreen.print-active #visitReportDetailBody > div[style*="FFF9EC"] * { font-size:.72rem !important; }
+    #visitReportDetailScreen.print-active [style*="border:1.5px solid var(--line)"] { padding:6px 8px !important; margin-bottom:4px !important; font-size:.74rem !important; page-break-inside:avoid; }
   }
   .print-only-header { display:none; }
 
@@ -2215,8 +2226,10 @@
     debtListScreen: { bodyId:'debtListBody', getTitle: () => 'كشف حساب العملاء' },
     arrearsScreen: { bodyId:'arrearsBody', getTitle: () => 'متأخرات العملاء' },
     orderHistoryScreen: { bodyId:'orderHistoryBody', getTitle: () => 'سجل الفواتير' },
+    routeScreen: { bodyId:'routeBody', getTitle: () => 'خط السير' },
+    myRouteLogScreen: { bodyId:'myRouteLogBody', getTitle: () => 'سجل خط سير السيارة' },
     visitReportsAdminScreen: { bodyId:'vrAdminList', getTitle: () => 'تقارير الزيارات' },
-    visitReportDetailScreen: { bodyId:'visitReportDetailBody', getTitle: () => visitReportDetailTitle },
+    visitReportDetailScreen: { bodyId:'visitReportDetailBody', getTitle: () => visitReportDetailTitle, getFilename: () => visitReportDetailFilename },
     carRouteScreen: { bodyId:'carRouteBody', getTitle: () => {
       const f = document.getElementById('carRouteFrom'), t = document.getElementById('carRouteTo');
       const range = (f && f.value && t && t.value) ? ` (من ${f.value} إلى ${t.value})` : '';
@@ -2458,7 +2471,7 @@
       XLSX.utils.book_append_sheet(wb, ws, 'البيانات');
     }
 
-    XLSX.writeFile(wb, sanitizeFilename(title) + '.xlsx');
+    XLSX.writeFile(wb, sanitizeFilename((cfg.getFilename && cfg.getFilename()) || title) + '.xlsx');
   }
 
   async function downloadCurrentScreenPDF(){
@@ -2546,7 +2559,7 @@
         renderedY += sliceH;
         pageIndex++;
       }
-      pdf.save(sanitizeFilename(title) + '.pdf');
+      pdf.save(sanitizeFilename((cfg.getFilename && cfg.getFilename()) || title) + '.pdf');
     }catch(err){
       if(err && err.message === 'timeout'){
         showToast('التقرير كبير جدًا، جرب تضيّق الفترة أو تفلتر بمندوب واحد قبل التحميل');
@@ -3146,7 +3159,7 @@
     );
     rows.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
 
-    if(!rows.length){ body.innerHTML = '<p class="empty-note">مفيش فواتير معتمدة لسه.</p>'; return; }
+    if(!rows.length){ body.innerHTML = '<p class="empty-note">مفيش فواتير معتمدة لسه.</p>'; updateGlobalDownloadBtn(); return; }
 
     body.innerHTML = rows.map(r => `
       <div class="stmt-row" style="flex-direction:column; align-items:stretch; gap:6px;">
@@ -3158,6 +3171,7 @@
         <div style="font-size:.78rem; color:#1D7A46; font-weight:600;">🚚 السيارة: ${escapeHtml(r.car || '—')} — الموزع: ${escapeHtml(r.distributor || '—')}</div>
       </div>
     `).join('');
+    updateGlobalDownloadBtn();
   }
 
   // Predicts the [car, distributor] pair most likely to serve this customer.
@@ -3579,6 +3593,10 @@
 
   // Convert "YYYY-MM-DD" -> integer YYYYMMDD to match SALES_TX/COLL_TX date format.
   function isoToDateInt(iso){ return parseInt(iso.replace(/-/g,''), 10); }
+  function fmtDateInt(d){
+    const s = String(d);
+    return `${s.slice(6,8)}-${s.slice(4,6)}-${s.slice(0,4)}`;
+  }
 
   // Sales entered on the day itself are usually posted into the accounting system
   // the NEXT day ("بتضرب اليوم اللي بعده") — so verification against real invoices
@@ -3983,8 +4001,6 @@
   function showVisitReportDetail(id){
     const r = vrCurrentReports[id];
     if(!r) return;
-    const windowInts = verifyWindowDateInts(r.date);
-    const windowLabel = `${windowInts[0]} — ${windowInts[windowInts.length-1]}`;
     const rowsHtml = (r.rows||[]).map((row, i) => {
       let rowVerify = '';
       const parts = [];
@@ -3992,27 +4008,40 @@
         const actualCustSale = getActualSalesForCustomerDate(row.custCode, r.date);
         const diff = actualCustSale - row.sale;
         const rowOk = diff >= 0;
-        parts.push(`<div>اتبلغ (بيع): ${fmt(row.sale)} ج.م — فعلي بعد المرتجعات خلال 3 أيام (${windowLabel}): ${fmt(actualCustSale)} ج.م</div>
-          <div style="font-weight:800; color:${rowOk ? '#1E8E5A' : '#C0392B'};">الفرق: ${fmtDiff(diff)} ${rowOk ? '✓ مطابق' : '✗ مش مطابق'}</div>`);
+        parts.push(`<div>اتبلغ (بيع): ${fmt(row.sale)} ج.م — فعلي: ${fmt(actualCustSale)} ج.م
+          &nbsp;&nbsp;<span style="font-weight:800; color:${rowOk ? '#1E8E5A' : '#C0392B'};">الفرق: ${fmtDiff(diff)} ${rowOk ? '✓ مطابق' : '✗ مش مطابق'}</span></div>`);
       }
       if(row.collection != null && row.shop){
         const actualCustColl = getActualCollectionForCustomerDate(r.repCode, row.shop, r.date);
         const collDiff = actualCustColl - row.collection;
         const collOk = collDiff >= 0;
-        parts.push(`<div>اتبلغ (تحصيل): ${fmt(row.collection)} ج.م — فعلي خلال 3 أيام (${windowLabel}): ${fmt(actualCustColl)} ج.م</div>
-          <div style="font-weight:800; color:${collOk ? '#1E8E5A' : '#C0392B'};">الفرق: ${fmtDiff(collDiff)} ${collOk ? '✓ مطابق' : '✗ مش مطابق'}</div>`);
+        parts.push(`<div>اتبلغ (تحصيل): ${fmt(row.collection)} ج.م — فعلي: ${fmt(actualCustColl)} ج.م
+          &nbsp;&nbsp;<span style="font-weight:800; color:${collOk ? '#1E8E5A' : '#C0392B'};">الفرق: ${fmtDiff(collDiff)} ${collOk ? '✓ مطابق' : '✗ مش مطابق'}</span></div>`);
       }
       if(parts.length){
         rowVerify = `<div style="font-size:.74rem; margin-top:4px; padding-top:4px; border-top:1px dashed var(--line); display:flex; flex-direction:column; gap:4px;">${parts.join('')}</div>`;
+      }
+      // Visit-only rows (no sale, no collection) don't need the full layout --
+      // name, phone, and notes fit on one compact line to save vertical space.
+      if(row.sale == null && row.collection == null){
+        return `
+        <div style="border:1.5px solid var(--line); border-radius:8px; padding:7px 10px; margin-bottom:6px; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; font-size:.8rem;">
+          <span style="font-weight:800;">${i+1}. ${row.shop || ''}</span>
+          ${row.phone ? `<span style="color:var(--muted);">${row.phone}</span>` : ''}
+          ${row.notes ? `<span style="color:var(--muted);">— ${row.notes}</span>` : ''}
+        </div>`;
       }
       return `
       <div style="border:1.5px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px;">
         <div style="display:flex; justify-content:space-between; font-weight:800; font-size:.86rem;">
           <span>${i+1}. ${row.shop || ''}</span>
-          ${row.sale != null ? `<span style="color:#0E4A85;">بيع ${fmt(row.sale)} ج.م</span>` : ''}
+          <span>
+            ${row.sale != null ? `<span style="color:#0E4A85;">بيع ${fmt(row.sale)} ج.م</span>` : ''}
+            ${row.sale != null && row.collection != null ? '&nbsp;&nbsp;' : ''}
+            ${row.collection != null ? `<span style="color:#1E8E5A;">تحصيل ${fmt(row.collection)} ج.م</span>` : ''}
+          </span>
         </div>
         ${row.phone ? `<div style="font-size:.76rem; color:var(--muted);">${row.phone}</div>` : ''}
-        ${row.collection != null ? `<div style="font-size:.76rem; color:#1E8E5A; font-weight:700;">تحصيل ${fmt(row.collection)} ج.م</div>` : ''}
         ${row.notes ? `<div style="font-size:.76rem; color:var(--muted); margin-top:4px;">${row.notes}</div>` : ''}
         ${rowVerify}
       </div>`;
@@ -4030,7 +4059,6 @@
       const collOk = r.dailyTargetCollection == null || collDiff >= 0;
       verifyHtml = `
       <div style="background:#FFF9EC; border:1px solid #F0DFA8; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:8px;">
-        <div style="font-weight:800; font-size:.82rem; color:#8A6D1D;">مقارنة الهدف اليومي بالفعلي — خلال 3 أيام من تاريخ الزيارة (${windowLabel})</div>
         ${r.dailyTargetSales != null ? `
         <div style="font-size:.82rem;">
           <div>اتبلغ (هدف البيع): ${fmt(r.dailyTargetSales)} ج.م — فعلي: ${fmt(actualSales)} ج.م</div>
@@ -4046,7 +4074,7 @@
 
     const body = document.getElementById('visitReportDetailBody');
     body.innerHTML = `
-      <div style="background:#F3F8FC; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:4px;">
+      <div style="background:#F3F8FC; border-radius:10px; padding:10px 14px; margin-bottom:12px; display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; font-size:.86rem;">
         <div><b>المندوب:</b> ${r.repName || ''}</div>
         <div><b>التاريخ:</b> ${r.date || ''}</div>
         <div><b>المنطقة:</b> ${r.region || ''}</div>
@@ -4057,7 +4085,8 @@
       ${verifyHtml}
       ${rowsHtml}`;
     visitReportDetailReturnScreen = currentScreenId;
-    visitReportDetailTitle = `تفاصيل التقرير — ${r.repName || ''} — ${r.date || ''}`;
+    visitReportDetailTitle = 'تقرير خط سير مشرف البيع';
+    visitReportDetailFilename = `تقرير خط سير مشرف البيع — ${r.repName || ''} — ${r.date || ''}`;
     ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
@@ -4071,7 +4100,8 @@
   }
 
   let visitReportDetailReturnScreen = 'visitReportsAdminScreen';
-  let visitReportDetailTitle = 'تفاصيل التقرير';
+  let visitReportDetailTitle = 'تقرير خط سير مشرف البيع';
+  let visitReportDetailFilename = 'تقرير خط سير مشرف البيع';
 
   function closeVisitReportDetail(){
     if(visitReportDetailReturnScreen === 'visitReportScreen'){
