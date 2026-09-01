@@ -4898,23 +4898,24 @@
 
     // 1) Accounting-system text export (one line per item: code+unitCode,qty+price)
     const WHATSAPP_NUMBER = '201009701067';
-    // Map: carton size (pieces per carton) -> unit code in the accounting system.
-    // Where multiple unit codes share the same size, the "كرتونة" (carton) type is preferred.
-    const CARTON_SIZE_TO_UNIT_CODE = {
-      24:3, 36:4, 18:5, 6:6, 72:7, 96:8, 48:9, 120:10, 144:11, 15:12,
-      76:14, 60:16, 284:17, 288:18, 100:19, 20:21, 8:22, 192:23, 240:24,
-      200:31, 64:32, 28:33, 22:37, 54:38, 27:41, 12:28, 25:52, 90:57,
-      40:60, 5:62, 576:63, 456:56
-    };
-    function accountingUnitCode(it){
-      if(it.unit === 'carton'){
-        const prod = PRODUCTS.find(x => x.code === it.code);
-        const size = prod ? prod.cartonSize : null;
-        if(size && CARTON_SIZE_TO_UNIT_CODE[size]) return CARTON_SIZE_TO_UNIT_CODE[size];
+    // The accounting system's "عرض بيانات مجمعة" import screen appears to
+    // reset its accumulated item list every time it hits a line using a
+    // carton-type unit code -- confirmed against two real files, where only
+    // the items AFTER the last carton-unit line survived (4 of 12 items, and
+    // separately 1 of 20). To avoid ever triggering that reset, every line is
+    // now exported in "قطعة" (piece) units, converting carton quantities to
+    // their piece-equivalent so nothing gets silently dropped.
+    function accountingPieceLine(it){
+      const prod = PRODUCTS.find(x => x.code === it.code);
+      const cartonSize = prod ? prod.cartonSize : null;
+      let qty = it.qty, price = it.price;
+      if(it.unit === 'carton' && cartonSize){
+        qty = it.qty * cartonSize;
+        price = Math.round((it.price / cartonSize) * 100) / 100;
       }
-      return 1; // قطعة (piece) — default/fallback
+      return `${it.code}+1,${qty}+${price}`;
     }
-    const txtLines = items.map(it => `${it.code}+${accountingUnitCode(it)},${it.qty}+${it.price}`);
+    const txtLines = items.map(it => accountingPieceLine(it));
     const txtContent = txtLines.join('\r\n');
     const txtFilename = `${sanitizeFilename(displayCode)}.txt`;
     const itemLines = items.map(it => `- ${it.name} [${it.code}] × ${it.qty} ${unitLabel(it.unit)} = ${fmt(it.subtotal)} ج.م`);
