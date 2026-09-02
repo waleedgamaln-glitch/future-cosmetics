@@ -4558,7 +4558,7 @@
           <button onclick="changeQty('${key}',-1)">−</button>
         </div>`;
     }
-    return `<button class="add-btn" onclick="addToCart(${p.code})">أضف إلى السيارة</button>`;
+    return `<button class="add-btn" onclick="addToCart('${p.code}')">أضف إلى السيارة</button>`;
   }
 
   function rowContentHtml(p){
@@ -4598,8 +4598,8 @@
         </div>
         ${hasCarton ? `
         <div class="unit-toggle">
-          <button class="${unit==='piece'?'active':''}" onclick="setUnit(${p.code},'piece')">قطعة</button>
-          <button class="${unit==='carton'?'active':''}" onclick="setUnit(${p.code},'carton')">كرتونة</button>
+          <button class="${unit==='piece'?'active':''}" onclick="setUnit('${p.code}','piece')">قطعة</button>
+          <button class="${unit==='carton'?'active':''}" onclick="setUnit('${p.code}','carton')">كرتونة</button>
         </div>` : ''}
       </div>
       <div class="item-bottom">
@@ -4613,7 +4613,7 @@
 
   function refreshRow(code){
     const el = document.getElementById(`row-${code}`);
-    const p = PRODUCTS.find(x => x.code === code);
+    const p = PRODUCTS.find(x => String(x.code) === String(code));
     if(el && p) el.innerHTML = rowContentHtml(p);
   }
 
@@ -4633,7 +4633,7 @@
   }
 
   function addToCart(code){
-    const p = PRODUCTS.find(x => x.code === code);
+    const p = PRODUCTS.find(x => String(x.code) === String(code));
     const unit = unitState[code] || 'piece';
     const price = unitPrice(p, unit);
     const max = unitMax(p, unit);
@@ -4648,7 +4648,7 @@
   function changeQty(key, delta){
     const entry = cart[key];
     if(!entry) return;
-    const p = PRODUCTS.find(x => x.code === entry.code);
+    const p = PRODUCTS.find(x => String(x.code) === String(entry.code));
     const max = unitMax(p, entry.unit);
     let v = entry.qty + delta;
     v = Math.max(0, Math.min(v, max));
@@ -4659,7 +4659,7 @@
   function setQtyManual(key, val){
     const entry = cart[key];
     if(!entry) return;
-    const p = PRODUCTS.find(x => x.code === entry.code);
+    const p = PRODUCTS.find(x => String(x.code) === String(entry.code));
     const max = unitMax(p, entry.unit);
     let v = parseInt(val, 10);
     if(isNaN(v) || v < 1) v = 1;
@@ -4690,7 +4690,7 @@
     } else {
       body.innerHTML = keys.map(key => {
         const entry = cart[key];
-        const p = PRODUCTS.find(x => x.code === entry.code);
+        const p = PRODUCTS.find(x => String(x.code) === String(entry.code));
         const price = unitPrice(p, entry.unit);
         const max = unitMax(p, entry.unit);
         const ciSrc = p.img ? `images/${p.img}` : (p.img_url || null);
@@ -4713,7 +4713,7 @@
     }
     const subtotal = keys.reduce((s,k) => {
       const entry = cart[k];
-      const p = PRODUCTS.find(x => x.code === entry.code);
+      const p = PRODUCTS.find(x => String(x.code) === String(entry.code));
       return s + entry.qty * unitPrice(p, entry.unit);
     }, 0);
     document.getElementById('subtotalText').textContent = fmt(subtotal) + ' ج.م';
@@ -4870,7 +4870,7 @@
     const keys = Object.keys(cart);
     const items = keys.map(key => {
       const entry = cart[key];
-      const p = PRODUCTS.find(x => x.code === entry.code);
+      const p = PRODUCTS.find(x => String(x.code) === String(entry.code));
       const price = unitPrice(p, entry.unit);
       return { code: p.code, name: p.name, unit: entry.unit, qty: entry.qty, price, subtotal: price*entry.qty };
     });
@@ -4878,7 +4878,7 @@
 
     // Live stock sync: decrement on Firebase so every device sees the update instantly
     items.forEach(it => {
-      const p = PRODUCTS.find(x => x.code === it.code);
+      const p = PRODUCTS.find(x => String(x.code) === String(it.code));
       const piecesSold = it.unit === 'carton' ? it.qty * (p.cartonSize || 1) : it.qty;
       decrementLiveStock(it.code, piecesSold);
       if(p) p.stock = Math.max(0, (p.stock || 0) - piecesSold);
@@ -4906,7 +4906,7 @@
     // now exported in "قطعة" (piece) units, converting carton quantities to
     // their piece-equivalent so nothing gets silently dropped.
     function accountingPieceLine(it){
-      const prod = PRODUCTS.find(x => x.code === it.code);
+      const prod = PRODUCTS.find(x => String(x.code) === String(it.code));
       const cartonSize = prod ? prod.cartonSize : null;
       let qty = it.qty, price = it.price;
       if(it.unit === 'carton' && cartonSize){
