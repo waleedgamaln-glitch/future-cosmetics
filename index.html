@@ -866,7 +866,18 @@
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="18" r="8"/><path d="M10 52 c0-10 6-16 14-16 s14 6 14 16"/><circle cx="46" cy="22" r="6"/><path d="M38 52 c0-8 4-13 8-13 s8 4 9 10"/></svg>
       <span>تقارير الزيارات (كل المناديب)</span>
     </button>
+    <button class="menu-card acct-hub-admin-only" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openSuppliersReportScreen()">
+      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="10" width="48" height="44" rx="4"/><path d="M8 22 h48 M20 32 h24 M20 40 h24 M20 48 h16"/></svg>
+      <span>تقرير الموردين</span>
+    </button>
   </div>
+</div>
+
+<div id="suppliersReportScreen" class="report-screen" style="display:none;">
+  <button class="back-btn" onclick="openAccountsHub()">‹ رجوع</button>
+  <h2>تقرير الموردين</h2>
+  <p id="suppliersReportSubtitle" style="font-size:.8rem; color:var(--muted); margin:-6px 0 14px;"></p>
+  <div id="suppliersReportBody"></div>
 </div>
 
 <div id="carRouteScreen" class="report-screen" style="display:none;">
@@ -1345,6 +1356,10 @@
   // history takes priority, falling back to the customer's region pattern.
   const CUST_CAR_ASSIGN = {"7698":["عمرو مصطفى",1.0,2],"1329":["خالد حسين",0.57,7],"11418":["رمضان محمد",1.0,1],"11419":["رمضان محمد",1.0,4],"7341":["عمرو مصطفى",1.0,3],"10708":["رمضان محمد",1.0,3],"10780":["خالد حسين",1.0,1],"7265":["خالد حسين",1.0,1],"1358":["رمضان محمد",1.0,4],"11420":["رمضان محمد",1.0,2],"2720":["عمرو مصطفى",1.0,1],"11411":["عمرو مصطفى",1.0,1],"7940":["عمرو مصطفى",1.0,2],"6678":["عمرو مصطفى",1.0,3],"5349":["عمرو مصطفى",1.0,1],"10934":["خالد حسين",1.0,1],"11366":["رمضان محمد",1.0,4],"3383":["رمضان محمد",0.69,13],"11421":["رمضان محمد",1.0,1],"359":["خالد حسين",0.5,2],"6763":["عمرو مصطفى",0.8,5],"10240":["عمرو مصطفى",1.0,4],"11354":["رمضان محمد",1.0,1],"10428":["خالد حسين",1.0,3],"2098":["رمضان محمد",1.0,2],"11398":["خالد حسين",0.67,6],"11181":["عمرو مصطفى",1.0,1],"11305":["خالد حسين",0.83,12],"9188":["عمرو مصطفى",0.5,2],"10001":["رمضان محمد",1.0,20],"9950":["رمضان محمد",1.0,3],"8446":["رمضان محمد",0.62,8],"67":["عمرو مصطفى",0.75,4],"6346":["خالد حسين",0.88,8],"748":["رمضان محمد",1.0,1],"11422":["رمضان محمد",1.0,2],"7453":["خالد حسين",1.0,4],"8773":["رمضان محمد",1.0,5],"11397":["خالد حسين",0.7,10],"350":["عمرو مصطفى",0.75,8],"11256":["عمرو مصطفى",1.0,3],"11423":["خالد حسين",1.0,1],"11070":["رمضان محمد",0.56,16],"9380":["رمضان محمد",1.0,4],"11404":["عمرو مصطفى",0.67,6],"11401":["خالد حسين",1.0,5],"11383":["خالد حسين",1.0,1],"3205":["رمضان محمد",1.0,2],"1118":["رمضان محمد",1.0,1],"11378":["رمضان محمد",1.0,1],"10657":["عمرو مصطفى",1.0,4],"539":["عمرو مصطفى",0.86,7],"8643":["عمرو مصطفى",0.5,2],"6219":["عمرو مصطفى",0.8,5],"11360":["خالد حسين",0.57,7],"11394":["رمضان محمد",1.0,2],"9949":["عمرو مصطفى",0.5,8],"11337":["خالد حسين",0.67,12],"8801":["عمرو مصطفى",1.0,1],"10991":["رمضان محمد",0.5,4],"10995":["عمرو مصطفى",0.57,7],"8636":["رمضان محمد",1.0,6],"10612":["عمرو مصطفى",1.0,1],"11412":["رمضان محمد",1.0,1],"731":["عمرو مصطفى",0.5,6],"11242":["عمرو مصطفى",0.86,7],"11424":["رمضان محمد",1.0,1],"8696":["خالد حسين",1.0,3],"11370":["خالد حسين",1.0,4],"1334":["خالد حسين",0.6,5],"1447":["عمرو مصطفى",0.75,4],"9798":["رمضان محمد",1.0,3],"5669":["رمضان محمد",1.0,2],"11277":["خالد حسين",0.5,2],"3818":["عمرو مصطفى",1.0,3],"7408":["عمرو مصطفى",1.0,6],"6516":["عمرو مصطفى",0.5,2],"8988":["خالد حسين",1.0,2],"9987":["رمضان محمد",1.0,5],"11361":["خالد حسين",0.67,3],"7623":["رمضان محمد",0.5,4],"11425":["رمضان محمد",1.0,2],"9444":["خالد حسين",1.0,1],"8479":["رمضان محمد",0.75,4],"8763":["خالد حسين",1.0,1],"8682":["خالد حسين",1.0,4],"11246":["عمرو مصطفى",1.0,1],"10044":["رمضان محمد",1.0,1],"10776":["خالد حسين",1.0,2],"11371":["خالد حسين",0.5,2],"7263":["خالد حسين",0.82,11],"10816":["عمرو مصطفى",0.67,3],"338":["خالد حسين",1.0,1],"6817":["عمرو مصطفى",1.0,1],"10977":["رمضان محمد",1.0,6],"9150":["عمرو مصطفى",1.0,3],"9629":["عمرو مصطفى",1.0,2],"10290":["خالد حسين",0.8,5],"6291":["رمضان محمد",1.0,3],"11426":["خالد حسين",1.0,1],"6304":["رمضان محمد",1.0,2],"11348":["رمضان محمد",1.0,1],"6375":["عمرو مصطفى",0.67,3],"10967":["عمرو مصطفى",0.67,3],"10849":["عمرو مصطفى",0.33,3],"11427":["رمضان محمد",1.0,1],"11428":["رمضان محمد",1.0,1],"6792":["خالد حسين",1.0,2],"775":["رمضان محمد",0.5,2],"811":["خالد حسين",1.0,2],"3932":["عمرو مصطفى",0.67,3],"129":["عمرو مصطفى",0.5,2],"11429":["خالد حسين",1.0,2],"11430":["رمضان محمد",1.0,3],"11431":["خالد حسين",1.0,3],"10751":["رمضان محمد",1.0,1],"11338":["رمضان محمد",0.33,3],"11382":["رمضان محمد",1.0,3],"11432":["خالد حسين",1.0,1],"2679":["خالد حسين",0.5,2],"11334":["رمضان محمد",1.0,4],"5031":["رمضان محمد",1.0,1],"10372":["خالد حسين",0.75,4],"11117":["خالد حسين",0.67,3],"171":["خالد حسين",0.5,2],"7653":["خالد حسين",0.88,8],"7354":["خالد حسين",1.0,4],"11296":["خالد حسين",1.0,1],"11433":["رمضان محمد",1.0,1],"11434":["رمضان محمد",1.0,2],"502":["عمرو مصطفى",0.6,5],"1727":["رمضان محمد",1.0,2],"11369":["رمضان محمد",0.5,6],"11364":["رمضان محمد",1.0,1],"10902":["خالد حسين",1.0,2],"10034":["خالد حسين",0.75,4],"329":["خالد حسين",1.0,3],"11372":["خالد حسين",1.0,2],"295":["رمضان محمد",0.5,4],"156":["رمضان محمد",0.5,4],"4173":["رمضان محمد",1.0,1],"3425":["خالد حسين",1.0,1],"11241":["خالد حسين",0.5,2],"4953":["خالد حسين",0.5,4],"10605":["خالد حسين",0.57,7],"7739":["رمضان محمد",1.0,1],"1023":["خالد حسين",0.5,2],"7514":["خالد حسين",1.0,3],"5221":["خالد حسين",1.0,2],"10718":["خالد حسين",1.0,1],"11344":["خالد حسين",1.0,2],"11069":["خالد حسين",0.5,2],"11314":["رمضان محمد",1.0,3],"230":["رمضان محمد",1.0,4],"10351":["خالد حسين",0.75,4],"11234":["خالد حسين",0.43,7],"8909":["خالد حسين",1.0,2],"1471":["رمضان محمد",1.0,3],"11040":["عمرو مصطفى",0.67,3],"7992":["خالد حسين",1.0,1],"2229":["خالد حسين",1.0,1],"11435":["رمضان محمد",1.0,1],"7112":["رمضان محمد",0.67,3],"2858":["خالد حسين",1.0,5],"11436":["خالد حسين",1.0,2],"9787":["خالد حسين",1.0,2],"11392":["رمضان محمد",1.0,1],"3233":["رمضان محمد",1.0,4],"10787":["خالد حسين",1.0,1],"3626":["خالد حسين",1.0,2],"11438":["خالد حسين",1.0,1],"1370":["رمضان محمد",1.0,2],"11076":["رمضان محمد",1.0,2],"5636":["رمضان محمد",1.0,1],"3670":["رمضان محمد",1.0,2],"11200":["رمضان محمد",1.0,4],"11254":["خالد حسين",1.0,1],"8012":["خالد حسين",0.5,2],"10313":["رمضان محمد",1.0,2],"588":["رمضان محمد",1.0,3],"7516":["رمضان محمد",1.0,1],"6593":["رمضان محمد",1.0,3],"11410":["رمضان محمد",1.0,1],"6661":["رمضان محمد",0.6,15],"11235":["خالد حسين",0.67,3],"11107":["رمضان محمد",1.0,3],"1271":["عمرو مصطفى",1.0,5],"9147":["خالد حسين",1.0,1],"6898":["عمرو مصطفى",0.67,3],"5061":["عمرو مصطفى",0.67,3],"2100":["عمرو مصطفى",1.0,1],"2851":["عمرو مصطفى",1.0,2],"11331":["عمرو مصطفى",0.83,6],"11439":["رمضان محمد",1.0,2],"9160":["خالد حسين",1.0,3],"11442":["رمضان محمد",1.0,1],"11441":["رمضان محمد",1.0,1],"3184":["عمرو مصطفى",1.0,1],"313":["خالد حسين",0.5,4],"11443":["عمرو مصطفى",1.0,2],"11357":["رمضان محمد",1.0,4],"11292":["عمرو مصطفى",0.6,5],"5981":["خالد حسين",0.67,3],"10509":["رمضان محمد",1.0,1],"8334":["عمرو مصطفى",1.0,2],"656":["عمرو مصطفى",1.0,3],"4375":["عمرو مصطفى",1.0,2],"1024":["عمرو مصطفى",0.67,3],"11238":["عمرو مصطفى",1.0,1],"7663":["عمرو مصطفى",1.0,2],"8609":["خالد حسين",0.67,3],"7767":["خالد حسين",1.0,1],"11437":["رمضان محمد",1.0,1],"11444":["رمضان محمد",1.0,4],"126":["عمرو مصطفى",1.0,2],"10601":["رمضان محمد",1.0,4],"7026":["خالد حسين",1.0,1],"6810":["خالد حسين",0.5,4],"8346":["خالد حسين",0.33,3],"10490":["رمضان محمد",0.83,6],"10989":["عمرو مصطفى",0.5,2],"415":["رمضان محمد",1.0,2],"4645":["عمرو مصطفى",0.67,3],"11363":["خالد حسين",1.0,2],"10074":["رمضان محمد",1.0,3],"11389":["عمرو مصطفى",1.0,1],"8450":["خالد حسين",1.0,1],"11446":["رمضان محمد",1.0,1],"11447":["رمضان محمد",1.0,1],"8785":["خالد حسين",1.0,2],"196":["عمرو مصطفى",0.67,3],"11250":["عمرو مصطفى",1.0,5],"5901":["عمرو مصطفى",1.0,3],"10714":["خالد حسين",1.0,1],"10878":["خالد حسين",0.67,3],"10841":["خالد حسين",1.0,2],"6227":["رمضان محمد",1.0,3],"9310":["خالد حسين",1.0,2],"7538":["عمرو مصطفى",1.0,2],"11448":["خالد حسين",1.0,5],"278":["خالد حسين",0.5,2],"10559":["رمضان محمد",1.0,1],"327":["عمرو مصطفى",1.0,1],"2892":["خالد حسين",1.0,2],"11400":["رمضان محمد",1.0,1],"8130":["عمرو مصطفى",1.0,1],"5845":["رمضان محمد",1.0,3],"9391":["عمرو مصطفى",1.0,3],"1007":["عمرو مصطفى",0.5,4],"10854":["عمرو مصطفى",1.0,1],"6728":["عمرو مصطفى",1.0,3],"11114":["رمضان محمد",1.0,3],"1126":["خالد حسين",1.0,2],"11449":["عمرو مصطفى",0.75,4],"11450":["عمرو مصطفى",1.0,1],"11416":["رمضان محمد",1.0,1],"11312":["خالد حسين",1.0,1],"11451":["رمضان محمد",1.0,1],"11380":["خالد حسين",1.0,1],"6482":["عمرو مصطفى",1.0,1],"11290":["عمرو مصطفى",1.0,1],"239":["خالد حسين",1.0,1],"543":["رمضان محمد",1.0,1],"11391":["رمضان محمد",1.0,2],"11286":["خالد حسين",1.0,2],"6900":["خالد حسين",1.0,2],"11452":["رمضان محمد",1.0,1],"9595":["خالد حسين",1.0,3],"37":["عمرو مصطفى",1.0,1],"11263":["رمضان محمد",1.0,1],"11333":["خالد حسين",0.5,2],"3132":["عمرو مصطفى",1.0,3],"11219":["خالد حسين",0.67,3],"9711":["خالد حسين",1.0,1],"11407":["رمضان محمد",1.0,4],"4923":["رمضان محمد",1.0,2],"2832":["عمرو مصطفى",1.0,1],"3645":["رمضان محمد",1.0,1],"7356":["رمضان محمد",1.0,1],"11453":["رمضان محمد",1.0,3],"11271":["عمرو مصطفى",1.0,1],"10426":["عمرو مصطفى",0.5,2],"65":["عمرو مصطفى",1.0,1],"11304":["عمرو مصطفى",1.0,3],"9713":["رمضان محمد",1.0,1],"1947":["خالد حسين",1.0,2],"10310":["عمرو مصطفى",1.0,3],"10124":["خالد حسين",1.0,2],"10748":["رمضان محمد",1.0,2],"11454":["خالد حسين",1.0,1],"3838":["عمرو مصطفى",1.0,1],"2097":["عمرو مصطفى",1.0,2],"3267":["عمرو مصطفى",1.0,1],"11112":["خالد حسين",1.0,2],"11105":["رمضان محمد",1.0,2],"11373":["رمضان محمد",1.0,1],"10322":["خالد حسين",1.0,1],"2149":["خالد حسين",0.67,3],"183":["خالد حسين",1.0,1],"280":["خالد حسين",0.5,2],"10081":["رمضان محمد",1.0,1],"10808":["رمضان محمد",1.0,1],"11455":["خالد حسين",0.5,2],"5122":["رمضان محمد",1.0,2],"10221":["عمرو مصطفى",1.0,1],"41":["عمرو مصطفى",0.75,4],"3446":["خالد حسين",1.0,1],"3111":["خالد حسين",0.5,2],"99":["رمضان محمد",1.0,2],"11456":["رمضان محمد",1.0,4],"9159":["رمضان محمد",1.0,1],"600":["رمضان محمد",0.67,3],"7633":["عمرو مصطفى",1.0,1],"2034":["عمرو مصطفى",1.0,1],"877":["عمرو مصطفى",1.0,2],"1762":["عمرو مصطفى",1.0,2],"7753":["عمرو مصطفى",1.0,1],"11457":["رمضان محمد",1.0,1],"4512":["خالد حسين",1.0,1],"8323":["عمرو مصطفى",1.0,1],"10326":["خالد حسين",1.0,1],"11393":["خالد حسين",1.0,1],"4347":["رمضان محمد",1.0,1],"9425":["رمضان محمد",1.0,2],"9202":["رمضان محمد",1.0,2],"772":["رمضان محمد",1.0,10],"11365":["عمرو مصطفى",1.0,1],"2559":["رمضان محمد",0.5,2],"11030":["عمرو مصطفى",0.75,4],"11402":["خالد حسين",1.0,1],"4403":["عمرو مصطفى",1.0,1],"8628":["رمضان محمد",0.67,3],"8506":["رمضان محمد",1.0,2],"10113":["عمرو مصطفى",0.5,2],"9803":["عمرو مصطفى",1.0,2],"11462":["خالد حسين",1.0,2],"8961":["رمضان محمد",1.0,2],"7602":["عمرو مصطفى",1.0,1],"9020":["خالد حسين",1.0,2],"11270":["رمضان محمد",1.0,1],"2377":["عمرو مصطفى",1.0,1],"4131":["رمضان محمد",1.0,1],"5718":["رمضان محمد",1.0,1],"10037":["خالد حسين",1.0,1],"3656":["عمرو مصطفى",1.0,1],"624":["رمضان محمد",1.0,1],"10334":["خالد حسين",1.0,1],"8758":["عمرو مصطفى",1.0,3],"6738":["عمرو مصطفى",1.0,2],"11323":["خالد حسين",1.0,1],"6663":["عمرو مصطفى",1.0,1],"2364":["عمرو مصطفى",1.0,1],"11325":["خالد حسين",0.67,3],"6127":["عمرو مصطفى",1.0,1],"4771":["خالد حسين",1.0,1],"11468":["رمضان محمد",1.0,1],"11469":["عمرو مصطفى",0.67,3],"801":["خالد حسين",1.0,2],"3599":["عمرو مصطفى",1.0,2],"11309":["عمرو مصطفى",1.0,2],"1616":["خالد حسين",1.0,1],"1615":["رمضان محمد",1.0,1],"7948":["خالد حسين",1.0,2],"11347":["خالد حسين",1.0,1],"5823":["رمضان محمد",1.0,1],"9225":["خالد حسين",1.0,1],"3447":["رمضان محمد",1.0,1],"6956":["خالد حسين",1.0,1],"7166":["خالد حسين",1.0,1],"6178":["عمرو مصطفى",1.0,1],"294":["عمرو مصطفى",1.0,3],"10311":["رمضان محمد",1.0,1],"4694":["عمرو مصطفى",1.0,1],"542":["رمضان محمد",1.0,1],"11470":["عمرو مصطفى",1.0,1],"9430":["خالد حسين",1.0,1],"10598":["خالد حسين",1.0,4],"9502":["خالد حسين",1.0,2],"11471":["عمرو مصطفى",1.0,1],"9300":["عمرو مصطفى",1.0,1],"2139":["عمرو مصطفى",1.0,1],"5971":["رمضان محمد",1.0,2],"11460":["رمضان محمد",1.0,1],"158":["عمرو مصطفى",1.0,2],"6851":["خالد حسين",1.0,1],"11298":["رمضان محمد",1.0,4],"160":["عمرو مصطفى",1.0,1],"6014":["رمضان محمد",1.0,1],"11106":["رمضان محمد",1.0,1],"1470":["رمضان محمد",1.0,1],"10642":["رمضان محمد",1.0,1],"9723":["رمضان محمد",1.0,4],"11405":["رمضان محمد",1.0,3],"10671":["رمضان محمد",1.0,1],"54":["عمرو مصطفى",1.0,1],"11048":["عمرو مصطفى",1.0,1],"11339":["عمرو مصطفى",1.0,1],"6029":["رمضان محمد",0.5,2],"11472":["خالد حسين",0.5,2],"9197":["عمرو مصطفى",1.0,1],"11473":["رمضان محمد",1.0,4],"10744":["رمضان محمد",1.0,3],"4210":["رمضان محمد",1.0,1],"1561":["رمضان محمد",1.0,1],"10535":["خالد حسين",1.0,3],"11474":["خالد حسين",0.67,3],"11285":["رمضان محمد",1.0,1],"8955":["خالد حسين",0.67,3],"1388":["رمضان محمد",1.0,1],"6691":["رمضان محمد",1.0,1],"11475":["عمرو مصطفى",1.0,1],"8944":["خالد حسين",1.0,1],"9873":["رمضان محمد",1.0,1],"11467":["خالد حسين",1.0,1],"11340":["رمضان محمد",1.0,1],"413":["رمضان محمد",1.0,1],"8547":["خالد حسين",1.0,1],"11476":["خالد حسين",1.0,2],"10765":["رمضان محمد",1.0,1],"5491":["رمضان محمد",1.0,1],"10951":["عمرو مصطفى",1.0,1],"7175":["خالد حسين",1.0,2],"10889":["خالد حسين",1.0,1],"11228":["رمضان محمد",1.0,1],"11477":["خالد حسين",0.5,2],"8862":["عمرو مصطفى",1.0,1],"10627":["خالد حسين",1.0,2],"11367":["رمضان محمد",1.0,1],"3096":["رمضان محمد",1.0,1],"8317":["رمضان محمد",1.0,1],"11466":["رمضان محمد",1.0,2],"233":["خالد حسين",1.0,1],"7463":["عمرو مصطفى",1.0,1],"10940":["رمضان محمد",1.0,1],"11349":["عمرو مصطفى",1.0,1],"11232":["عمرو مصطفى",1.0,1],"11306":["رمضان محمد",1.0,2],"6259":["رمضان محمد",1.0,1],"11406":["رمضان محمد",1.0,2],"11480":["عمرو مصطفى",1.0,1],"2792":["رمضان محمد",0.5,2],"1872":["عمرو مصطفى",0.5,2],"1095":["عمرو مصطفى",1.0,1],"201":["رمضان محمد",0.5,2],"10897":["عمرو مصطفى",1.0,1],"11481":["خالد حسين",1.0,3],"11482":["رمضان محمد",1.0,3],"754":["رمضان محمد",1.0,1],"10725":["عمرو مصطفى",1.0,1],"9715":["عمرو مصطفى",1.0,1],"2959":["عمرو مصطفى",1.0,1],"8739":["خالد حسين",1.0,2],"1670":["خالد حسين",0.5,2],"1593":["خالد حسين",1.0,1],"10289":["خالد حسين",1.0,1],"7949":["خالد حسين",0.5,2],"7208":["رمضان محمد",1.0,1],"2294":["عمرو مصطفى",1.0,1],"11483":["رمضان محمد",1.0,2],"11484":["رمضان محمد",1.0,1],"11485":["رمضان محمد",1.0,3],"2916":["رمضان محمد",1.0,1],"11413":["رمضان محمد",1.0,1],"5535":["خالد حسين",1.0,1],"2433":["عمرو مصطفى",1.0,1],"11486":["خالد حسين",1.0,1],"7947":["عمرو مصطفى",1.0,1],"1351":["رمضان محمد",1.0,1],"11487":["عمرو مصطفى",0.5,2],"11374":["خالد حسين",0.5,2],"11488":["رمضان محمد",1.0,1],"11489":["رمضان محمد",1.0,1],"11490":["خالد حسين",1.0,1],"11491":["خالد حسين",1.0,1],"10747":["خالد حسين",1.0,1],"11492":["رمضان محمد",1.0,1],"11493":["رمضان محمد",1.0,1],"11494":["خالد حسين",1.0,1],"3865":["عمرو مصطفى",1.0,1],"10174":["رمضان محمد",1.0,1],"6620":["عمرو مصطفى",1.0,1],"9313":["رمضان محمد",1.0,1],"4418":["عمرو مصطفى",0.5,2],"9632":["رمضان محمد",1.0,1],"11495":["رمضان محمد",1.0,1],"11458":["خالد حسين",1.0,1],"11496":["رمضان محمد",1.0,1],"1528":["عمرو مصطفى",1.0,1],"206":["عمرو مصطفى",0.5,2],"11497":["خالد حسين",1.0,1],"11236":["خالد حسين",1.0,1],"11479":["خالد حسين",1.0,1],"602":["رمضان محمد",1.0,1],"10218":["خالد حسين",1.0,2],"11328":["رمضان محمد",1.0,1],"11498":["خالد حسين",1.0,1],"11499":["خالد حسين",1.0,1],"11211":["خالد حسين",1.0,1],"2008":["رمضان محمد",1.0,1],"7692":["خالد حسين",1.0,1],"11501":["خالد حسين",1.0,1],"9338":["رمضان محمد",1.0,1],"10347":["عمرو مصطفى",1.0,1],"11500":["رمضان محمد",1.0,1],"1249":["عمرو مصطفى",1.0,1],"11368":["خالد حسين",1.0,1],"10953":["خالد حسين",1.0,1],"139":["خالد حسين",1.0,1],"6802":["خالد حسين",1.0,1],"10987":["رمضان محمد",1.0,1],"11503":["خالد حسين",1.0,1]};
   const REGION_CAR_ASSIGN = {"المطرية":["عمرو مصطفى",0.86,21],"النزهه":["عمرو مصطفى",0.59,41],"القناطر":["رمضان محمد",0.89,55],"الخصوص":["عمرو مصطفى",0.7,57],"صفط اللبن":["رمضان محمد",1.0,6],"الموسكى":["خالد حسين",0.86,92],"مدينة نصر":["خالد حسين",0.71,94],"فيصل":["رمضان محمد",0.99,118],"الخمسين":["عمرو مصطفى",0.72,25],"عين شمس":["عمرو مصطفى",0.83,18],"السلام":["عمرو مصطفى",0.83,30],"اول جمال عبد الناصر":["عمرو مصطفى",1.0,13],"الزاويه":["خالد حسين",0.56,9],"التجمع الاول":["خالد حسين",1.0,1],"سرياقوس":["رمضان محمد",0.64,28],"العباسيه":["خالد حسين",0.8,15],"جسر السويس":["عمرو مصطفى",0.68,38],"شبرا الخيمه":["رمضان محمد",0.49,61],"المنوفيه":["خالد حسين",0.7,40],"حدائق القبة":["خالد حسين",0.54,13],"6اكتوبر":["رمضان محمد",1.0,31],"الهرم":["رمضان محمد",1.0,21],"بهتيم":["رمضان محمد",0.69,13],"المعادى":["خالد حسين",0.89,9],"ناهيا":["رمضان محمد",1.0,2],"عزبة النخل":["عمرو مصطفى",0.82,22],"امبابه":["رمضان محمد",1.0,20],"المرج":["عمرو مصطفى",0.81,16],"العبور":["عمرو مصطفى",0.71,14],"مؤسسة الزكاة":["عمرو مصطفى",0.79,14],"ترسا":["رمضان محمد",1.0,17],"شرابيه":["عمرو مصطفى",0.57,7],"الخانكه":["عمرو مصطفى",0.5,2],"المقطم":["خالد حسين",0.88,16],"شبرامنت":["رمضان محمد",0.75,4],"وسط البلد":["خالد حسين",0.92,12],"شبرا مصر":["خالد حسين",0.73,15],"بولاق الدكرور":["رمضان محمد",1.0,8],"حلوان":["خالد حسين",0.85,13],"حدايق الاهرام":["رمضان محمد",1.0,3],"جيزة":["رمضان محمد",1.0,5],"الزيتون":["خالد حسين",0.5,18],"حدائق الزيتون":["خالد حسين",0.5,4],"منشية ناصر":["خالد حسين",0.67,6],"العمرانيه":["رمضان محمد",1.0,9],"المنيب":["رمضان محمد",1.0,14],"الوايلي":["عمرو مصطفى",0.71,7],"بنها":["خالد حسين",0.86,14],"المستقبل":["خالد حسين",0.5,4],"القلج":["عمرو مصطفى",1.0,2],"مباشر":["خالد حسين",1.0,1],"الدقى":["رمضان محمد",1.0,1],"قليوب":["رمضان محمد",0.67,12],"الرحاب":["خالد حسين",1.0,3],"الشيخ زايد":["رمضان محمد",1.0,3],"المريوطيه":["رمضان محمد",1.0,1],"ارض اللواء":["رمضان محمد",1.0,4],"البدرشين":["رمضان محمد",1.0,3],"النهضه":["عمرو مصطفى",1.0,9],"الاميريه":["خالد حسين",1.0,1],"التجمع الخامس":["خالد حسين",1.0,1],"ابو رواش":["رمضان محمد",1.0,1],"المهندسين":["رمضان محمد",1.0,1],"السويس":["خالد حسين",0.67,3],"السواح":["عمرو مصطفى",1.0,2],"الوراق":["رمضان محمد",0.5,2],"الشرقيه":["خالد حسين",1.0,1],"البساتين":["خالد حسين",1.0,2],"اطفيح":["خالد حسين",1.0,2],"العشرين":["عمرو مصطفى",1.0,1],"باسوس":["خالد حسين",0.5,2],"منشأة القناطر":["رمضان محمد",1.0,1],"كفر الشيخ":["خالد حسين",1.0,1]};
+  // Suppliers report (تقرير الموردين) -- a full snapshot replaced each time
+  // Waleed sends an updated export in the same format.
+  let SUPPLIERS_REPORT = {"title":"تقرير الموردين 3 سبتمبر 2026","rows":[{"code":182,"name":"فيرا بيوتي","checks":0.0,"openBalance":16694728.3,"totalDebt":16694728.3,"inventoryValue":6040987.25,"diff":-10653741.05},{"code":109,"name":"اس اتش انترناشيونال","checks":0.0,"openBalance":1485798.4779999997,"totalDebt":1485798.4779999997,"inventoryValue":976113.3599999995,"diff":-509685.11800000013},{"code":132,"name":"ميلانو","checks":300000.0,"openBalance":1074046.8900000001,"totalDebt":1374046.8900000001,"inventoryValue":1397790.2289999998,"diff":23743.338999999687},{"code":101,"name":"انتركيم فارما","checks":0.0,"openBalance":1004567.2000000001,"totalDebt":1004567.2000000001,"inventoryValue":332142.20000000007,"diff":-672425.0},{"code":185,"name":"بركة فارم (بالمرز)","checks":505000.0,"openBalance":18278.64,"totalDebt":523278.64,"inventoryValue":1594196.8000000003,"diff":1070918.1600000001},{"code":157,"name":"فرست لمستحضرات التجميل","checks":0.0,"openBalance":428000.0,"totalDebt":428000.0,"inventoryValue":331852.19999999995,"diff":-96147.80000000005},{"code":64,"name":"بوبانا","checks":0.0,"openBalance":344273.01,"totalDebt":344273.01,"inventoryValue":726100.3780000001,"diff":381827.36800000013},{"code":198,"name":"ديزوردي","checks":0.0,"openBalance":331242.57,"totalDebt":331242.57,"inventoryValue":290118.62,"diff":-41123.95000000001},{"code":195,"name":"امازون - Amazon","checks":0.0,"openBalance":303000.0,"totalDebt":303000.0,"inventoryValue":"","diff":-303000.0},{"code":197,"name":"شركة الاهرام","checks":300000.0,"openBalance":-0.72,"totalDebt":299999.28,"inventoryValue":"","diff":-299999.28},{"code":159,"name":"شركة كلاس","checks":255575.0,"openBalance":-1655.27,"totalDebt":253919.73,"inventoryValue":133517.03999999998,"diff":-120402.69000000003},{"code":150,"name":"شركة هيرو","checks":234600.0,"openBalance":-3.5,"totalDebt":234596.5,"inventoryValue":207865.34000000003,"diff":-26731.159999999974},{"code":8,"name":"لاكارينا","checks":0.0,"openBalance":205816.02079999866,"totalDebt":205816.02079999866,"inventoryValue":380367.04000000004,"diff":174551.01920000138},{"code":196,"name":"بيب تون - فرش اسنان","checks":202955.0,"openBalance":-1.96,"totalDebt":202953.04,"inventoryValue":151597.19999999998,"diff":-51355.840000000026},{"code":144,"name":"النوران","checks":0.0,"openBalance":168090.68,"totalDebt":168090.68,"inventoryValue":169527.06799999997,"diff":1436.3879999999772},{"code":181,"name":"برلنتي","checks":0.0,"openBalance":156416.17999999993,"totalDebt":156416.17999999993,"inventoryValue":181477.11,"diff":25060.93000000005},{"code":188,"name":"شركة الوكيل","checks":0.0,"openBalance":133697.17999999985,"totalDebt":133697.17999999985,"inventoryValue":148868.02000000002,"diff":15170.840000000171},{"code":17,"name":"علاء شفيق","checks":100000.0,"openBalance":8872.0,"totalDebt":108872.0,"inventoryValue":10121.42,"diff":-98750.58},{"code":171,"name":"التراكير","checks":0.0,"openBalance":73801.58,"totalDebt":73801.58,"inventoryValue":160866.3,"diff":87064.71999999999},{"code":141,"name":"هيفين","checks":0.0,"openBalance":59051.0,"totalDebt":59051.0,"inventoryValue":62750.0,"diff":3699.0},{"code":105,"name":"الريحانى للبخور","checks":0.0,"openBalance":35696.7456,"totalDebt":35696.7456,"inventoryValue":"","diff":-35696.7456},{"code":165,"name":"انترناشيونال جروب للاستيراد والتصدير","checks":0.0,"openBalance":28253.300000000007,"totalDebt":28253.300000000007,"inventoryValue":"","diff":-28253.300000000007},{"code":13,"name":"مورد نقدي","checks":0.0,"openBalance":25419.999999999964,"totalDebt":25419.999999999964,"inventoryValue":"","diff":-25419.999999999964},{"code":6,"name":"مونارك","checks":0.0,"openBalance":21120.0,"totalDebt":21120.0,"inventoryValue":7480.0,"diff":-13640.0},{"code":137,"name":"شركة كومبليت","checks":0.0,"openBalance":16076.73,"totalDebt":16076.73,"inventoryValue":"","diff":-16076.73},{"code":74,"name":"محمد سليم جويس","checks":0.0,"openBalance":15273.0,"totalDebt":15273.0,"inventoryValue":"","diff":-15273.0},{"code":193,"name":"شركة اخناتون - ايفا","checks":0.0,"openBalance":11338.82,"totalDebt":11338.82,"inventoryValue":845820.9100000006,"diff":834482.0900000007},{"code":2,"name":"ريتاج","checks":0.0,"openBalance":10010.5195000005,"totalDebt":10010.5195000005,"inventoryValue":"","diff":-10010.5195000005},{"code":39,"name":"الشركة العصرية - تاتش","checks":0.0,"openBalance":5999.995800000001,"totalDebt":5999.995800000001,"inventoryValue":"","diff":-5999.995800000001},{"code":174,"name":"افرو هير","checks":0.0,"openBalance":2650.1599999999967,"totalDebt":2650.1599999999967,"inventoryValue":12833.640000000001,"diff":10183.480000000005},{"code":169,"name":"ميكرز","checks":0.0,"openBalance":2074.0,"totalDebt":2074.0,"inventoryValue":"","diff":-2074.0},{"code":161,"name":"اسامة فوزي - نيفيا","checks":0.0,"openBalance":67.0,"totalDebt":67.0,"inventoryValue":15820.0,"diff":15753.0},{"code":5,"name":"الحرم","checks":0.0,"openBalance":6.0200000000000005,"totalDebt":6.0200000000000005,"inventoryValue":91616.2,"diff":91610.18},{"code":120,"name":"الريتاج كوزماتكس","checks":0.0,"openBalance":1.77,"totalDebt":1.77,"inventoryValue":674836.1300000001,"diff":674834.3600000001},{"code":186,"name":"صني ميديكال","checks":0.0,"openBalance":0.8,"totalDebt":0.8,"inventoryValue":55535.74,"diff":55534.939999999995},{"code":177,"name":"المنصور للتجارة","checks":0.0,"openBalance":0.75,"totalDebt":0.75,"inventoryValue":34087.981999999996,"diff":34087.231999999996},{"code":154,"name":"شركة مسايا الورقية","checks":0.0,"openBalance":0.35000000000582077,"totalDebt":0.35000000000582077,"inventoryValue":752.9760000000001,"diff":752.6259999999943},{"code":61,"name":"شركة اوبال ايجيبت","checks":0.0,"openBalance":0.2574999998940621,"totalDebt":0.2574999998940621,"inventoryValue":603.42,"diff":603.1625000001059},{"code":68,"name":"شركة ماسيا","checks":0.0,"openBalance":0.0,"totalDebt":0.0,"inventoryValue":7260.0,"diff":7260.0},{"code":189,"name":"كازانوفا - هيفين مصر ","checks":0.0,"openBalance":0.0,"totalDebt":0.0,"inventoryValue":506066.0,"diff":506066.0},{"code":147,"name":"لولوا الخليجية","checks":0.0,"openBalance":0.0,"totalDebt":0.0,"inventoryValue":37790.0,"diff":37790.0},{"code":170,"name":"نور الشام - Triangle","checks":0.0,"openBalance":0.0,"totalDebt":0.0,"inventoryValue":37152.0,"diff":37152.0},{"code":114,"name":"شركة بدايه","checks":44000.0,"openBalance":-44033.200000000004,"totalDebt":-33.200000000004366,"inventoryValue":"","diff":33.200000000004366},{"code":152,"name":"لاناتكس","checks":0.0,"openBalance":-160.0,"totalDebt":-160.0,"inventoryValue":"","diff":160.0},{"code":192,"name":"شركة مقام","checks":0.0,"openBalance":-361.09000000000003,"totalDebt":-361.09000000000003,"inventoryValue":146600.05000000002,"diff":146961.14},{"code":12,"name":"حسين سعيد","checks":0.0,"openBalance":-1778.4999999999814,"totalDebt":-1778.4999999999814,"inventoryValue":"","diff":1778.4999999999814},{"code":135,"name":"بيوميد فارما","checks":0.0,"openBalance":-3473.31,"totalDebt":-3473.31,"inventoryValue":"","diff":3473.31},{"code":63,"name":"الصيف للمنتجات الورقيه","checks":0.0,"openBalance":-7647.35,"totalDebt":-7647.35,"inventoryValue":"","diff":7647.35},{"code":65,"name":"اولاد عبدالمجيد","checks":0.0,"openBalance":-8627.482299999892,"totalDebt":-8627.482299999892,"inventoryValue":130988.44000000002,"diff":139615.92229999992},{"code":163,"name":"تي اند اس","checks":0.0,"openBalance":-23167.0,"totalDebt":-23167.0,"inventoryValue":"","diff":23167.0},{"code":115,"name":"شركة ماش","checks":41000.0,"openBalance":-147976.7345999999,"totalDebt":-106976.73459999991,"inventoryValue":5147.66,"diff":112124.39459999991},{"code":183,"name":"فارما يونيك للتوريدات","checks":0.0,"openBalance":-188631.25,"totalDebt":-188631.25,"inventoryValue":"","diff":188631.25},{"code":190,"name":"عبدالعزيز عباسكو","checks":"","openBalance":"","totalDebt":"","inventoryValue":8480.0,"diff":8480.0},{"code":173,"name":"ابراهيم تراست","checks":"","openBalance":"","totalDebt":"","inventoryValue":6836.5199999999995,"diff":6836.5199999999995},{"code":null,"name":"ريلاكس","checks":"","openBalance":"","totalDebt":"","inventoryValue":3192.262,"diff":3192.262},{"code":155,"name":"انتجرو فارما","checks":"","openBalance":"","totalDebt":"","inventoryValue":2559.375,"diff":2559.375},{"code":null,"name":"مش مش الرواد","checks":"","openBalance":"","totalDebt":"","inventoryValue":1350.0,"diff":1350.0},{"code":77,"name":"فينى ايجيبت","checks":"","openBalance":"","totalDebt":"","inventoryValue":492.0,"diff":492.0},{"code":86,"name":"بيراميدز","checks":"","openBalance":"","totalDebt":"","inventoryValue":310.0,"diff":310.0},{"code":null,"name":" لاجرناد","checks":"","openBalance":"","totalDebt":"","inventoryValue":198.0,"diff":198.0}],"total":{"code":null,"name":"الاجمالى","checks":1983130.0,"openBalance":22236152.580300007,"totalDebt":24219282.580300007,"inventoryValue":15930066.879999999,"diff":-8289215.700300001}};
+
   // Fixed lists for the manual car/distributor move UI. Distributors limited
   // to the 3 currently-active people (per Waleed, Aug 2026) even though older
   // historical data mentions others who no longer work in this role.
@@ -1695,7 +1710,7 @@
   // ---------- Screen navigation ----------
   function goTo(screen){
     const map = { menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen', orderHistory:'orderHistoryScreen', account:'accountScreen', route:'routeScreen' };
-    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -1753,7 +1768,7 @@
     const [f, t] = monthRange();
     document.getElementById('reportFrom').value = f;
     document.getElementById('reportTo').value = t;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2230,6 +2245,7 @@
     myRouteLogScreen: { bodyId:'myRouteLogBody', getTitle: () => 'سجل خط سير السيارة' },
     visitReportsAdminScreen: { bodyId:'vrAdminList', getTitle: () => 'تقارير الزيارات' },
     visitReportDetailScreen: { bodyId:'visitReportDetailBody', getTitle: () => visitReportDetailTitle, getFilename: () => visitReportDetailFilename },
+    suppliersReportScreen: { bodyId:'suppliersReportBody', getTitle: () => (SUPPLIERS_REPORT && SUPPLIERS_REPORT.title) || 'تقرير الموردين' },
     carRouteScreen: { bodyId:'carRouteBody', getTitle: () => {
       const f = document.getElementById('carRouteFrom'), t = document.getElementById('carRouteTo');
       const range = (f && f.value && t && t.value) ? ` (من ${f.value} إلى ${t.value})` : '';
@@ -2693,7 +2709,7 @@
   }
 
   function openDebtList(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2877,7 +2893,7 @@
   }
 
   function openArrears(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3076,7 +3092,7 @@
   let carRouteData = null;
 
   function openAccountsHub(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3090,8 +3106,66 @@
     document.querySelectorAll('.acct-hub-admin-only').forEach(el => { el.style.display = isAdmin ? 'flex' : 'none'; });
   }
 
+  function openSuppliersReportScreen(){
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    document.getElementById('suppliersReportScreen').style.display = 'block';
+    currentScreenId = 'suppliersReportScreen';
+    setBottomNavActive(null);
+    const bag = document.getElementById('bagBtn');
+    if(bag) bag.style.display = 'none';
+    renderSuppliersReport();
+  }
+
+  function renderSuppliersReport(){
+    const sub = document.getElementById('suppliersReportSubtitle');
+    const body = document.getElementById('suppliersReportBody');
+    if(!body) return;
+    if(!SUPPLIERS_REPORT || !SUPPLIERS_REPORT.rows || !SUPPLIERS_REPORT.rows.length){
+      body.innerHTML = '<p class="empty-note">مفيش بيانات موردين متسجلة لسه.</p>';
+      updateGlobalDownloadBtn();
+      return;
+    }
+    if(sub) sub.textContent = SUPPLIERS_REPORT.title || '';
+    const rows = [...SUPPLIERS_REPORT.rows].sort((a,b) => (b.diff||0) - (a.diff||0));
+    let html = '<table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.78rem;">';
+    html += `<tr style="background:#F5F8FA;">
+      <th style="padding:6px;">كود المورد</th><th>اسم المورد</th><th>الشيكات</th>
+      <th>الرصيد المفتوح</th><th>إجمالي المديونية</th><th>قيمة المخزون</th><th>الفرق</th></tr>`;
+    rows.forEach(r => {
+      const diffColor = (r.diff||0) >= 0 ? '#1E8E5A' : '#C0392B';
+      html += `<tr class="stmt-row">
+        <td style="padding:6px; text-align:center;">${r.code != null ? r.code : ''}</td>
+        <td style="text-align:right;">${escapeHtml(r.name || '')}</td>
+        <td style="text-align:center;">${fmt(r.checks||0)}</td>
+        <td style="text-align:center;">${fmt(r.openBalance||0)}</td>
+        <td style="text-align:center;">${fmt(r.totalDebt||0)}</td>
+        <td style="text-align:center;">${fmt(r.inventoryValue||0)}</td>
+        <td style="text-align:center; font-weight:700; color:${diffColor};">${fmtDiff(r.diff||0)}</td>
+      </tr>`;
+    });
+    if(SUPPLIERS_REPORT.total){
+      const t = SUPPLIERS_REPORT.total;
+      const diffColor = (t.diff||0) >= 0 ? '#1E8E5A' : '#C0392B';
+      html += `<tr style="background:#EAF2FA; font-weight:800;">
+        <td style="padding:6px;"></td>
+        <td style="text-align:right;">${escapeHtml(t.name || 'الإجمالي')}</td>
+        <td style="text-align:center;">${fmt(t.checks||0)}</td>
+        <td style="text-align:center;">${fmt(t.openBalance||0)}</td>
+        <td style="text-align:center;">${fmt(t.totalDebt||0)}</td>
+        <td style="text-align:center;">${fmt(t.inventoryValue||0)}</td>
+        <td style="text-align:center; color:${diffColor};">${fmtDiff(t.diff||0)}</td>
+      </tr>`;
+    }
+    html += '</table>';
+    body.innerHTML = html;
+    updateGlobalDownloadBtn();
+  }
+
   function openCarRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3126,7 +3200,7 @@
   // rep's own approved orders and which car/distributor is handling them.
   // No edit/move controls here; those stay admin-only in carRouteScreen.
   function openMyRouteLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3353,7 +3427,7 @@
   function printSingleCarRoute(car){ withSingleCarFilter(car, () => { printCurrentScreen(); return Promise.resolve(); }); }
 
   function openInvoiceLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3487,7 +3561,7 @@
   }
 
   function openAccountScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3507,7 +3581,7 @@
   }
 
   function openSettingsScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3559,7 +3633,7 @@
   }
 
   function openRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3684,7 +3758,7 @@
   }
 
   function openVisitReportForm(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3876,7 +3950,7 @@
   }
 
   function openVisitReportsAdmin(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4087,7 +4161,7 @@
     visitReportDetailReturnScreen = currentScreenId;
     visitReportDetailTitle = 'تقرير خط سير مشرف البيع';
     visitReportDetailFilename = `تقرير خط سير مشرف البيع — ${r.repName || ''} — ${r.date || ''}`;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4162,7 +4236,7 @@
   }
 
   function openChatScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4458,7 +4532,7 @@
   }
 
   function openOrderHistory(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','chatScreen','settingsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
