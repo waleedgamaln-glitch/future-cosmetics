@@ -3964,24 +3964,33 @@
 
     // Load today's existing report (draft or already-finalized) so the rep
     // can continue where they left off instead of starting from scratch.
-    if(fbDb && currentRep && currentRep.code != null){
-      const dateKey = todayISO();
-      fbDb.ref('visitReports/' + currentRep.code + '/' + dateKey).once('value').then(snap => {
-        const existing = snap.val();
-        if(existing) loadVisitReportIntoForm(existing);
+    const dateKey = todayISO();
+    if(currentRep && currentRep.code != null){
+      ensureFirebaseReady().then(db => {
+        if(!db) return;
+        db.ref('visitReports/' + currentRep.code + '/' + dateKey).once('value').then(snap => {
+          const existing = snap.val();
+          if(existing) loadVisitReportIntoForm(existing);
+        });
       });
     }
 
     // Load the rep's own submission log with the same ✓/✗ verify badges the admin sees.
     const myListEl = document.getElementById('myVisitReportsList');
     if(myListEl) myListEl.innerHTML = '<p style="text-align:center;color:var(--muted);">جاري التحميل...</p>';
-    if(fbDb && currentRep && currentRep.code != null){
-      vrAdminListenerRef = fbDb.ref('visitReports/' + currentRep.code);
-      vrAdminListenerRef.on('value', snap => {
-        renderVisitReportsList(currentRep.code, snap.val() || {}, 'myVisitReportsList');
+    if(currentRep && currentRep.code != null){
+      ensureFirebaseReady().then(db => {
+        if(!db){
+          if(myListEl) myListEl.innerHTML = '<p style="text-align:center;color:var(--muted);">لا يوجد اتصال بالسيرفر دلوقتي، حاول تقفل التطبيق وتفتحه تاني</p>';
+          return;
+        }
+        vrAdminListenerRef = db.ref('visitReports/' + currentRep.code);
+        vrAdminListenerRef.on('value', snap => {
+          renderVisitReportsList(currentRep.code, snap.val() || {}, 'myVisitReportsList');
+        });
       });
     } else if(myListEl){
-      myListEl.innerHTML = '<p style="text-align:center;color:var(--muted);">لا يوجد اتصال بالسيرفر دلوقتي</p>';
+      myListEl.innerHTML = '<p style="text-align:center;color:var(--muted);">التقرير متاح للمناديب فقط</p>';
     }
   }
 
@@ -4204,33 +4213,35 @@
     sel.innerHTML = '<option value="">جاري تحميل قائمة المناديب...</option>';
     document.getElementById('vrAdminList').innerHTML = '';
 
-    if(!fbDb){
-      sel.innerHTML = '<option value="">لا يوجد اتصال بالسيرفر</option>';
-      return;
-    }
-    if(vrActiveRepListenerRef){
-      try{ vrActiveRepListenerRef.off('value'); }catch(e){}
-      vrActiveRepListenerRef = null;
-    }
-    // "الفعليين فقط": show only reps who have actually submitted at least one report
-    vrActiveRepListenerRef = fbDb.ref('visitReports');
-    vrActiveRepListenerRef.on('value', snap => {
-      const data = snap.val() || {};
-      const activeCodes = Object.keys(data).map(c => parseInt(c, 10));
-      const reps = REPS.filter(r => activeCodes.includes(r.code)).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-      if(!reps.length){
-        sel.innerHTML = '<option value="">مفيش تقارير متسجلة لأي مندوب لسه</option>';
-        document.getElementById('vrAdminList').innerHTML = '';
+    ensureFirebaseReady().then(db => {
+      if(!db){
+        sel.innerHTML = '<option value="">لا يوجد اتصال بالسيرفر، حاول تقفل التطبيق وتفتحه تاني</option>';
         return;
       }
-      const prevValue = sel.value;
-      sel.innerHTML = reps.map(r => `<option value="${r.code}">${r.name} (${r.code})</option>`).join('');
-      if(prevValue && reps.some(r => String(r.code) === prevValue)){
-        sel.value = prevValue;
-      } else if(currentRep && currentRep.code != null && reps.some(r => r.code === currentRep.code)){
-        sel.value = String(currentRep.code);
+      if(vrActiveRepListenerRef){
+        try{ vrActiveRepListenerRef.off('value'); }catch(e){}
+        vrActiveRepListenerRef = null;
       }
-      loadVisitReportsForRep();
+      // "الفعليين فقط": show only reps who have actually submitted at least one report
+      vrActiveRepListenerRef = db.ref('visitReports');
+      vrActiveRepListenerRef.on('value', snap => {
+        const data = snap.val() || {};
+        const activeCodes = Object.keys(data).map(c => parseInt(c, 10));
+        const reps = REPS.filter(r => activeCodes.includes(r.code)).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+        if(!reps.length){
+          sel.innerHTML = '<option value="">مفيش تقارير متسجلة لأي مندوب لسه</option>';
+          document.getElementById('vrAdminList').innerHTML = '';
+          return;
+        }
+        const prevValue = sel.value;
+        sel.innerHTML = reps.map(r => `<option value="${r.code}">${r.name} (${r.code})</option>`).join('');
+        if(prevValue && reps.some(r => String(r.code) === prevValue)){
+          sel.value = prevValue;
+        } else if(currentRep && currentRep.code != null && reps.some(r => r.code === currentRep.code)){
+          sel.value = String(currentRep.code);
+        }
+        loadVisitReportsForRep();
+      });
     });
   }
 
@@ -4246,16 +4257,19 @@
       try{ vrAdminListenerRef.off('value'); }catch(e){}
       vrAdminListenerRef = null;
     }
-    if(!fbDb){
-      list.innerHTML = '<p style="text-align:center;color:var(--muted);">لا يوجد اتصال بالسيرفر دلوقتي</p>';
-      return;
-    }
     list.innerHTML = '<p style="text-align:center;color:var(--muted);">جاري التحميل...</p>';
-    vrAdminListenerRef = fbDb.ref('visitReports/' + repCode);
-    vrAdminListenerRef.on('value', snap => {
-      if(document.getElementById('vrAdminRepSelect').value !== String(repCode)) return; // stale listener
-      const data = snap.val();
-      renderVisitReportsList(repCode, data || {});
+    ensureFirebaseReady().then(db => {
+      if(!db){
+        list.innerHTML = '<p style="text-align:center;color:var(--muted);">لا يوجد اتصال بالسيرفر دلوقتي، حاول تقفل التطبيق وتفتحه تاني</p>';
+        return;
+      }
+      if(document.getElementById('vrAdminRepSelect').value !== String(repCode)) return; // selection changed while connecting
+      vrAdminListenerRef = db.ref('visitReports/' + repCode);
+      vrAdminListenerRef.on('value', snap => {
+        if(document.getElementById('vrAdminRepSelect').value !== String(repCode)) return; // stale listener
+        const data = snap.val();
+        renderVisitReportsList(repCode, data || {});
+      });
     });
   }
 
