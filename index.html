@@ -5186,13 +5186,13 @@
   }
   setupAutocomplete('cName', q => {
     const ql = q.toLowerCase();
-    return repFilter(CUSTOMERS.filter(c => c.name.toLowerCase().includes(ql)));
+    return CUSTOMERS.filter(c => c.name.toLowerCase().includes(ql));
   });
   setupAutocomplete('custCode', q => {
-    return repFilter(CUSTOMERS.filter(c => String(c.code).startsWith(q)));
+    return CUSTOMERS.filter(c => String(c.code).startsWith(q));
   });
   setupAutocomplete('cPhone', q => {
-    return repFilter(CUSTOMERS.filter(c => c.phone && c.phone.startsWith(q)));
+    return CUSTOMERS.filter(c => c.phone && c.phone.startsWith(q));
   });
 
   function submitOrder(e){
