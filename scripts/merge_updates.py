@@ -173,7 +173,7 @@ def merge_stock(content, report, summary):
 
     updated = 0
     unknown_products = []
-    for r in range(start_row + 1, end_row):  # +1 skips the column-label row
+    for r in range(start_row, end_row):  # start_row is already the first data row
         code_cell = sh.cell_value(r, 4)
         if not code_cell:
             continue
