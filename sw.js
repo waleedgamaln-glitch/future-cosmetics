@@ -24,9 +24,15 @@ self.addEventListener('activate', (event) => {
 
 // Network-first: always try to fetch the latest version first.
 // Only fall back to the cached copy if there's no internet connection.
+//
+// { cache: 'no-store' } is the key fix here: without it, the BROWSER's own
+// HTTP cache (separate from this service worker's cache) can silently hand
+// back a stale response to fetch() -- even though this code is already
+// "network-first" -- because the fetch() call itself never actually reaches
+// the server. no-store forces every fetch to genuinely hit the network.
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-store' })
       .then((response) => {
         const clone = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
