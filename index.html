@@ -344,20 +344,22 @@
     padding:7px 6px; border-radius:7px; transition:background .15s, color .15s, box-shadow .15s;
   }
   .unit-toggle button.active{ background:var(--gold); color:#fff; box-shadow:0 3px 8px rgba(0,0,0,.25); }
-  .pharm-price-detail{
-    display:flex; flex-wrap:wrap; gap:12px 20px; margin-top:12px; padding-top:12px;
-    border-top:1px dashed rgba(255,255,255,.3);
+  .pharm-mini-grid{
+    display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-top:8px;
   }
-  .pharm-price-detail .stat{ flex:1 1 120px; min-width:120px; }
-  .pharm-price-detail .stat-label{ color:#D7E9F7; font-size:.68rem; }
-  .pharm-price-detail .stat-value{ font-size:1rem; }
-  .pharm-price-detail .stat-value.pharm-amber{ color:#FFC857; }
-  .pharm-price-detail .stat-value.pharm-mint{ color:#5CF2A8; }
-  .pharm-final-stat{
-    flex-basis:100%; background:rgba(255,255,255,.14); border-radius:10px;
-    padding:8px 12px; margin-top:2px;
+  .pharm-mini-cell{
+    display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,.1);
+    border-radius:7px; padding:4px 6px; min-width:0;
   }
-  .pharm-final-value{ color:#fff !important; font-size:1.2rem !important; font-weight:900 !important; }
+  .pharm-mini-label{ font-size:.56rem; color:#D7E9F7; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pharm-mini-value{ font-size:.78rem; font-weight:800; font-family:'JetBrains Mono',monospace; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pharm-mini-value.pharm-amber{ color:#FFC857; }
+  .pharm-mini-value.pharm-mint{ color:#5CF2A8; }
+  .pharm-mini-final{ background:rgba(255,255,255,.22); }
+  .pharm-mini-final .pharm-mini-value{ font-size:.86rem; }
+  @media (max-width: 600px){
+    .pharm-mini-grid{ grid-template-columns:repeat(2, 1fr); }
+  }
   .carton-info{
     display:inline-flex; align-items:center; gap:4px; margin-top:6px; padding:3px 8px;
     background:rgba(255,255,255,.12); border-radius:20px; font-size:.6rem; font-weight:700;
@@ -5058,33 +5060,28 @@
               <span class="stat-label">الكمية المتاحة (${unitLabel(unit)})</span>
               <span class="stat-value ${outOfStock ? 'danger' : ''}">${outOfStock ? 'غير متوفر' : fmt(unitMax(p, unit))}</span>
             </div>
-            ${activeStore !== 'pharmacy' ? `
             <div class="stat">
               <span class="stat-label">السعر / ${unitLabel(unit)}</span>
               <span class="stat-value ${price == null ? 'danger' : ''}">${price != null ? fmt(price) + ' ج.م' : 'عند الطلب'}</span>
-            </div>` : ''}
+            </div>
           </div>
           ${activeStore === 'pharmacy' && p.consumerPrice != null ? `
-          <div class="pharm-price-detail">
-            <div class="stat">
-              <span class="stat-label">السعر / ${unitLabel(unit)}</span>
-              <span class="stat-value ${price == null ? 'danger' : 'pharm-amber'}">${price != null ? fmt(price) + ' ج.م' : 'عند الطلب'}</span>
+          <div class="pharm-mini-grid">
+            <div class="pharm-mini-cell">
+              <span class="pharm-mini-label">سعر المستهلك</span>
+              <span class="pharm-mini-value pharm-amber">${fmt(unit === 'carton' && p.cartonSize ? p.consumerPrice * p.cartonSize : p.consumerPrice)}</span>
             </div>
-            <div class="stat">
-              <span class="stat-label">سعر المستهلك (${unitLabel(unit)})</span>
-              <span class="stat-value pharm-amber">${fmt(unit === 'carton' && p.cartonSize ? p.consumerPrice * p.cartonSize : p.consumerPrice)} ج.م</span>
+            <div class="pharm-mini-cell">
+              <span class="pharm-mini-label">نسبة الخصم</span>
+              <span class="pharm-mini-value pharm-mint">${p.discountPct != null ? p.discountPct + '%' : '—'}</span>
             </div>
-            <div class="stat">
-              <span class="stat-label">نسبة الخصم عن المستهلك</span>
-              <span class="stat-value pharm-mint">${p.discountPct != null ? p.discountPct + '%' : '—'}</span>
+            <div class="pharm-mini-cell">
+              <span class="pharm-mini-label">خصم نقدي 5%</span>
+              <span class="pharm-mini-value pharm-amber">${fmt(Math.round(price * 0.05 * 100) / 100)}</span>
             </div>
-            <div class="stat">
-              <span class="stat-label">خصم نقدي إضافي (5%)</span>
-              <span class="stat-value pharm-amber">${fmt(Math.round(price * 0.05 * 100) / 100)} ج.م</span>
-            </div>
-            <div class="stat pharm-final-stat">
-              <span class="stat-label">السعر النهائي (نقدي) / ${unitLabel(unit)}</span>
-              <span class="stat-value pharm-final-value">${fmt(Math.round(price * 0.95 * 100) / 100)} ج.م</span>
+            <div class="pharm-mini-cell pharm-mini-final">
+              <span class="pharm-mini-label">نهائي نقدي</span>
+              <span class="pharm-mini-value">${fmt(Math.round(price * 0.95 * 100) / 100)}</span>
             </div>
           </div>` : ''}
           ${hasCarton && unit === 'carton' ? `
