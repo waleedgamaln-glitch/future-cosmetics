@@ -5060,20 +5060,25 @@
               <span class="stat-label">الكمية المتاحة (${unitLabel(unit)})</span>
               <span class="stat-value ${outOfStock ? 'danger' : ''}">${outOfStock ? 'غير متوفر' : fmt(unitMax(p, unit))}</span>
             </div>
+            ${activeStore === 'pharmacy' && p.consumerPrice != null ? `
+            <div class="stat">
+              <span class="stat-label">سعر المستهلك (${unitLabel(unit)})</span>
+              <span class="stat-value pharm-amber">${fmt(unit === 'carton' && p.cartonSize ? p.consumerPrice * p.cartonSize : p.consumerPrice)} ج.م</span>
+            </div>` : `
             <div class="stat">
               <span class="stat-label">السعر / ${unitLabel(unit)}</span>
               <span class="stat-value ${price == null ? 'danger' : ''}">${price != null ? fmt(price) + ' ج.م' : 'عند الطلب'}</span>
-            </div>
+            </div>`}
           </div>
           ${activeStore === 'pharmacy' && p.consumerPrice != null ? `
           <div class="pharm-mini-grid">
             <div class="pharm-mini-cell">
-              <span class="pharm-mini-label">سعر المستهلك</span>
-              <span class="pharm-mini-value pharm-amber">${fmt(unit === 'carton' && p.cartonSize ? p.consumerPrice * p.cartonSize : p.consumerPrice)}</span>
-            </div>
-            <div class="pharm-mini-cell">
               <span class="pharm-mini-label">نسبة الخصم</span>
               <span class="pharm-mini-value pharm-mint">${p.discountPct != null ? p.discountPct + '%' : '—'}</span>
+            </div>
+            <div class="pharm-mini-cell">
+              <span class="pharm-mini-label">السعر / ${unitLabel(unit)}</span>
+              <span class="pharm-mini-value">${price != null ? fmt(price) + ' ج.م' : 'عند الطلب'}</span>
             </div>
             <div class="pharm-mini-cell">
               <span class="pharm-mini-label">خصم نقدي 5%</span>
