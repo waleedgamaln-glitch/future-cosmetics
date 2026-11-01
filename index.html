@@ -29,6 +29,26 @@
     --shadow: 0 20px 50px -20px rgba(14,74,133,.28);
   }
   *{box-sizing:border-box;}
+  /* Home month summary: compact card, tap to expand details */
+  .home-sum{ background:linear-gradient(135deg,var(--teal-dark),var(--teal)); color:#fff; border-radius:16px; margin-bottom:14px; box-shadow:var(--shadow); overflow:hidden; }
+  .home-sum summary{ list-style:none; cursor:pointer; padding:14px 16px 12px; }
+  .home-sum summary::-webkit-details-marker{ display:none; }
+  .home-sum .hs-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .home-sum .hs-label{ font-size:.72rem; opacity:.8; }
+  .home-sum .hs-pct{ font-size:1.5rem; font-weight:800; line-height:1.2; font-family:'JetBrains Mono',monospace; }
+  .home-sum .hs-chip{ background:rgba(255,255,255,.16); border-radius:12px; padding:6px 10px; text-align:center; font-size:.68rem; }
+  .home-sum .hs-chip b{ display:block; font-size:.9rem; font-family:'JetBrains Mono',monospace; }
+  .home-sum .hs-bar{ position:relative; height:7px; background:rgba(255,255,255,.22); border-radius:4px; margin-top:10px; }
+  .home-sum .hs-bar i{ position:absolute; inset:0 0 0 auto; background:#fff; border-radius:4px; }
+  .home-sum .hs-bar s{ position:absolute; top:-3px; bottom:-3px; right:70%; width:2px; background:var(--gold); }
+  .home-sum .hs-chev{ display:block; text-align:center; font-size:.7rem; opacity:.75; margin-top:6px; }
+  .home-sum .hs-chev i{ display:inline-block; font-style:normal; transition:transform .2s; }
+  .home-sum[open] .hs-chev i{ transform:rotate(180deg); }
+  .home-sum .hs-body{ background:var(--paper); color:var(--ink); padding:12px 16px; display:flex; flex-direction:column; gap:8px; font-size:.8rem; }
+  .home-sum .hs-row{ display:flex; justify-content:space-between; }
+  .home-sum .hs-row span{ color:var(--muted); }
+  .home-sum .hs-row b{ font-family:'JetBrains Mono',monospace; }
+  .home-sum .hs-note{ background:var(--gold-soft); border-radius:8px; padding:8px 10px; font-size:.75rem; }
   body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Cairo',sans-serif; -webkit-font-smoothing:antialiased; }
   .mono{ font-family:'JetBrains Mono','Cairo',monospace; }
   button{ font-family:inherit; cursor:pointer; }
@@ -719,6 +739,7 @@
 </nav>
 
 <div id="mainMenuScreen" class="menu-screen">
+  <details id="homeSummary" class="home-sum" style="display:none;"></details>
   <div class="menu-grid">
     <button class="menu-card" onclick="openRetailStore()">
       <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="22" width="48" height="34" rx="4"/><path d="M8 22 L14 8 H50 L56 22"/><path d="M24 30 v6 a8 8 0 0 0 16 0 v-6"/></svg>
@@ -1080,7 +1101,7 @@
     <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">الهدف الشهري</span><b id="vrTargetMonthly" style="font-family:'JetBrains Mono',monospace;">—</b></div>
     <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">مبيعات الشهر لحد دلوقتي</span><b id="vrMonthSales" style="font-family:'JetBrains Mono',monospace;">—</b></div>
     <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">تحصيل الشهر لحد دلوقتي</span><b id="vrMonthCollection" style="font-family:'JetBrains Mono',monospace;">—</b></div>
-    <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">العمولة المتوقعة (1.5% من التحصيل لو المبيعات 70% من الهدف)</span><b id="vrMonthCommission" style="font-family:'JetBrains Mono',monospace;">—</b></div>
+    <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">العمولة المتوقعة (لو المبيعات 70% من الهدف)</span><b id="vrMonthCommission" style="font-family:'JetBrains Mono',monospace;">—</b></div>
   </div>
 
   <div style="display:flex; gap:10px;">
@@ -1526,8 +1547,12 @@
   // Waleed can adjust individual values here if a specific rep's target differs.
   const REP_MONTHLY_TARGET = {"1":1000000,"2":1000000,"3":250000,"4":1000000,"5":250000,"6":250000,"7":250000,"8":1000000,"9":1000000,"10":1000000,"11":1000000,"12":250000,"13":1000000,"14":1000000,"15":1000000,"16":1000000,"17":1000000,"18":250000,"19":1000000,"20":250000,"21":250000,"22":1000000,"23":1000000,"24":1000000,"25":250000,"26":1000000,"27":250000,"28":1000000,"29":1000000,"30":250000,"31":1000000,"32":250000,"33":1000000,"34":1000000,"35":250000,"36":1000000,"37":1000000,"38":250000,"39":1000000,"40":250000,"41":1000000,"42":1000000,"43":250000,"44":1000000,"45":1000000,"46":250000,"47":1000000,"48":250000,"49":1000000,"50":1000000,"51":250000,"52":250000,"53":1000000,"54":1000000,"55":1000000,"56":1000000,"57":1000000,"58":1000000,"59":1000000,"60":1000000,"61":1000000,"62":1000000,"63":1000000,"64":1000000,"65":1000000,"66":1000000,"67":1000000,"68":1000000,"69":1000000,"70":1000000,"71":1000000,"72":1000000,"73":1000000,"74":1000000,"75":250000,"76":250000,"77":1000000,"78":1000000,"79":250000,"80":1000000,"81":250000,"82":1000000,"83":1000000,"84":1000000,"85":1000000,"86":1000000,"87":1000000,"88":1000000,"89":250000,"90":250000,"91":250000,"92":1000000,"93":1000000,"94":1000000,"95":250000,"96":1000000,"97":1000000,"98":1000000,"99":250000,"100":1000000,"101":250000,"102":250000,"103":250000,"104":1000000,"105":250000,"106":1000000,"107":1000000,"108":250000,"109":250000,"110":1000000,"111":1000000,"112":1000000,"113":250000,"114":250000,"115":250000,"116":250000,"117":250000,"118":1000000,"119":250000,"120":250000,"121":1000000,"122":1000000,"123":1000000,"124":250000,"125":1000000,"126":1000000,"127":1000000,"128":1000000,"129":1000000,"130":1000000,"131":250000,"132":250000,"133":1000000,"134":1000000,"135":1000000,"136":250000,"137":1000000,"138":1000000,"139":250000,"140":1000000,"141":1000000,"142":1000000,"143":1000000,"144":1000000,"145":1000000,"146":1000000,"147":1000000,"148":1000000,"149":1000000,"150":1000000,"151":1000000,"152":250000,"153":250000,"154":1000000,"155":1000000,"156":1000000,"157":1000000,"158":1000000,"159":1000000,"160":1000000,"161":250000,"162":1000000,"163":1000000,"164":1000000,"165":1000000,"166":250000,"167":1000000,"168":250000,"169":250000,"170":1000000,"171":1000000,"172":1000000,"173":2000000};
   function getRepMonthlyTarget(repCode){ return REP_MONTHLY_TARGET[String(repCode)] || 1000000; }
-  // Commission rule (per Waleed, Nov 2026): 1.5% of the month's collection, only if net sales reach 70% of the target.
-  function repCommission(netSales, collection, target){ return target && netSales >= target * 0.7 ? Math.round(collection * 0.015) : 0; }
+  // Commission rule (Waleed's monthly sheet, e.g. SEP2026.xlsx, plus the 70% gate from Oct 2026):
+  // fixed base (15,000 rep / 5,000 tele-sales) × collection ÷ target, only if net sales reach 70% of the target.
+  function commissionBase(target){ return target === 250000 ? 5000 : 15000; }
+  function repCommission(netSales, collection, target){
+    return target && netSales >= target * 0.7 ? Math.round(commissionBase(target) * collection / target) : 0;
+  }
 
   // Fallback shown only if Firebase can't be reached (e.g. first paint, offline).
   // The live/real version now comes from Firebase at systemInfo/dataUpdate — see
@@ -1868,8 +1893,38 @@
     }
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = (screen === 'store') ? 'flex' : 'none';
-    if(screen === 'menu') setBottomNavActive('bnavHome');
+    if(screen === 'menu'){ setBottomNavActive('bnavHome'); renderHomeSummary(); }
     else if(typeof setBottomNavActive === 'function') setBottomNavActive(null);
+  }
+
+  // Rep's month-to-date summary at the top of the home screen (reps only, not admin accounts).
+  function renderHomeSummary(){
+    const box = document.getElementById('homeSummary');
+    if(!box) return;
+    if(!currentRep || currentRep.isAdmin || currentRep.code == null){ box.style.display = 'none'; return; }
+    const target = getRepMonthlyTarget(currentRep.code);
+    const { sales, collection } = computeMonthSummary(currentRep.code);
+    const pct = target ? Math.round(sales / target * 100) : 0;
+    const commission = repCommission(sales, collection, target);
+    const toQualify = Math.max(0, Math.round(target * 0.7 - sales));
+    const row = (label, value) => `<div class="hs-row"><span>${label}</span><b>${value}</b></div>`;
+    box.innerHTML = `
+      <summary aria-label="ملخص الشهر، اضغط لعرض التفاصيل">
+        <div class="hs-top">
+          <div><div class="hs-label">مبيعات الشهر من الهدف</div><div class="hs-pct">${pct}%</div></div>
+          <div class="hs-chip">العمولة المتوقعة<b>${fmt(commission)} ج.م</b></div>
+        </div>
+        <div class="hs-bar"><i style="width:${Math.min(pct, 100)}%"></i><s title="70% شرط العمولة"></s></div>
+        <span class="hs-chev"><i>⌄</i> التفاصيل</span>
+      </summary>
+      <div class="hs-body">
+        ${row('الهدف', fmt(target) + ' ج.م')}
+        ${row('صافي المبيعات', fmt(Math.round(sales)) + ' ج.م')}
+        ${row('التحصيل', fmt(Math.round(collection)) + ' ج.م')}
+        ${row(`العمولة (${fmt(commissionBase(target))} × نسبة التحصيل)`, fmt(commission) + ' ج.م')}
+        <div class="hs-note">${toQualify ? `باقي ${fmt(toQualify)} ج.م مبيعات وتوصل 70% من الهدف وتستحق العمولة` : '✅ وصلت 70% من الهدف، العمولة مستحقة على تحصيل الشهر'}</div>
+      </div>`;
+    box.style.display = 'block';
   }
 
   // ---------- قطاع الصيدليات: متجر مستقل بأسعار خاصة للمناديب المحددين ----------
@@ -3426,7 +3481,7 @@
         <td></td>
       </tr>
     </table>
-    <p style="font-size:.72rem; color:var(--muted); margin-top:10px;">العمولة: 1.5% من التحصيل، بشرط إن صافي المبيعات يوصل 70% من الهدف.</p>`;
+    <p style="font-size:.72rem; color:var(--muted); margin-top:10px;">العمولة = 15,000 للمندوب (5,000 للتيلي سيلز) × نسبة التحصيل من الهدف، بشرط إن صافي المبيعات يوصل 70% من الهدف.</p>`;
 
     body.innerHTML = html;
     updateGlobalDownloadBtn();
