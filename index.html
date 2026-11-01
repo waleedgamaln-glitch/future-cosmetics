@@ -898,6 +898,10 @@
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="26" width="40" height="16" rx="3"/><circle cx="18" cy="44" r="5"/><circle cx="42" cy="44" r="5"/><path d="M48 32 h8 l4 8 v6 h-12"/></svg>
       <span>سجل خط سير السيارة</span>
     </button>
+    <button class="menu-card" style="flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openReturnsScreen()">
+      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 14 L8 26 L20 38"/><path d="M8 26 H40 a14 14 0 0 1 0 28 H24"/></svg>
+      <span>المرتجعات</span>
+    </button>
     <button class="menu-card acct-hub-admin-only" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openInvoiceLogScreen()">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 6 H38 L50 18 V58 H14 Z"/><path d="M38 6 V18 H50"/><path d="M22 30 h20 M22 38 h20 M22 46 h12"/></svg>
       <span>سجل الفواتير (اعتماد / رفض)</span>
@@ -935,6 +939,22 @@
     <label>الشهر <input id="salesAnalysisMonth" type="month" onchange="renderSalesAnalysis()"></label>
   </div>
   <div id="salesAnalysisBody"></div>
+</div>
+
+<div id="returnsScreen" class="report-screen" style="display:none;">
+  <button class="back-btn" onclick="openAccountsHub()">‹ رجوع</button>
+  <h2>المرتجعات</h2>
+  <div id="retForm" class="no-print" style="display:none; margin-bottom:18px;">
+    <div class="field"><label for="retCust">العميل</label><input id="retCust" list="retCustList" placeholder="اكتب كود أو اسم العميل"></div>
+    <datalist id="retCustList"></datalist>
+    <datalist id="retProdList"></datalist>
+    <label style="font-size:.85rem; font-weight:600;">الأصناف والكميات (بالقطعة)</label>
+    <div id="retRows" style="margin-top:6px;"></div>
+    <button type="button" class="ghost-btn" style="width:100%; margin-bottom:10px;" onclick="addReturnRow()">+ إضافة صنف</button>
+    <div class="field"><label for="retReason">سبب المرتجع</label><input id="retReason" placeholder="مثلا: تالف، منتهي الصلاحية، غلط في الطلب"></div>
+    <button class="apply-btn" onclick="submitReturnRequest()">إرسال طلب المرتجع للإدارة</button>
+  </div>
+  <div id="returnsBody">جاري التحميل...</div>
 </div>
 
 <div id="carRouteScreen" class="report-screen" style="display:none;">
@@ -1060,6 +1080,7 @@
     <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">الهدف الشهري</span><b id="vrTargetMonthly" style="font-family:'JetBrains Mono',monospace;">—</b></div>
     <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">مبيعات الشهر لحد دلوقتي</span><b id="vrMonthSales" style="font-family:'JetBrains Mono',monospace;">—</b></div>
     <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">تحصيل الشهر لحد دلوقتي</span><b id="vrMonthCollection" style="font-family:'JetBrains Mono',monospace;">—</b></div>
+    <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">العمولة المتوقعة (1.5% من التحصيل لو المبيعات 70% من الهدف)</span><b id="vrMonthCommission" style="font-family:'JetBrains Mono',monospace;">—</b></div>
   </div>
 
   <div style="display:flex; gap:10px;">
@@ -1505,6 +1526,8 @@
   // Waleed can adjust individual values here if a specific rep's target differs.
   const REP_MONTHLY_TARGET = {"1":1000000,"2":1000000,"3":250000,"4":1000000,"5":250000,"6":250000,"7":250000,"8":1000000,"9":1000000,"10":1000000,"11":1000000,"12":250000,"13":1000000,"14":1000000,"15":1000000,"16":1000000,"17":1000000,"18":250000,"19":1000000,"20":250000,"21":250000,"22":1000000,"23":1000000,"24":1000000,"25":250000,"26":1000000,"27":250000,"28":1000000,"29":1000000,"30":250000,"31":1000000,"32":250000,"33":1000000,"34":1000000,"35":250000,"36":1000000,"37":1000000,"38":250000,"39":1000000,"40":250000,"41":1000000,"42":1000000,"43":250000,"44":1000000,"45":1000000,"46":250000,"47":1000000,"48":250000,"49":1000000,"50":1000000,"51":250000,"52":250000,"53":1000000,"54":1000000,"55":1000000,"56":1000000,"57":1000000,"58":1000000,"59":1000000,"60":1000000,"61":1000000,"62":1000000,"63":1000000,"64":1000000,"65":1000000,"66":1000000,"67":1000000,"68":1000000,"69":1000000,"70":1000000,"71":1000000,"72":1000000,"73":1000000,"74":1000000,"75":250000,"76":250000,"77":1000000,"78":1000000,"79":250000,"80":1000000,"81":250000,"82":1000000,"83":1000000,"84":1000000,"85":1000000,"86":1000000,"87":1000000,"88":1000000,"89":250000,"90":250000,"91":250000,"92":1000000,"93":1000000,"94":1000000,"95":250000,"96":1000000,"97":1000000,"98":1000000,"99":250000,"100":1000000,"101":250000,"102":250000,"103":250000,"104":1000000,"105":250000,"106":1000000,"107":1000000,"108":250000,"109":250000,"110":1000000,"111":1000000,"112":1000000,"113":250000,"114":250000,"115":250000,"116":250000,"117":250000,"118":1000000,"119":250000,"120":250000,"121":1000000,"122":1000000,"123":1000000,"124":250000,"125":1000000,"126":1000000,"127":1000000,"128":1000000,"129":1000000,"130":1000000,"131":250000,"132":250000,"133":1000000,"134":1000000,"135":1000000,"136":250000,"137":1000000,"138":1000000,"139":250000,"140":1000000,"141":1000000,"142":1000000,"143":1000000,"144":1000000,"145":1000000,"146":1000000,"147":1000000,"148":1000000,"149":1000000,"150":1000000,"151":1000000,"152":250000,"153":250000,"154":1000000,"155":1000000,"156":1000000,"157":1000000,"158":1000000,"159":1000000,"160":1000000,"161":250000,"162":1000000,"163":1000000,"164":1000000,"165":1000000,"166":250000,"167":1000000,"168":250000,"169":250000,"170":1000000,"171":1000000,"172":1000000,"173":2000000};
   function getRepMonthlyTarget(repCode){ return REP_MONTHLY_TARGET[String(repCode)] || 1000000; }
+  // Commission rule (per Waleed, Nov 2026): 1.5% of the month's collection, only if net sales reach 70% of the target.
+  function repCommission(netSales, collection, target){ return target && netSales >= target * 0.7 ? Math.round(collection * 0.015) : 0; }
 
   // Fallback shown only if Firebase can't be reached (e.g. first paint, offline).
   // The live/real version now comes from Firebase at systemInfo/dataUpdate — see
@@ -1832,7 +1855,7 @@
   // ---------- Screen navigation ----------
   function goTo(screen){
     const map = { menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen', orderHistory:'orderHistoryScreen', account:'accountScreen', route:'routeScreen' };
-    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -1924,7 +1947,7 @@
     const [f, t] = monthRange();
     document.getElementById('reportFrom').value = f;
     document.getElementById('reportTo').value = t;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2403,6 +2426,7 @@
     visitReportsAdminScreen: { bodyId:'vrAdminList', getTitle: () => 'تقارير الزيارات' },
     visitReportDetailScreen: { bodyId:'visitReportDetailBody', getTitle: () => visitReportDetailTitle, getFilename: () => visitReportDetailFilename },
     suppliersReportScreen: { bodyId:'suppliersReportBody', getTitle: () => (SUPPLIERS_REPORT && SUPPLIERS_REPORT.title) || 'تقرير الموردين' },
+    returnsScreen: { bodyId:'returnsBody', getTitle: () => 'طلبات المرتجعات' },
     salesAnalysisScreen: { bodyId:'salesAnalysisBody', getTitle: () => {
       const m = document.getElementById('salesAnalysisMonth');
       return 'تحليلي مبيعات الشركة' + (m && m.value ? ` (${m.value})` : '');
@@ -2870,7 +2894,7 @@
   }
 
   function openDebtList(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3054,7 +3078,7 @@
   }
 
   function openArrears(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3264,7 +3288,7 @@
   let carRouteData = null;
 
   function openAccountsHub(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3311,7 +3335,7 @@
   }
 
   function openSalesAnalysisScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3343,7 +3367,7 @@
       const budget = getRepMonthlyTarget(code);
       const actual = f.sales - f.ret;
       return { name: REP_MAP[code] || ('مندوب '+code), sales: f.sales, ret: f.ret, actual, coll: f.coll, budget,
-        salesPct: budget ? actual/budget : 0, collPct: budget ? f.coll/budget : 0 };
+        salesPct: budget ? actual/budget : 0, collPct: budget ? f.coll/budget : 0, commission: repCommission(actual, f.coll, budget) };
     });
 
     const companySalesF = computeSalesFigures(SALES_ANALYSIS_COMPANY_SALES_CODES, [SALES_ANALYSIS_COMPANY_SALES_CUST], from, to);
@@ -3353,15 +3377,15 @@
     const group2Rows = [
       { name: 'مبيعات شركة', ...companySalesF },
       { name: 'مندوبين الشركات', ...companyRepsF },
-    ].map(r => ({ name: r.name, sales: r.sales, ret: r.ret, actual: r.sales-r.ret, coll: r.coll, budget: 0, salesPct: 0, collPct: 0 }));
+    ].map(r => ({ name: r.name, sales: r.sales, ret: r.ret, actual: r.sales-r.ret, coll: r.coll, budget: 0, salesPct: 0, collPct: 0, commission: 0 }));
 
-    const adminRow = { name: 'عميل اداره', sales: adminF.sales, ret: adminF.ret, actual: adminF.sales-adminF.ret, coll: adminF.coll, budget: 0, salesPct: 0, collPct: 0 };
+    const adminRow = { name: 'عميل اداره', sales: adminF.sales, ret: adminF.ret, actual: adminF.sales-adminF.ret, coll: adminF.coll, budget: 0, salesPct: 0, collPct: 0, commission: 0 };
 
     const allRows = [...rows1, ...group2Rows, adminRow];
     const grand = allRows.reduce((acc, r) => ({
       sales: acc.sales + r.sales, ret: acc.ret + r.ret, actual: acc.actual + r.actual,
-      coll: acc.coll + r.coll, budget: acc.budget + r.budget
-    }), { sales:0, ret:0, actual:0, coll:0, budget:0 });
+      coll: acc.coll + r.coll, budget: acc.budget + r.budget, commission: acc.commission + r.commission
+    }), { sales:0, ret:0, actual:0, coll:0, budget:0, commission:0 });
 
     const rowHtml = (r, i) => `
       <tr class="stmt-row">
@@ -3373,6 +3397,7 @@
         <td style="text-align:center;">${r.budget ? fmt(r.budget) : '—'}</td>
         <td style="text-align:center;">${r.budget ? Math.round(r.salesPct*100)+'%' : '—'}</td>
         <td style="text-align:center;">${r.budget ? Math.round(r.collPct*100)+'%' : '—'}</td>
+        <td style="text-align:center; font-weight:700;">${r.budget ? fmt(r.commission) : '—'}</td>
         <td style="text-align:center;">${i!=null ? i+1 : ''}</td>
       </tr>`;
 
@@ -3381,12 +3406,12 @@
       <div class="stmt-bal-card"><span>إجمالي التحصيلات</span><b>${fmt(grand.coll)} ج.م</b></div>
     </div>
     <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.78rem;">
-      <tr style="background:#F5F8FA;"><th>المندوب</th><th>المبيعات</th><th>المرتجع</th><th>الصافي</th><th>التحصيل</th><th>الهدف</th><th>نسبة البيع</th><th>نسبة التحصيل</th><th>#</th></tr>
-      <tr><td colspan="9" style="background:#EAF2FA; font-weight:700; padding:6px;">مجموعة (1)</td></tr>
+      <tr style="background:#F5F8FA;"><th>المندوب</th><th>المبيعات</th><th>المرتجع</th><th>الصافي</th><th>التحصيل</th><th>الهدف</th><th>نسبة البيع</th><th>نسبة التحصيل</th><th>العمولة</th><th>#</th></tr>
+      <tr><td colspan="10" style="background:#EAF2FA; font-weight:700; padding:6px;">مجموعة (1)</td></tr>
       ${rows1.map(rowHtml).join('')}
-      <tr><td colspan="9" style="background:#EAF2FA; font-weight:700; padding:6px;">مجموعة (2)</td></tr>
+      <tr><td colspan="10" style="background:#EAF2FA; font-weight:700; padding:6px;">مجموعة (2)</td></tr>
       ${group2Rows.map(r => rowHtml(r, null)).join('')}
-      <tr><td colspan="9" style="background:#EAF2FA; font-weight:700; padding:6px;">عملاء اداره</td></tr>
+      <tr><td colspan="10" style="background:#EAF2FA; font-weight:700; padding:6px;">عملاء اداره</td></tr>
       ${rowHtml(adminRow, null)}
       <tr style="background:#0E4A85; color:#fff; font-weight:800;">
         <td style="text-align:right; padding:6px;">الإجمالي</td>
@@ -3397,17 +3422,18 @@
         <td style="text-align:center;">${fmt(grand.budget)}</td>
         <td style="text-align:center;">${grand.budget ? Math.round(grand.actual/grand.budget*100)+'%' : '—'}</td>
         <td style="text-align:center;">${grand.budget ? Math.round(grand.coll/grand.budget*100)+'%' : '—'}</td>
+        <td style="text-align:center;">${fmt(grand.commission)}</td>
         <td></td>
       </tr>
     </table>
-    <p style="font-size:.72rem; color:var(--muted); margin-top:10px;">ملحوظة: عمود العمولة/البونص مش متضمن هنا لأنه قرار شهري يدوي بياخده وليد جمال، مش حاجة بتتحسب من البيانات.</p>`;
+    <p style="font-size:.72rem; color:var(--muted); margin-top:10px;">العمولة: 1.5% من التحصيل، بشرط إن صافي المبيعات يوصل 70% من الهدف.</p>`;
 
     body.innerHTML = html;
     updateGlobalDownloadBtn();
   }
 
   function openSuppliersReportScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3465,7 +3491,7 @@
   }
 
   function openCarRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3500,7 +3526,7 @@
   // rep's own approved orders and which car/distributor is handling them.
   // No edit/move controls here; those stay admin-only in carRouteScreen.
   function openMyRouteLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3727,7 +3753,7 @@
   function printSingleCarRoute(car){ withSingleCarFilter(car, () => { printCurrentScreen(); return Promise.resolve(); }); }
 
   function openInvoiceLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3798,6 +3824,107 @@
     updateGlobalDownloadBtn();
   }
 
+  // ---------- Returns requests (المرتجعات): rep submits, admin approves/rejects ----------
+  let returnsListenerRef = null;
+  let returnsData = null;
+  let returnRows = [];
+
+  function openReturnsScreen(){
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    document.getElementById('returnsScreen').style.display = 'block';
+    currentScreenId = 'returnsScreen';
+    setBottomNavActive(null);
+    const bag = document.getElementById('bagBtn');
+    if(bag) bag.style.display = 'none';
+    const canSubmit = currentRep && currentRep.code != null;
+    document.getElementById('retForm').style.display = canSubmit ? 'block' : 'none';
+    if(canSubmit){
+      const q = s => String(s).replace(/"/g, '&quot;');
+      document.getElementById('retCustList').innerHTML = repFilter(CUSTOMERS).map(c => `<option value="${c.code} - ${q(c.name)}">`).join('');
+      if(!document.getElementById('retProdList').children.length)
+        document.getElementById('retProdList').innerHTML = [...PRODUCTS, ...PHARMACY_PRODUCTS].map(p => `<option value="${p.code} - ${q(p.name)}">`).join('');
+      if(!returnRows.length) addReturnRow();
+    }
+    if(!fbDb){ document.getElementById('returnsBody').innerHTML = '<p class="empty-note">تعذّر الاتصال بقاعدة البيانات.</p>'; return; }
+    if(!returnsListenerRef){
+      returnsListenerRef = fbDb.ref('returnRequests');
+      returnsListenerRef.on('value', snap => {
+        returnsData = snap.val() || {};
+        if(currentScreenId === 'returnsScreen') renderReturnsList();
+      });
+    }
+    renderReturnsList();
+  }
+
+  function addReturnRow(){ returnRows.push({ product:'', qty:'' }); renderReturnRows(); }
+  function removeReturnRow(i){ returnRows.splice(i, 1); renderReturnRows(); }
+  function renderReturnRows(){
+    document.getElementById('retRows').innerHTML = returnRows.map((r, i) => `
+      <div style="display:flex; gap:6px; margin-bottom:6px;">
+        <input list="retProdList" placeholder="الصنف (كود أو اسم)" value="${escapeHtml(r.product).replace(/"/g, '&quot;')}" oninput="returnRows[${i}].product=this.value" style="flex:3; min-width:0; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit;">
+        <input type="number" min="1" inputmode="numeric" placeholder="الكمية" value="${escapeHtml(r.qty)}" oninput="returnRows[${i}].qty=this.value" style="flex:1; min-width:0; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit;">
+        <button type="button" class="ghost-btn" style="width:auto; padding:0 12px;" onclick="removeReturnRow(${i})" aria-label="حذف الصنف">✕</button>
+      </div>`).join('');
+  }
+  function returnProduct(code){ return PRODUCTS.find(p => p.code === code) || PHARMACY_PRODUCTS.find(p => p.code === code); }
+
+  function submitReturnRequest(){
+    if(!fbDb || !currentRep || currentRep.code == null){ showToast('لا يوجد اتصال بالسيرفر دلوقتي'); return; }
+    const custCode = parseInt(document.getElementById('retCust').value, 10);
+    const cust = repFilter(CUSTOMERS).find(c => c.code === custCode);
+    if(!cust){ showToast('اختار العميل من القائمة'); return; }
+    const items = returnRows.filter(r => r.product.trim() || r.qty).map(r => {
+      const p = returnProduct(parseInt(r.product, 10)), qty = Number(r.qty);
+      return p && qty > 0 ? { code: p.code, name: p.name, qty } : null;
+    });
+    if(!items.length || items.includes(null)){ showToast('راجع الأصناف: اختار كل صنف من القائمة واكتب كميته'); return; }
+    fbDb.ref('returnRequests').push({
+      timestamp: Date.now(), dateStr: todayISO(),
+      repCode: currentRep.code, repName: currentRep.name,
+      custCode: cust.code, custName: cust.name,
+      items, reason: document.getElementById('retReason').value.trim(), status: 'pending'
+    }).then(() => {
+      showToast('اتبعت طلب المرتجع للإدارة');
+      returnRows = []; addReturnRow();
+      document.getElementById('retCust').value = '';
+      document.getElementById('retReason').value = '';
+    }).catch(() => showToast('حصل خطأ في الإرسال، جرب تاني'));
+  }
+
+  function renderReturnsList(){
+    const body = document.getElementById('returnsBody');
+    if(!body) return;
+    if(!returnsData){ body.innerHTML = 'جاري التحميل...'; return; }
+    const isAdmin = currentRep && currentRep.isAdmin;
+    let rows = Object.entries(returnsData);
+    if(!isAdmin) rows = rows.filter(([, r]) => currentRep && r.repCode === currentRep.code);
+    rows.sort((a, b) => (b[1].timestamp||0) - (a[1].timestamp||0));
+    if(!rows.length){ body.innerHTML = '<p class="empty-note">مفيش طلبات مرتجع لسه.</p>'; updateGlobalDownloadBtn(); return; }
+    body.innerHTML = rows.map(([key, r]) => `
+      <div class="stmt-row" style="flex-direction:column; align-items:stretch; gap:6px;">
+        <div style="font-weight:600;">${escapeHtml(r.custName || 'عميل')} (${escapeHtml(r.custCode)})</div>
+        <div style="font-size:.78rem; color:var(--muted);">المندوب: ${escapeHtml(r.repName || '')} — ${escapeHtml(r.dateStr || '')}</div>
+        <div style="font-size:.8rem;">${(r.items || []).map(it => `${escapeHtml(it.name)} × ${fmt(Number(it.qty) || 0)} قطعة`).join('<br>')}</div>
+        ${r.reason ? `<div style="font-size:.78rem; color:var(--muted);">السبب: ${escapeHtml(r.reason)}</div>` : ''}
+        ${r.status === 'approved' ? `<div style="font-size:.78rem; color:#1D7A46; font-weight:600;">✅ معتمد${r.decidedBy ? ' — ' + escapeHtml(r.decidedBy) : ''}</div>`
+          : r.status === 'rejected' ? `<div style="font-size:.78rem; color:#B3261E; font-weight:600;">❌ مرفوض${r.decidedBy ? ' — ' + escapeHtml(r.decidedBy) : ''}</div>`
+          : isAdmin ? `<div class="no-print" style="display:flex; gap:8px;">
+              <button onclick="setReturnStatus('${key}','approved')" title="اعتماد" style="width:38px; height:38px; border-radius:50%; border:none; background:#1D7A46; color:#fff; font-size:1.1rem; cursor:pointer;">✓</button>
+              <button onclick="setReturnStatus('${key}','rejected')" title="رفض" style="width:38px; height:38px; border-radius:50%; border:none; background:#B3261E; color:#fff; font-size:1.1rem; cursor:pointer;">✕</button>
+            </div>`
+          : `<div style="font-size:.78rem; color:#B7791F; font-weight:600;">⏳ في انتظار رد الإدارة</div>`}
+      </div>`).join('');
+    updateGlobalDownloadBtn();
+  }
+
+  function setReturnStatus(key, status){
+    if(!fbDb || !currentRep || !currentRep.isAdmin) return;
+    fbDb.ref('returnRequests/' + key).update({ status, decidedAt: Date.now(), decidedBy: currentRep.name });
+  }
+
   function toggleSelectAllInvoiceLogs(checked){
     document.querySelectorAll('.invLogSelectBox').forEach(cb => { cb.checked = checked; });
     updateInvLogDeleteBtnVisibility();
@@ -3861,7 +3988,7 @@
   }
 
   function openAccountScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3883,7 +4010,7 @@
   }
 
   function openSettingsScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3935,7 +4062,7 @@
   }
 
   function openRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4057,10 +4184,11 @@
     const collPct = target ? Math.round((collection / target) * 100) : 0;
     document.getElementById('vrMonthSales').textContent = `${fmt(sales)} ج.م (${salesPct}%)`;
     document.getElementById('vrMonthCollection').textContent = `${fmt(collection)} ج.م (${collPct}%)`;
+    document.getElementById('vrMonthCommission').textContent = fmt(repCommission(sales, collection, target)) + ' ج.م';
   }
 
   function openVisitReportForm(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4102,7 +4230,7 @@
   // the "سجل الفواتير" pattern -- shows every report the rep has ever saved,
   // with the same ✓/✗ verify badges the admin sees.
   function openMyVisitReportsLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4336,7 +4464,7 @@
   }
 
   function openVisitReportsAdmin(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4426,6 +4554,7 @@
         <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">الهدف الشهري</span><b style="font-family:'JetBrains Mono',monospace;">${fmt(target)} ج.م</b></div>
         <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">مبيعات هذا الشهر</span><b style="font-family:'JetBrains Mono',monospace;">${fmt(monthSales)} ج.م (${salesPct}%)</b></div>
         <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">تحصيل هذا الشهر</span><b style="font-family:'JetBrains Mono',monospace;">${fmt(monthCollection)} ج.م (${collPct}%)</b></div>
+        <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">العمولة المتوقعة</span><b style="font-family:'JetBrains Mono',monospace;">${fmt(repCommission(monthSales, monthCollection, target))} ج.م</b></div>
       </div>`;
 
     const entries = Object.entries(data).sort((a,b) => (b[1].date||'').localeCompare(a[1].date||'') || (b[1].createdAt||0)-(a[1].createdAt||0));
@@ -4555,7 +4684,7 @@
     visitReportDetailReturnScreen = currentScreenId;
     visitReportDetailTitle = 'تقرير خط سير مشرف البيع';
     visitReportDetailFilename = `تقرير خط سير مشرف البيع — ${r.repName || ''} — ${r.date || ''}`;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4632,7 +4761,7 @@
   }
 
   function openChatScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4928,7 +5057,7 @@
   }
 
   function openOrderHistory(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -5841,7 +5970,8 @@
     'visitReportScreen': () => openAccountScreen(),
     'visitReportsAdminScreen': () => openAccountScreen(),
     'chatScreen': () => goTo('menu'),
-    'settingsScreen': () => goTo('menu')
+    'settingsScreen': () => goTo('menu'),
+    'returnsScreen': () => openAccountsHub()
   };
   function getCurrentScreenId(){
     return currentScreenId || 'mainMenuScreen';
