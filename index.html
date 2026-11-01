@@ -17,6 +17,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1017,6 +1018,10 @@
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 32 a20 20 0 0 1 34-14 M52 32 a20 20 0 0 1-34 14"/><path d="M46 10 v10 h-10 M18 54 v-10 h10"/></svg>
       <span>إعادة مزامنة المخزون اللحظي (للإدارة فقط)</span>
     </button>
+    <button id="repAccountsBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openRepAccounts()">
+      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="26" cy="22" r="10"/><path d="M8 54 c0-12 8-18 18-18 s18 6 18 18"/><rect x="40" y="30" width="18" height="14" rx="3"/><path d="M44 30 v-4 a5 5 0 0 1 10 0 v4"/></svg>
+      <span>حسابات المناديب (للإدارة فقط)</span>
+    </button>
     <a href="https://chat.whatsapp.com/BxPCFzXYEA9HjAcuW2wRaR" target="_blank" class="menu-card" style="flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px; text-decoration:none; color:inherit;">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="26" r="10"/><path d="M8 54 c0-11 7-18 16-18 s16 7 16 18"/><circle cx="46" cy="20" r="7"/><path d="M38 54 c0-9 4-15 8-15 s8 3 9 11"/></svg>
       <span>الانضمام لجروب العمل على واتساب</span>
@@ -1061,6 +1066,21 @@
       <input id="privateChatAdminInput" placeholder="اكتب رسالة..." style="flex:1; padding:11px 14px; border-radius:20px; border:1.5px solid var(--line); font-family:inherit; font-size:.9rem;" onkeydown="if(event.key==='Enter') sendPrivateChatAdminMessage()">
       <button class="full-btn" style="width:auto; padding:11px 20px; margin:0;" onclick="sendPrivateChatAdminMessage()">إرسال</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="repAccountsModal">
+  <div class="modal" style="max-height:88vh; overflow-y:auto;">
+    <h3>حسابات المناديب</h3>
+    <div class="mdesc" style="margin-bottom:14px;">اعمل حساب لكل مندوب، وادّيله اسم المستخدم وكلمة المرور اللي هتظهر. المندوب يقدر يغيّر كلمة المرور بعد كده من "تغيير كلمة المرور".</div>
+    <div class="field"><label for="repAccRep">المندوب</label><select id="repAccRep" onchange="fillRepAccountDefaults()"></select></div>
+    <div class="field"><label for="repAccUser">اسم المستخدم</label><input id="repAccUser" autocomplete="off"></div>
+    <div class="field"><label for="repAccPass">كلمة المرور (6 أرقام على الأقل)</label><input id="repAccPass" autocomplete="off" inputmode="numeric"></div>
+    <button class="full-btn" onclick="createRepAccount()">إنشاء الحساب</button>
+    <div id="repAccResult" style="margin-top:10px; font-size:.85rem;"></div>
+    <h4 style="margin:18px 0 8px;">الحسابات الموجودة</h4>
+    <div id="repAccList" style="font-size:.82rem;">جاري التحميل...</div>
+    <button class="ghost-btn" style="width:100%; margin-top:14px;" onclick="document.getElementById('repAccountsModal').classList.remove('open')">إغلاق</button>
   </div>
 </div>
 
@@ -1314,7 +1334,7 @@
 <div class="modal-wrap" id="changePwModal">
   <div class="modal">
     <h3>تغيير كلمة المرور</h3>
-    <div class="mdesc">التغيير هيتحفظ على الجهاز ده بس</div>
+    <div class="mdesc">كلمة المرور الجديدة هتشتغل على أي جهاز (6 أرقام على الأقل)</div>
     <form id="changePwForm" onsubmit="return handleChangePassword(event)">
       <div class="field">
         <label>كلمة المرور الحالية</label>
@@ -1368,10 +1388,9 @@
   REPS.forEach(r => REP_MAP[r.code] = r.name);
 
   // ---------- Rep login credentials ----------
-  // [repCode, username, password]
-  const REP_LOGINS = [[1, "1", "2824"], [2, "2", "1409"], [3, "3", "5506"], [4, "4", "5012"], [5, "5", "4657"], [6, "6", "3286"], [7, "7", "2679"], [8, "8", "9935"], [9, "9", "2424"], [10, "10", "7912"], [11, "11", "1520"], [12, "12", "1488"], [13, "13", "2535"], [14, "14", "4582"], [15, "15", "4811"], [16, "16", "9279"], [17, "17", "1434"], [18, "18", "4257"], [19, "19", "9928"], [20, "20", "7873"], [21, "21", "4611"], [22, "22", "8359"], [23, "23", "5557"], [24, "24", "1106"], [25, "25", "3615"], [26, "26", "7924"], [27, "27", "6574"], [28, "28", "5552"], [29, "29", "3547"], [30, "30", "4527"], [31, "31", "6514"], [32, "32", "2674"], [33, "33", "2519"], [34, "34", "7224"], [35, "35", "2584"], [36, "36", "6881"], [37, "37", "6635"], [38, "38", "5333"], [39, "39", "1711"], [40, "40", "8527"], [41, "41", "9785"], [42, "42", "3045"], [43, "43", "7201"], [44, "44", "2291"], [45, "45", "5803"], [46, "46", "6925"], [47, "47", "4150"], [48, "48", "2139"], [49, "49", "1750"], [50, "50", "4733"], [51, "51", "5741"], [52, "52", "2307"], [53, "53", "4814"], [54, "54", "2654"], [55, "55", "7227"], [56, "56", "5554"], [57, "57", "8428"], [58, "58", "6977"], [59, "59", "3664"], [60, "60", "7065"], [61, "61", "6820"], [62, "62", "4432"], [63, "63", "5374"], [64, "64", "2169"], [65, "65", "3803"], [66, "66", "9751"], [67, "67", "5010"], [68, "68", "3677"], [69, "69", "8573"], [70, "70", "7216"], [71, "71", "5422"], [72, "72", "4598"], [73, "73", "6313"], [74, "74", "1916"], [75, "75", "4752"], [76, "76", "1525"], [77, "77", "6168"], [78, "78", "7572"], [79, "79", "5386"], [80, "80", "2084"], [81, "81", "4456"], [82, "82", "6155"], [83, "83", "4483"], [84, "84", "9179"], [85, "85", "7482"], [86, "86", "8517"], [87, "87", "3340"], [88, "88", "5339"], [89, "89", "3287"], [90, "90", "5040"], [91, "91", "9830"], [92, "92", "5304"], [93, "93", "8019"], [94, "94", "7543"], [95, "95", "6930"], [96, "96", "4593"], [97, "97", "3266"], [98, "98", "9348"], [99, "99", "9085"], [100, "100", "2489"], [101, "101", "1771"], [102, "102", "2796"], [103, "103", "3504"], [104, "104", "3621"], [105, "105", "7916"], [106, "106", "2040"], [107, "107", "7304"], [108, "108", "7252"], [109, "109", "8668"], [110, "110", "9669"], [111, "111", "5119"], [112, "112", "1188"], [113, "113", "2876"], [114, "114", "9797"], [115, "115", "5371"], [116, "116", "6573"], [117, "117", "2827"], [118, "118", "5808"], [119, "119", "8123"], [120, "120", "3591"], [121, "121", "8433"], [122, "122", "1053"], [123, "123", "5315"], [124, "124", "9201"], [125, "125", "3927"], [126, "126", "9317"], [127, "127", "2743"], [128, "128", "5889"], [129, "129", "4258"], [130, "130", "7126"], [131, "131", "3646"], [132, "132", "9837"], [133, "133", "9689"], [134, "134", "1009"], [135, "135", "6310"], [136, "136", "9005"], [137, "137", "1319"], [138, "138", "2832"], [139, "139", "6947"], [140, "140", "6038"], [141, "141", "4923"], [142, "142", "1949"], [143, "143", "4946"], [144, "144", "2290"], [145, "145", "2403"], [146, "146", "8962"], [147, "147", "2133"], [148, "148", "9727"], [149, "149", "3060"], [150, "150", "3103"], [151, "151", "8787"], [152, "152", "3705"], [153, "153", "5342"], [154, "154", "9645"], [155, "155", "7932"], [156, "156", "4470"], [157, "157", "9835"], [158, "158", "4295"], [159, "159", "6107"], [160, "160", "7537"], [161, "161", "7118"], [162, "162", "8177"], [163, "163", "9479"], [164, "164", "8397"], [165, "165", "2982"], [166, "166", "5061"], [167, "167", "4681"], [168, "168", "2049"], [169, "169", "6539"], [170, "170", "1344"], [171, "171", "4770"], [172, "172", "4608"], [173, "173", "1117"], [174, "174", "7419"], [175, "175", "3627"], [176, "176", "2682"]];
-  const ADMIN_USER = 'admin';
-  const ADMIN_PASS = '6305';
+  // Accounts live in Firebase Auth (username -> <username>@future-cosmetics.app); role/code per account in users/{uid}.
+  const LOGIN_EMAIL_DOMAIN = '@future-cosmetics.app';
+  function loginEmail(user){ return String(user).trim().toLowerCase() + LOGIN_EMAIL_DOMAIN; }
 
   // ---------- Live stock sync (Firebase Realtime Database) ----------
   const firebaseConfig = {
@@ -1422,6 +1441,7 @@
     try{
       if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
       fbDb = firebase.database();
+      initAuth();
       return Promise.resolve(fbDb);
     }catch(e){
       return Promise.resolve(null);
@@ -1446,8 +1466,18 @@
 
       firebase.initializeApp(firebaseConfig);
       fbDb = firebase.database();
+      initAuth();
+    }catch(e){ console.warn('Firebase init failed', e); scheduleFirebaseRetry(); }
+  }
+
+  // The database only answers signed-in accounts, so live listeners start after login (see initAuth).
+  let liveStockStarted = false;
+  function startLiveStock(){
+    if(liveStockStarted || !fbDb) return;
+    liveStockStarted = true;
+    try{
       const stockRef = fbDb.ref('stock');
-      stockRef.once('value').then(snap => {
+      if(currentRep && currentRep.isAdmin) stockRef.once('value').then(snap => {
         if(!snap.exists()){
           const seed = {};
           PRODUCTS.forEach(p => { seed[p.code] = p.fileStock || 0; });
@@ -1476,7 +1506,7 @@
       });
 
       watchDataUpdateNotice();
-    }catch(e){ console.warn('Firebase init failed', e); scheduleFirebaseRetry(); }
+    }catch(e){ console.warn('Live stock failed', e); liveStockStarted = false; }
   }
 
   function decrementLiveStock(code, pieces){
@@ -1662,8 +1692,9 @@
   }
 
   function openSendUpdateNotice(){
-    document.getElementById('notifDateLabel').value = new Date().toLocaleDateString('ar-EG', { day:'numeric', month:'long', year:'numeric' });
-    document.getElementById('notifCategories').value = 'بيانات العملاء';
+    // prefilled from this file's data-update summary, so after an update it only needs a tap on send
+    document.getElementById('notifDateLabel').value = DATA_UPDATE_INFO_FALLBACK.dateLabel;
+    document.getElementById('notifCategories').value = DATA_UPDATE_INFO_FALLBACK.categories.join('\n');
     document.getElementById('sendUpdateNoticeModal').classList.add('open');
   }
   function closeSendUpdateNotice(){
@@ -1680,58 +1711,123 @@
       .catch(() => showToast('حصل خطأ أثناء الإرسال'));
   }
 
-  // ---------- Local password override (per-device only) ----------
-  function pwOverrideKey(user){ return 'fc_pw_override_' + user; }
-  function getPwOverride(user){
-    try{ return localStorage.getItem(pwOverrideKey(user)); }catch(e){ return null; }
-  }
-  function setPwOverride(user, newPass){
-    try{ localStorage.setItem(pwOverrideKey(user), newPass); return true; }catch(e){ return false; }
-  }
-
-  function findRepLogin(user, pass){
-    if(user === ADMIN_USER){
-      const override = getPwOverride(user);
-      if(override ? pass === override : pass === ADMIN_PASS){
-        return { code: null, name: 'الإدارة', isAdmin: true };
+  // ---------- Login (Firebase Auth) ----------
+  // Profile = users/{uid}: {code, name, isAdmin, user}. Cached in fc_session so the app opens offline.
+  let authStarted = false;
+  function initAuth(){
+    if(authStarted || typeof firebase === 'undefined' || !firebase.auth) return;
+    authStarted = true;
+    firebase.auth().onAuthStateChanged(user => {
+      if(!user){
+        try{ localStorage.removeItem('fc_session'); }catch(e){}
+        currentRep = null;
+        showLogin();
+        return;
       }
-    }
-    const row = REP_LOGINS.find(r => r[1] === user);
-    if(row){
-      const override = getPwOverride(user);
-      const effectivePass = override || row[2];
-      if(pass !== effectivePass) return null;
-      const name = REP_MAP[row[0]] || ('مندوب ' + row[0]);
-      const fullAccess = FULL_ACCESS_REP_CODES.includes(row[0]);
-      return { code: row[0], name: name, isAdmin: fullAccess };
-    }
-    return null;
+      fbDb.ref('users/' + user.uid).once('value').then(snap => {
+        const p = snap.val();
+        if(!p){
+          document.getElementById('loginError').textContent = 'الحساب ده مش متفعّل، كلّم الإدارة';
+          firebase.auth().signOut();
+          return;
+        }
+        const wasShown = !!currentRep;
+        currentRep = { uid: user.uid, code: p.code != null ? p.code : null, name: p.name || REP_MAP[p.code] || 'مندوب', isAdmin: p.isAdmin === true, user: p.user };
+        try{ localStorage.setItem('fc_session', JSON.stringify(currentRep)); }catch(e){}
+        if(!wasShown){ hideLogin(); restoreDraft(); } else hideLogin();
+        startLiveStock();
+      }).catch(() => {
+        // offline: keep the cached profile of this same account if we have it
+        if(currentRep && currentRep.uid === user.uid){ hideLogin(); startLiveStock(); }
+      });
+    });
   }
 
   function handleLogin(e){
     e.preventDefault();
     const user = document.getElementById('loginUser').value.trim();
     const pass = document.getElementById('loginPass').value.trim();
-    const rep = findRepLogin(user, pass);
     const errEl = document.getElementById('loginError');
-    if(!rep){
-      errEl.textContent = 'اسم المستخدم أو كلمة المرور غلط';
+    if(typeof firebase === 'undefined' || !firebase.auth || !authStarted){
+      errEl.textContent = 'مفيش اتصال بالإنترنت، جرّب تاني';
       return false;
     }
-    errEl.textContent = '';
-    rep.user = user;
-    currentRep = rep;
-    try{ localStorage.setItem('fc_session', JSON.stringify(rep)); }catch(e){}
-    hideLogin();
+    errEl.textContent = 'جاري الدخول...';
+    firebase.auth().signInWithEmailAndPassword(loginEmail(user), pass)
+      .then(() => { errEl.textContent = ''; })
+      .catch(err => {
+        errEl.textContent = (err && err.code === 'auth/network-request-failed')
+          ? 'مفيش اتصال بالإنترنت، جرّب تاني'
+          : 'اسم المستخدم أو كلمة المرور غلط';
+      });
     return false;
+  }
+
+  // ---------- Rep accounts (admin): creates the Firebase Auth user + its users/{uid} profile ----------
+  function openRepAccounts(){
+    if(!currentRep || !currentRep.isAdmin || !fbDb) return;
+    const reps = REPS.filter(r => isRealRep(r) || FULL_ACCESS_REP_CODES.includes(r.code)).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    document.getElementById('repAccRep').innerHTML = '<option value="admin">الإدارة (حساب الإدارة العام)</option>' +
+      reps.map(r => `<option value="${r.code}">${escapeHtml(r.name)} (${r.code})</option>`).join('');
+    fillRepAccountDefaults();
+    document.getElementById('repAccResult').textContent = '';
+    document.getElementById('repAccountsModal').classList.add('open');
+    renderRepAccounts();
+  }
+  function fillRepAccountDefaults(){
+    const v = document.getElementById('repAccRep').value;
+    document.getElementById('repAccUser').value = v;
+    const rnd = new Uint32Array(1); crypto.getRandomValues(rnd);
+    document.getElementById('repAccPass').value = String(100000 + rnd[0] % 900000);
+  }
+  function renderRepAccounts(){
+    const box = document.getElementById('repAccList');
+    fbDb.ref('users').once('value').then(snap => {
+      const rows = Object.entries(snap.val() || {}).sort((a,b) => (a[1].name || '').localeCompare(b[1].name || '', 'ar'));
+      box.innerHTML = rows.length ? rows.map(([uid, u]) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);">
+          <span>${escapeHtml(u.name || '')} — <b>${escapeHtml(u.user || '')}</b>${u.isAdmin ? ' <span style="color:var(--teal);">(إدارة)</span>' : ''}</span>
+          ${uid === currentRep.uid ? '<span style="color:var(--muted);">إنت</span>' : `<button class="ghost-btn" style="width:auto; padding:4px 10px;" onclick="disableRepAccount('${uid}')">إيقاف</button>`}
+        </div>`).join('') : '<p class="empty-note">مفيش حسابات لسه.</p>';
+    }).catch(() => { box.textContent = 'تعذّر تحميل الحسابات'; });
+  }
+  function createRepAccount(){
+    const v = document.getElementById('repAccRep').value;
+    const user = document.getElementById('repAccUser').value.trim().toLowerCase();
+    const pass = document.getElementById('repAccPass').value.trim();
+    const out = document.getElementById('repAccResult');
+    if(!/^[a-z0-9._-]+$/.test(user)){ out.textContent = 'اسم المستخدم: حروف إنجليزي أو أرقام بس'; return; }
+    if(pass.length < 6){ out.textContent = 'كلمة المرور لازم تكون 6 أرقام على الأقل'; return; }
+    const code = v === 'admin' ? null : parseInt(v, 10);
+    const profile = code == null ? { name: 'الإدارة', isAdmin: true, user }
+      : { code, codeKey: String(code), name: REP_MAP[code] || ('مندوب ' + code), isAdmin: FULL_ACCESS_REP_CODES.includes(code), user };  // codeKey: string twin of code for the security rules
+    // a second app instance, so creating the account doesn't sign the admin out
+    const second = firebase.apps.find(a => a.name === 'accounts') || firebase.initializeApp(firebaseConfig, 'accounts');
+    out.textContent = 'جاري الإنشاء...';
+    second.auth().createUserWithEmailAndPassword(loginEmail(user), pass)
+      .then(cred => fbDb.ref('users/' + cred.user.uid).set(profile).then(() => second.auth().signOut()))
+      .then(() => {
+        out.innerHTML = `✅ اتعمل الحساب لـ <b>${escapeHtml(profile.name)}</b><br>اسم المستخدم: <b>${escapeHtml(user)}</b> — كلمة المرور: <b>${escapeHtml(pass)}</b>`;
+        renderRepAccounts();
+      })
+      .catch(err => {
+        out.textContent = err && err.code === 'auth/email-already-in-use'
+          ? 'اسم المستخدم ده مستخدم قبل كده، اختار اسم تاني (مثلا ' + user + 'b)'
+          : 'تعذّر إنشاء الحساب، اتأكد من الإنترنت وجرّب تاني';
+      });
+  }
+  function disableRepAccount(uid){
+    if(!confirm('إيقاف الحساب ده؟ صاحبه مش هيقدر يدخل تاني لحد ما تعمله حساب جديد.')) return;
+    fbDb.ref('users/' + uid).remove().then(renderRepAccounts).catch(() => showToast('تعذّر الإيقاف'));
   }
 
   function handleLogout(){
     try{ localStorage.removeItem('fc_session'); }catch(e){}
-    location.reload();
+    const done = () => location.reload();
+    if(typeof firebase !== 'undefined' && firebase.auth) firebase.auth().signOut().then(done, done); else done();
   }
 
-  // ---------- Change password (local to this device only) ----------
+  // ---------- Change password (Firebase Auth) ----------
   function openChangePassword(){
     document.getElementById('pwCurrent').value = '';
     document.getElementById('pwNew').value = '';
@@ -1745,34 +1841,30 @@
   function handleChangePassword(e){
     e.preventDefault();
     const errEl = document.getElementById('pwError');
-    if(!currentRep || !currentRep.user){
+    const user = typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser;
+    if(!user){
       errEl.textContent = 'حصل خطأ، سجّل خروج ودخول تاني وحاول تاني.';
       return false;
     }
     const cur = document.getElementById('pwCurrent').value.trim();
     const newPass = document.getElementById('pwNew').value.trim();
     const confirmPass = document.getElementById('pwConfirm').value.trim();
-
-    const check = findRepLogin(currentRep.user, cur);
-    if(!check || check.code !== currentRep.code || check.isAdmin !== currentRep.isAdmin){
-      errEl.textContent = 'كلمة المرور الحالية غلط';
-      return false;
-    }
-    if(newPass.length < 4){
-      errEl.textContent = 'كلمة المرور الجديدة لازم تكون 4 أرقام على الأقل';
+    if(newPass.length < 6){
+      errEl.textContent = 'كلمة المرور الجديدة لازم تكون 6 حروف أو أرقام على الأقل';
       return false;
     }
     if(newPass !== confirmPass){
       errEl.textContent = 'كلمة المرور الجديدة وتأكيدها مش متطابقين';
       return false;
     }
-    const saved = setPwOverride(currentRep.user, newPass);
-    if(!saved){
-      errEl.textContent = 'تعذّر الحفظ على هذا الجهاز';
-      return false;
-    }
-    closeChangePassword();
-    showToast('اتغيّرت كلمة المرور بنجاح على هذا الجهاز');
+    errEl.textContent = 'جاري الحفظ...';
+    user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(user.email, cur))
+      .then(() => user.updatePassword(newPass))
+      .then(() => { closeChangePassword(); showToast('اتغيّرت كلمة المرور بنجاح'); })
+      .catch(err => {
+        errEl.textContent = (err && (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials'))
+          ? 'كلمة المرور الحالية غلط' : 'تعذّر الحفظ، اتأكد من الإنترنت وجرّب تاني';
+      });
     return false;
   }
 
@@ -1866,10 +1958,11 @@
     }
   }
 
+  // Opens straight into the app from the cached profile; initAuth() confirms or signs out once Firebase answers.
   function checkSession(){
     let saved = null;
     try{ saved = JSON.parse(localStorage.getItem('fc_session') || 'null'); }catch(e){}
-    if(saved && ((saved.isAdmin) || REP_LOGINS.some(r => r[0] === saved.code))){
+    if(saved && saved.uid){
       currentRep = saved;
       hideLogin();
     } else {
@@ -4079,6 +4172,8 @@
     if(rsb) rsb.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
     const sun = document.getElementById('sendUpdateNotifBtn');
     if(sun) sun.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    const rab = document.getElementById('repAccountsBtn');
+    if(rab) rab.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
     refreshEnableNotifBtnLabel();
   }
 
