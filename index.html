@@ -3373,11 +3373,16 @@
   // "مندوبين مبيعات" reps (understating totals), and "مندوبين الشركات" was
   // wrong (real bucket is 11 specific reps; "مبيعات شركة" is a distinct rep
   // named "مبيعات الشركة", code 150, not code 22).
-  const SALES_ANALYSIS_GROUP1 = [4,8,38,68,103,110,120,122,129,131,138,143,152,155,156,158,161,162,165,166,168,169,170,171];
-  const SALES_ANALYSIS_COMPANY_SALES_CODES = [150];      // "مبيعات شركة"
-  const SALES_ANALYSIS_COMPANY_SALES_CUST = 3559;       // "عميل الرصيد" (by customer code, not rep)
-  const SALES_ANALYSIS_COMPANY_REPS_CODES = [145,147,148,151,153,154,157,159,160,163,164];  // "مندوبين الشركات"
-  const SALES_ANALYSIS_ADMIN_CODE = 1;                  // "عميل اداره"
+  // Regrouped Nov 2026 to Waleed's approved close layout: collections on 22, 41 and 174-176 were left out of the totals.
+  const SALES_ANALYSIS_GROUP1 = [4,8,38,68,103,110,120,122,129,131,138,143,152,155,156,158,161,162,165,166,168,169,170,171,173];
+  const SALES_ANALYSIS_TAMER_TEAM = { 177: 'محمد السيد - ادريانو', 178: 'محمود دياب' };  // فريق تامر الدسوقى
+  const SALES_ANALYSIS_PHARMACY = { 175: 'محمد احمد', 176: 'بيجاد احمد' };               // الصيدليات
+  const SALES_ANALYSIS_ADMIN_ROWS = [
+    { name: 'عميل اداره', codes: [1], budget: 1500000 },
+    { name: 'عميل نقدي إدارة', codes: [41], budget: 0 },
+    { name: 'مندوبين الشركات', codes: [145,147,148,151,153,154,157,159,160,163,164,172,174], budget: 0 },
+    { name: 'مبيعات شركة', codes: [22,150,0], budget: 0 },  // 22 = ادارة مباشرة, 0 = no rep on the document
+  ];
 
   function computeSalesFigures(repCodes, custCodes, from, to){
     repCodes = repCodes || []; custCodes = custCodes || [];
@@ -3425,26 +3430,29 @@
     const lastDay = new Date(y, m, 0).getDate();
     const to = y*10000 + m*100 + lastDay;
 
+    const hasActivity = r => r.sales || r.ret || r.coll;  // Waleed's rule: all-zero rows don't appear
     const rows1 = SALES_ANALYSIS_GROUP1.map(code => {
       const f = computeSalesFigures([code], [], from, to);
       const budget = getRepMonthlyTarget(code);
       const actual = f.sales - f.ret;
       return { name: REP_MAP[code] || ('مندوب '+code), sales: f.sales, ret: f.ret, actual, coll: f.coll, budget,
         salesPct: budget ? actual/budget : 0, collPct: budget ? f.coll/budget : 0, commission: repCommission(actual, f.coll, budget) };
-    });
+    }).filter(hasActivity);
 
-    const companySalesF = computeSalesFigures(SALES_ANALYSIS_COMPANY_SALES_CODES, [SALES_ANALYSIS_COMPANY_SALES_CUST], from, to);
-    const companyRepsF = computeSalesFigures(SALES_ANALYSIS_COMPANY_REPS_CODES, [], from, to);
-    const adminF = computeSalesFigures([SALES_ANALYSIS_ADMIN_CODE], [], from, to);
+    const fixedRow = ({ name, codes, budget }) => {
+      const f = computeSalesFigures(codes, [], from, to);
+      const actual = f.sales - f.ret;
+      return { name, sales: f.sales, ret: f.ret, actual, coll: f.coll, budget, salesPct: budget ? actual/budget : 0, collPct: budget ? f.coll/budget : 0, commission: 0 };
+    };
+    const namedRows = map => Object.entries(map).map(([code, name]) => fixedRow({ name, codes: [Number(code)], budget: 0 })).filter(hasActivity);
+    const tamerRows = namedRows(SALES_ANALYSIS_TAMER_TEAM);
+    const pharmacyRows = namedRows(SALES_ANALYSIS_PHARMACY);
+    // A code outside every group still has to reach the totals.
+    const grouped = new Set([...SALES_ANALYSIS_GROUP1, ...Object.keys(SALES_ANALYSIS_TAMER_TEAM).map(Number), ...Object.keys(SALES_ANALYSIS_PHARMACY).map(Number), ...SALES_ANALYSIS_ADMIN_ROWS.flatMap(r => r.codes)]);
+    const otherCodes = [...new Set([...SALES_TX.map(r => r[3]), ...COLL_TX.map(r => r[2])])].filter(c => !grouped.has(c));
+    const adminRows = [...SALES_ANALYSIS_ADMIN_ROWS, { name: 'أكواد أخرى', codes: otherCodes, budget: 0 }].map(fixedRow).filter(hasActivity);
 
-    const group2Rows = [
-      { name: 'مبيعات شركة', ...companySalesF },
-      { name: 'مندوبين الشركات', ...companyRepsF },
-    ].map(r => ({ name: r.name, sales: r.sales, ret: r.ret, actual: r.sales-r.ret, coll: r.coll, budget: 0, salesPct: 0, collPct: 0, commission: 0 }));
-
-    const adminRow = { name: 'عميل اداره', sales: adminF.sales, ret: adminF.ret, actual: adminF.sales-adminF.ret, coll: adminF.coll, budget: 0, salesPct: 0, collPct: 0, commission: 0 };
-
-    const allRows = [...rows1, ...group2Rows, adminRow];
+    const allRows = [...rows1, ...tamerRows, ...pharmacyRows, ...adminRows];
     const grand = allRows.reduce((acc, r) => ({
       sales: acc.sales + r.sales, ret: acc.ret + r.ret, actual: acc.actual + r.actual,
       coll: acc.coll + r.coll, budget: acc.budget + r.budget, commission: acc.commission + r.commission
@@ -3464,18 +3472,18 @@
         <td style="text-align:center;">${i!=null ? i+1 : ''}</td>
       </tr>`;
 
+    const groupHtml = (title, rows) => rows.length ? `<tr><td colspan="10" style="background:#EAF2FA; font-weight:700; padding:6px;">${title}</td></tr>${rows.map(rowHtml).join('')}` : '';
+
     let html = `<div style="display:flex; gap:16px; margin-bottom:14px; flex-wrap:wrap;">
       <div class="stmt-bal-card"><span>إجمالي صافي المبيعات</span><b>${fmt(grand.actual)} ج.م</b></div>
       <div class="stmt-bal-card"><span>إجمالي التحصيلات</span><b>${fmt(grand.coll)} ج.م</b></div>
     </div>
     <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.78rem;">
       <tr style="background:#F5F8FA;"><th>المندوب</th><th>المبيعات</th><th>المرتجع</th><th>الصافي</th><th>التحصيل</th><th>الهدف</th><th>نسبة البيع</th><th>نسبة التحصيل</th><th>العمولة</th><th>#</th></tr>
-      <tr><td colspan="10" style="background:#EAF2FA; font-weight:700; padding:6px;">مجموعة (1)</td></tr>
-      ${rows1.map(rowHtml).join('')}
-      <tr><td colspan="10" style="background:#EAF2FA; font-weight:700; padding:6px;">مجموعة (2)</td></tr>
-      ${group2Rows.map(r => rowHtml(r, null)).join('')}
-      <tr><td colspan="10" style="background:#EAF2FA; font-weight:700; padding:6px;">عملاء اداره</td></tr>
-      ${rowHtml(adminRow, null)}
+      ${groupHtml('مجموعة (1) - المندوبين', rows1)}
+      ${groupHtml('مجموعة (2) - فريق تامر الدسوقى', tamerRows)}
+      ${groupHtml('مجموعة (3) - الصيدليات', pharmacyRows)}
+      ${groupHtml('مجموعة (4) - الإدارة', adminRows)}
       <tr style="background:#0E4A85; color:#fff; font-weight:800;">
         <td style="text-align:right; padding:6px;">الإجمالي</td>
         <td style="text-align:center;">${fmt(grand.sales)}</td>
