@@ -1633,7 +1633,8 @@
   function initOneSignal(){
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async (OneSignal) => {
-      await OneSignal.init({ appId: ONESIGNAL_APP_ID });
+      // The site lives under /future-cosmetics/: the default path (origin root) is a 404, and its own scope keeps it off sw.js's.
+      await OneSignal.init({ appId: ONESIGNAL_APP_ID, serviceWorkerPath: 'future-cosmetics/OneSignalSDKWorker.js', serviceWorkerParam: { scope: '/future-cosmetics/onesignal/' } });
       oneSignalReady = true;
       refreshEnableNotifBtnLabel();
     });
