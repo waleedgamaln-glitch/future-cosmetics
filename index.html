@@ -1565,8 +1565,11 @@
     categories: ["📦 أرصدة المخازن: تحديث رصيد 78 صنف", "📋 كشف حساب العملاء: تحديث رصيد 62 عميل", "📋 تصفير رصيد 4 عملاء سددوا بالكامل", "💰 المقبوضات: إضافة 29 إيصال تحصيل جديد", "🧾 فواتير المبيعات: إضافة 12 فاتورة مبيعات و3 فاتورة مرتد جديدة، وتعديل 11 فاتورة"]
   };
 
+  let pendingDataUpdateInfo = null;
   function showDataUpdateNoticeFrom(info){
     if(!info || !info.version) return;
+    // The login screen covers the modal, so hold the notice until after login instead of marking it seen unread.
+    if(!currentRep){ pendingDataUpdateInfo = info; return; }
     let lastSeen = null;
     try{ lastSeen = localStorage.getItem('lastSeenDataUpdateVersion'); }catch(e){}
     if(lastSeen === info.version) return;
@@ -1586,7 +1589,8 @@
   // Kept for any older call sites; now just forwards to the fallback so a
   // never-connected device still shows something reasonable on first login.
   function maybeShowDataUpdateNotice(){
-    if(!fbDb) showDataUpdateNoticeFrom(DATA_UPDATE_INFO_FALLBACK);
+    if(pendingDataUpdateInfo) showDataUpdateNoticeFrom(pendingDataUpdateInfo);
+    else if(!fbDb) showDataUpdateNoticeFrom(DATA_UPDATE_INFO_FALLBACK);
   }
 
   // Live-listens to systemInfo/dataUpdate. Whenever Waleed (as admin) sends a new
