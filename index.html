@@ -4254,7 +4254,7 @@
   // ---------- HR: the admin sees everyone, an employee only their own record (enforced by the DB rules) ----------
   const HR_FIELDS = [['title','الوظيفة'],['dept','الإدارة'],['kind','نوع الدوام'],['hired','تاريخ التعيين'],['nid','الرقم القومي'],['birth','تاريخ الميلاد'],['phones','التليفون'],['address','العنوان'],['bank','البنك'],['account','رقم الحساب'],['insurance','الرقم التأميني']];
   const HR_MONEY = [['gross','إجمالي المرتب'],['loans','السلف'],['net','صافي المرتب']];
-  const HR_DOC_TYPES = ['بطاقة','شهادة ميلاد','شهادة جيش','مؤهل','رخصة','فيش جنائي','كعب عمل','برنت تأمينات','صورة شخصية','وصل أمانة','مستند'];
+  const HR_DOC_TYPES = ['بطاقة','شهادة ميلاد','شهادة جيش','مؤهل','رخصة','فيش جنائي','كعب عمل','برنت تأمينات','صورة شخصية','وصل أمانة','شهادة عمل','استقالة','مستند'];
   let hrShowingEmployee = false;
   function isEmployeeOnly(){ return !!currentRep && !currentRep.isAdmin && currentRep.code == null; }
   function openHrScreen(){
@@ -4275,7 +4275,7 @@
     body.innerHTML = '<p class="empty-note">جاري التحميل...</p>';
     fbDb.ref('hr/employees').once('value').then(snap => {
       const list = Object.entries(snap.val() || {}).sort((a, b) => Number(a[0]) - Number(b[0]));
-      const tool = `<div class="field no-print"><label for="hrImportFile">تحميل بيانات ومستندات الموظفين (hr_data.json)</label><input id="hrImportFile" type="file" accept=".json" onchange="importHrData(this)"></div><div id="hrImportResult" style="margin-bottom:12px; font-size:.85rem; font-weight:700;"></div>`;
+      const tool = `<div class="field no-print"><label for="hrImportFile">تحميل بيانات ومستندات الموظفين (hr_data.json) أو أنواع المستندات (hr_doc_types.json)</label><input id="hrImportFile" type="file" accept=".json" onchange="importHrData(this)"></div><div id="hrImportResult" style="margin-bottom:12px; font-size:.85rem; font-weight:700;"></div>`;
       if(!list.length){ body.innerHTML = tool + '<p class="empty-note">لسه بيانات الموظفين ما اتحملتش.</p>'; return; }
       body.innerHTML = tool + `<div class="field"><input id="hrSearch" placeholder="ابحث بالاسم أو الكود" oninput="filterHrList(this.value)"></div>
         <p style="font-size:.85rem; color:var(--muted);">${list.length} موظف</p>
@@ -4346,7 +4346,15 @@
       if(probe.ok){ out.textContent = '⛔ قواعد الحماية لسه ما اتفعلتش، فالبيانات مش هتترفع. فعّل القواعد الأول.'; return; }
       out.textContent = 'جاري قراءة الملف...';
       var current = '';
-      const { employees, docs } = JSON.parse(await file.text());
+      const parsed = JSON.parse(await file.text());
+      if(parsed.types){  // a small file with document types only, no re-upload of the documents
+        const updates = {};
+        Object.entries(parsed.types).forEach(([key, list]) => Object.entries(list).forEach(([id, type]) => { updates[`hr/docIndex/${key}/${id}/type`] = type; }));
+        await fbDb.ref().update(updates);
+        out.textContent = `✅ اتسمى ${Object.keys(updates).length} مستند`;
+        return;
+      }
+      const { employees, docs } = parsed;
       await fbDb.ref('hr/employees').set(employees);
       const all = Object.entries(docs || {}).flatMap(([key, list]) => list.map(d => ({ key, ...d })));
       const index = {};
