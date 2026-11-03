@@ -771,6 +771,18 @@
       <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="30" cy="34" r="22"/><path d="M30 22 v12 l9 7"/><path d="M46 10 l8 8 M14 10 l-8 8"/><circle cx="50" cy="16" r="8" fill="currentColor" stroke="none"/><text x="50" y="20" font-size="11" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="900">!</text></svg>
       <span>متأخرات العملاء</span>
     </button>
+    <button id="todayPlanBtn" class="menu-card" style="display:none;" onclick="openTodayPlan()">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="24"/><circle cx="32" cy="32" r="13"/><circle cx="32" cy="32" r="3"/></svg>
+      <span>خطة اليوم</span>
+    </button>
+    <button id="custIntelBtn" class="menu-card" style="display:none;" onclick="openCustomerIntel()">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 8 l7 15 16 2 -12 11 3 16 -14-8 -14 8 3-16 -12-11 16-2z"/></svg>
+      <span>تقييم العملاء</span>
+    </button>
+    <button id="cockpitBtn" class="menu-card" style="display:none;" onclick="openCockpit()">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 44 a24 24 0 0 1 48 0"/><path d="M32 44 L44 26"/><circle cx="32" cy="44" r="3"/><path d="M8 52 h48"/></svg>
+      <span>قمرة القيادة</span>
+    </button>
     <button id="accountsHubMenuBtn" class="menu-card" style="display:none;" onclick="openAccountsHub()">
       <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="14" width="48" height="36" rx="4"/><path d="M8 24 h48"/><circle cx="18" cy="34" r="3" fill="currentColor" stroke="none"/><path d="M28 34 h20 M18 42 h8"/></svg>
       <span>الحسابات</span>
@@ -1001,6 +1013,12 @@
     <button class="apply-btn" onclick="document.getElementById('myRouteLogDate').value=''; renderMyRouteLogList();">مسح الفلتر</button>
   </div>
   <div id="myRouteLogBody"></div>
+</div>
+
+<div id="intelScreen" class="report-screen" style="display:none;">
+  <button class="back-btn" onclick="intelBack()">‹ رجوع</button>
+  <h2 id="intelTitle"></h2>
+  <div id="intelBody"></div>
 </div>
 
 <div id="hrScreen" class="report-screen" style="display:none;">
@@ -1974,6 +1992,10 @@
     goTo('menu');
     const acctHubMenuBtn = document.getElementById('accountsHubMenuBtn');
     if(acctHubMenuBtn) acctHubMenuBtn.style.display = currentRep ? 'flex' : 'none';
+    const isAdmin = !!(currentRep && currentRep.isAdmin), hasRep = !!(currentRep && currentRep.code != null);
+    document.getElementById('todayPlanBtn').style.display = (isAdmin || hasRep) ? 'flex' : 'none';
+    document.getElementById('custIntelBtn').style.display = (isAdmin || hasRep) ? 'flex' : 'none';
+    document.getElementById('cockpitBtn').style.display = isAdmin ? 'flex' : 'none';
     const pharmBtn = document.getElementById('pharmacyMenuBtn');
     if(pharmBtn) pharmBtn.style.display = (currentRep && (currentRep.isAdmin || PHARMACY_REP_CODES.includes(currentRep.code))) ? 'flex' : 'none';
     maybeShowDataUpdateNotice();
@@ -2058,8 +2080,8 @@
 
   // ---------- Screen navigation ----------
   function goTo(screen){
-    const map = { hr:'hrScreen', menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen', orderHistory:'orderHistoryScreen', account:'accountScreen', route:'routeScreen' };
-    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    const map = { intel:'intelScreen', hr:'hrScreen', menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen', orderHistory:'orderHistoryScreen', account:'accountScreen', route:'routeScreen' };
+    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2181,7 +2203,7 @@
     const [f, t] = monthRange();
     document.getElementById('reportFrom').value = f;
     document.getElementById('reportTo').value = t;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3128,7 +3150,7 @@
   }
 
   function openDebtList(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3312,7 +3334,7 @@
   }
 
   function openArrears(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3522,7 +3544,7 @@
   let carRouteData = null;
 
   function openAccountsHub(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3574,7 +3596,7 @@
   }
 
   function openSalesAnalysisScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3675,7 +3697,7 @@
   }
 
   function openSuppliersReportScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3733,7 +3755,7 @@
   }
 
   function openCarRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3768,7 +3790,7 @@
   // rep's own approved orders and which car/distributor is handling them.
   // No edit/move controls here; those stay admin-only in carRouteScreen.
   function openMyRouteLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3995,7 +4017,7 @@
   function printSingleCarRoute(car){ withSingleCarFilter(car, () => { printCurrentScreen(); return Promise.resolve(); }); }
 
   function openInvoiceLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4072,7 +4094,7 @@
   let returnRows = [];
 
   function openReturnsScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4230,7 +4252,7 @@
   }
 
   function openAccountScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4249,6 +4271,197 @@
     if(privateChatListenerRef){ try{ privateChatListenerRef.off('value'); }catch(e){} privateChatListenerRef = null; }
     if(privateChatAdminListenerRef){ try{ privateChatAdminListenerRef.off('value'); }catch(e){} privateChatAdminListenerRef = null; }
     refreshAdminChatUnreadState();
+  }
+
+  // ---------- Customer scores, the rep's daily plan and the owner's cockpit: all worked out in the browser from the app's data ----------
+  const intelDays = d => Date.UTC(Math.floor(d / 10000), Math.floor(d / 100) % 100 - 1, d % 100) / 86400000;
+  const intelMoney = n => fmt(Math.round(n)) + ' ج.م';
+  const INTEL_GRADES = [[75,'ممتاز','#1E8449'],[55,'جيد','#2471A3'],[35,'متابعة','#B9770E'],[0,'خطر','#C0392B']];
+  let _intel = null, intelBackTo = null;
+  function customerIntel(){
+    if(_intel) return _intel;
+    const byCode = {}, byName = {};
+    let ref = 0;
+    CUSTOMERS.forEach(c => {
+      const bal = (CUST_BALANCES[String(c.code)] || [0, 0])[1];
+      byCode[c.code] = { c, bal, sales: 0, ret: 0, coll: 0, saleDays: [], lastSale: 0, lastPay: 0 };
+      const name = String(c.name).trim(); (byName[name] = byName[name] || []).push(byCode[c.code]);
+    });
+    SALES_TX.forEach(([d, inv, cust, rep, t, amt]) => {
+      const e = byCode[cust]; if(d > ref) ref = d; if(!e) return;
+      if(t === 1){ e.sales += amt; e.saleDays.push(d); if(d > e.lastSale) e.lastSale = d; } else e.ret += amt;
+    });
+    // shortcut: receipts only carry the debtor's name, so a name shared by customers of different reps counts for neither; fix if exports add the customer code
+    COLL_TX.forEach(([d, rec, rep, name, amt]) => {
+      const hits = byName[String(name).trim()]; if(!hits) return;
+      const e = hits.length === 1 ? hits[0] : hits.find(x => x.c.repCode === rep); if(!e) return;
+      e.coll += amt; if(d > e.lastPay) e.lastPay = d;
+    });
+    const refDay = intelDays(ref), firstDay = intelDays(SALES_TX.reduce((m, r) => Math.min(m, r[0]), ref));
+    const months = Math.max(1, (refDay - firstDay) / 30.4);
+    Object.values(byCode).forEach(e => {
+      const days = [...new Set(e.saleDays)].sort((a, b) => a - b).map(intelDays);
+      const gaps = days.slice(1).map((d, i) => d - days[i]).sort((a, b) => a - b);
+      e.gap = gaps.length ? gaps[Math.floor(gaps.length / 2)] : null;  // the median, so one long break doesn't hide the usual rhythm
+      e.orders = days.length;
+      e.sinceSale = e.lastSale ? refDay - intelDays(e.lastSale) : null;
+      e.sincePay = e.lastPay ? refDay - intelDays(e.lastPay) : null;
+      const net = e.sales - e.ret, monthly = net / months;
+      const paid = e.sales ? Math.min(1, e.coll / Math.max(net, 1)) : 0.5;
+      const pay = e.bal <= 1 ? 25 : e.sincePay == null ? 0 : e.sincePay <= 30 ? 25 : e.sincePay <= 60 ? 15 : e.sincePay <= 90 ? 8 : 0;
+      const returns = e.sales ? 20 * (1 - Math.min(1, (e.ret / e.sales) / 0.3)) : 10;
+      const debt = e.bal <= 1 ? 15 : monthly <= 0 ? 0 : e.bal / monthly <= 1 ? 15 : e.bal / monthly <= 2 ? 8 : 0;
+      e.score = Math.round(40 * paid + pay + returns + debt);
+      e.grade = INTEL_GRADES.find(g => e.score >= g[0]);
+      e.enough = e.orders >= 3;  // too little history to judge
+    });
+    _intel = { byCode, ref, refDay };
+    return _intel;
+  }
+  const intelBadge = e => e.enough ? `<span style="display:inline-block; padding:2px 10px; border-radius:12px; color:#fff; font-size:.75rem; font-weight:700; background:${e.grade[2]};">${e.grade[1]} ${e.score}</span>` : '<span style="font-size:.75rem; color:var(--muted);">بيانات قليلة</span>';
+  const intelDate = d => d ? `${d % 100}/${Math.floor(d / 100) % 100}/${Math.floor(d / 10000)}` : '—';
+  function intelCustomerItems(code){
+    const stock = {};
+    [...PRODUCTS, ...PHARMACY_PRODUCTS].forEach(p => { stock[String(p.code).padStart(6, '0')] = p; });
+    return ITEM_SALES.filter(r => r[0] === code && r[2] > 0).map(r => ({ p: stock[String(r[1]).padStart(6, '0')], qty: r[2] })).filter(x => x.p && x.p.stock > 0).sort((a, b) => b.qty - a.qty).slice(0, 3);
+  }
+  function intelWhatsApp(e){
+    const phone = String(e.c.phone || '').replace(/\D/g, '');
+    if(!/^01[0125]\d{8}$/.test(phone)) return '';
+    const text = `أهلا ${e.c.name}\nرصيد حسابكم الحالي مع فيوتشر كوزماتكس ${intelMoney(e.bal)}.\nلو محتاجين كشف الحساب أو طلبية جديدة احنا في الخدمة.`;
+    return `<a class="ghost-btn" style="display:inline-block; text-decoration:none; font-size:.8rem;" target="_blank" rel="noopener" href="https://wa.me/2${phone}?text=${encodeURIComponent(text)}">واتساب</a>`;
+  }
+  function intelBack(){ const back = intelBackTo; intelBackTo = null; if(back) back(); else goTo('menu'); }
+  function intelOpen(title){ goTo('intel'); setBottomNavActive(null); document.getElementById('intelTitle').textContent = title; return document.getElementById('intelBody'); }
+  function intelScoped(e){ return !currentRep || currentRep.isAdmin || e.c.repCode === currentRep.code; }
+
+  // why this customer today, or nothing if there's no reason to go
+  function intelPlanRow(e){
+    const reasons = []; let weight = 0;
+    if(e.bal > 1){
+      weight += Math.min(e.bal / 50000, 1) * 50 + Math.min((e.sincePay == null ? 90 : e.sincePay) / 60, 1) * 30;
+      reasons.push(`عليه ${intelMoney(e.bal)}` + (e.sincePay == null ? '، ومفيش تحصيل مسجل' : `، وآخر تحصيل من ${e.sincePay} يوم`));
+    }
+    if(e.gap && e.gap >= 3 && e.sinceSale != null && e.sinceSale > e.gap * 1.3 && e.sinceSale <= 120){
+      weight += 25; reasons.push(`كان بيشتري كل ${e.gap} يوم تقريبًا، وآخر فاتورة من ${e.sinceSale} يوم`);
+    }
+    return reasons.length ? { e, reasons, weight } : null;
+  }
+  function openTodayPlan(repCode){
+    const admin = currentRep && currentRep.isAdmin;
+    const code = repCode != null ? Number(repCode) : (admin ? ACCOUNT_REP_CODES[0] : currentRep.code);
+    const body = intelOpen('خطة اليوم');
+    const { byCode, ref } = customerIntel();
+    const plan = Object.values(byCode).filter(e => e.c.repCode === code).map(intelPlanRow).filter(Boolean).sort((a, b) => b.weight - a.weight).slice(0, 10);
+    const target = getRepMonthlyTarget(code), { sales, collection } = computeMonthSummary(code);
+    const need = Math.max(0, target * 0.7 - sales), commission = repCommission(sales, collection, target);
+    const per10k = Math.round(commissionBase(target) * 10000 / target);
+    const picker = admin ? `<div class="field"><label for="planRep">المندوب</label><select id="planRep" onchange="openTodayPlan(this.value)">${ACCOUNT_REP_CODES.map(c => `<option value="${c}"${c === code ? ' selected' : ''}>${escapeHtml(REP_MAP[c] || String(c))}</option>`).join('')}</select></div>` : '';
+    body.innerHTML = `${picker}<p style="font-size:.75rem; color:var(--muted);">حسب البيانات لحد ${intelDate(ref)}</p>
+      <div class="stmt-bal-card" style="margin-bottom:14px; display:block;">
+        <b>هدفك الشهر ده</b>
+        <div style="margin-top:6px;">${need ? `محتاج <b>${intelMoney(need)}</b> صافي مبيعات عشان توصل 70% من الهدف وتستحق العمولة.` : 'عديت شرط 70% من الهدف، أي تحصيل دلوقتي بيزود عمولتك.'}</div>
+        <div style="margin-top:4px;">عمولتك لحد دلوقتي <b>${intelMoney(commission)}</b>، وكل 10,000 جنيه تحصيل بتزودها ${fmt(per10k)} جنيه${need ? ' بعد ما تعدي الشرط' : ''}.</div>
+      </div>
+      ${plan.length ? plan.map((x, i) => {
+        const items = intelCustomerItems(x.e.c.code);
+        return `<div style="border:1px solid #DDE5EC; border-radius:10px; padding:12px; margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;"><b>${i + 1}. ${escapeHtml(x.e.c.name)}</b>${intelBadge(x.e)}</div>
+          <div style="font-size:.8rem; color:var(--muted);">${escapeHtml(x.e.c.region || '')}</div>
+          <ul style="margin:8px 0; padding-inline-start:18px; font-size:.85rem;">${x.reasons.map(r => `<li>${r}</li>`).join('')}</ul>
+          ${items.length ? `<div style="font-size:.8rem;"><b>يبيعله:</b> ${items.map(it => escapeHtml(it.p.name)).join('، ')}</div>` : ''}
+          <div style="display:flex; gap:8px; margin-top:8px;"><button class="ghost-btn" style="font-size:.8rem;" onclick="openCustomerCard(${x.e.c.code}, () => openTodayPlan(${code}))">ملف العميل</button>${intelWhatsApp(x.e)}</div>
+        </div>`;
+      }).join('') : '<p class="empty-note">مفيش عملاء محتاجين متابعة حسب البيانات دي.</p>'}`;
+  }
+
+  let intelFilter = { q: '', grade: '' };
+  function openCustomerIntel(){
+    const body = intelOpen('تقييم العملاء');
+    const { ref } = customerIntel();
+    body.innerHTML = `<p style="font-size:.75rem; color:var(--muted);">حسب البيانات لحد ${intelDate(ref)}. التقييم من السداد والمرتجعات والمديونية، ومؤشر بيساعدك مش حكم نهائي.</p>
+      <div class="field"><input id="intelSearch" placeholder="ابحث باسم العميل" value="${escapeHtml(intelFilter.q).replace(/"/g, '&quot;')}" oninput="intelFilter.q=this.value; renderIntelList()"></div>
+      <div class="field"><select id="intelGrade" aria-label="التقييم" onchange="intelFilter.grade=this.value; renderIntelList()"><option value="">كل التقييمات</option>${INTEL_GRADES.map(g => `<option${intelFilter.grade === g[1] ? ' selected' : ''}>${g[1]}</option>`).join('')}</select></div>
+      <div id="intelList"></div>`;
+    renderIntelList();
+  }
+  function renderIntelList(){
+    const { byCode } = customerIntel();
+    const q = intelFilter.q.trim();
+    let rows = Object.values(byCode).filter(e => intelScoped(e) && e.sales > 0 && e.enough && (!q || String(e.c.name).includes(q)) && (!intelFilter.grade || e.grade[1] === intelFilter.grade));
+    const total = rows.length;
+    rows = rows.sort((a, b) => a.score - b.score || b.bal - a.bal).slice(0, 60);  // worst first; the search reaches the rest
+    document.getElementById('intelList').innerHTML = `<p style="font-size:.8rem; color:var(--muted);">${total} عميل${total > 60 ? '، ظاهر أول 60' : ''}</p>` + (rows.map(e => `<button class="ghost-btn" style="display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCustomerIntel)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">رصيد ${intelMoney(e.bal)}</span></span>${intelBadge(e)}</button>`).join('') || '<p class="empty-note">مفيش نتايج.</p>');
+  }
+  function openCustomerCard(code, back){
+    const e = customerIntel().byCode[code];
+    if(!e || !intelScoped(e)) return;
+    intelBackTo = back;
+    const body = intelOpen('ملف العميل');
+    const line = hrLine;
+    const net = e.sales - e.ret;
+    const notes = [];
+    if(e.enough && e.bal > 1 && e.sincePay != null && e.sincePay > 60) notes.push(`آخر تحصيل من ${e.sincePay} يوم وعليه رصيد، الأفضل تتقفل المديونية قبل بيع آجل جديد.`);
+    if(e.sales && e.ret / e.sales > 0.2) notes.push(`المرتجعات ${Math.round(e.ret / e.sales * 100)}% من المبيعات، راجع الأصناف اللي بترجع.`);
+    if(e.gap && e.sinceSale > e.gap * 2 && e.sinceSale <= 120) notes.push(`بطّل يشتري من ${e.sinceSale} يوم، ومعدله كل ${e.gap} يوم.`);
+    const items = intelCustomerItems(code);
+    body.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">${escapeHtml(e.c.name)}</h3>${intelBadge(e)}</div>
+      ${line('الرصيد الحالي', intelMoney(e.bal))}${line('مبيعات 2026', intelMoney(e.sales))}${line('مرتجعات 2026', intelMoney(e.ret))}${line('الصافي', intelMoney(net))}${line('تحصيل 2026', intelMoney(e.coll))}
+      ${line('آخر فاتورة', intelDate(e.lastSale))}${line('آخر تحصيل', intelDate(e.lastPay))}${line('متوسط الشراء', e.gap ? `كل ${e.gap} يوم` : '—')}${line('المندوب', escapeHtml(REP_MAP[e.c.repCode] || '—'))}${line('المنطقة', escapeHtml(e.c.region || '—'))}
+      ${notes.length ? `<h4 style="margin:16px 0 6px;">ملاحظات</h4><ul style="margin:0; padding-inline-start:18px; font-size:.85rem;">${notes.map(n => `<li>${n}</li>`).join('')}</ul>` : ''}
+      ${items.length ? `<h4 style="margin:16px 0 6px;">أكتر أصناف بيشتريها ومتاحة</h4><ul style="margin:0; padding-inline-start:18px; font-size:.85rem;">${items.map(it => `<li>${escapeHtml(it.p.name)}</li>`).join('')}</ul>` : ''}
+      <div style="margin-top:14px;">${intelWhatsApp(e)}</div>`;
+  }
+
+  function openCockpit(){
+    if(!currentRep || !currentRep.isAdmin) return;
+    const body = intelOpen('قمرة القيادة');
+    const { byCode, ref } = customerIntel();
+    // the latest month that has ended, against the one before it
+    const refMonth = Math.floor(ref / 100);
+    const prevOf = m => (m % 100 === 1) ? m - 100 + 11 : m - 1;
+    const cur = ref % 100 >= 28 ? refMonth : prevOf(refMonth), prev = prevOf(cur);
+    const label = m => hrMonthLabel(`${Math.floor(m / 100)}-${String(m % 100).padStart(2, '0')}`);
+    const stats = {};
+    const at = m => stats[m] = stats[m] || { sales: 0, ret: 0, coll: 0, reps: {} };
+    SALES_TX.forEach(([d, inv, cust, rep, t, amt]) => { const s = at(Math.floor(d / 100)); if(t === 1) s.sales += amt; else s.ret += amt; s.reps[rep] = (s.reps[rep] || 0) + t * amt; });
+    COLL_TX.forEach(([d, rec, rep, name, amt]) => { at(Math.floor(collCloseDate(d) / 100)).coll += amt; });
+    const c = at(cur), p = at(prev);
+    const delta = (a, b) => b ? `${a >= b ? '▲' : '▼'} ${Math.abs(Math.round((a - b) / b * 100))}%` : '';
+    const card = (title, value, sub) => `<div class="stmt-bal-card" style="flex:1; min-width:150px;"><span>${title}</span><b>${value}</b><span style="font-size:.75rem; color:var(--muted);">${sub || ''}</span></div>`;
+    const debt = Object.values(byCode).reduce((s, e) => s + Math.max(0, e.bal), 0);
+    const repRows = Object.keys({ ...c.reps, ...p.reps }).map(Number).filter(r => SALES_ANALYSIS_GROUP1.includes(r) && ((c.reps[r] || 0) || (p.reps[r] || 0))).map(r => ({ r, now: c.reps[r] || 0, was: p.reps[r] || 0 })).sort((a, b) => (a.now - a.was) - (b.now - b.was));
+    const sliding = Object.values(byCode).filter(e => e.gap && e.sinceSale > e.gap * 2 && e.sinceSale <= 120 && e.sales > 0).sort((a, b) => b.sales - a.sales).slice(0, 8);
+    const risky = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).sort((a, b) => b.bal - a.bal).slice(0, 8);
+    const riskTotal = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).reduce((s, e) => s + e.bal, 0);
+    const custRow = (e, sub) => `<button class="ghost-btn" style="display:flex; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCockpit)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">${sub}</span></span><span>${intelMoney(e.bal)}</span></button>`;
+    body.innerHTML = `<p style="font-size:.8rem; color:var(--muted);">${label(cur)} مقارنة بـ ${label(prev)}، والبيانات لحد ${intelDate(ref)}.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+        ${card('صافي المبيعات', intelMoney(c.sales - c.ret), delta(c.sales - c.ret, p.sales - p.ret))}
+        ${card('التحصيل', intelMoney(c.coll), delta(c.coll, p.coll))}
+        ${card('نسبة المرتجعات', (c.sales ? Math.round(c.ret / c.sales * 100) : 0) + '%', `كانت ${p.sales ? Math.round(p.ret / p.sales * 100) : 0}%`)}
+        ${card('مديونية العملاء', intelMoney(debt), `منها ${intelMoney(riskTotal)} عند عملاء خطر`)}
+      </div>
+      <div id="ownerBlock"><p class="empty-note">جاري تحميل الهامش والموردين...</p></div>
+      <h3 style="margin:18px 0 6px;">المناديب: الأكتر تراجعًا الأول</h3>
+      <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>المندوب</th><th>${label(cur)}</th><th>${label(prev)}</th><th>التغير</th></tr>
+      ${repRows.map(x => `<tr class="stmt-row"><td style="padding:6px;">${escapeHtml(REP_MAP[x.r] || String(x.r))}</td><td style="text-align:center;">${fmt(Math.round(x.now))}</td><td style="text-align:center;">${fmt(Math.round(x.was))}</td><td style="text-align:center; color:${x.now < x.was ? '#C0392B' : '#1E8449'};">${delta(x.now, x.was)}</td></tr>`).join('')}</table>
+      <h3 style="margin:18px 0 6px;">عملاء كبار بدأوا يقعوا</h3>${sliding.map(e => custRow(e, `آخر فاتورة من ${e.sinceSale} يوم، ومعدله كل ${e.gap} يوم`)).join('') || '<p class="empty-note">مفيش.</p>'}
+      <h3 style="margin:18px 0 6px;">أكبر مديونيات خطر</h3>${risky.map(e => custRow(e, e.sincePay == null ? 'مفيش تحصيل مسجل' : `آخر تحصيل من ${e.sincePay} يوم`)).join('') || '<p class="empty-note">مفيش.</p>'}`;
+    fbDb.ref('owner').once('value').then(snap => {
+      const box = document.getElementById('ownerBlock'); if(!box) return;
+      const o = snap.val();
+      if(!o){ box.innerHTML = '<p class="empty-note">الهامش والموردين هيظهروا بعد تحميل owner_data.json من شاشة الموارد البشرية.</p>'; return; }
+      const months = Object.entries(o.months || {}).sort((a, b) => a[0].localeCompare(b[0]));
+      const m = ([, v]) => v.net ? Math.round((v.net - v.cost) / v.net * 1000) / 10 : 0;
+      const s = o.suppliers || {};
+      box.innerHTML = `<h3 style="margin:18px 0 6px;">الفلوس والموردين (${escapeHtml(s.date || '')})</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">${card('مديونية الموردين', intelMoney(s.debt || 0), `منها شيكات ${intelMoney(s.checks || 0)}`)}${card('المخزون', intelMoney(s.stock || 0))}${card('متوسط التحصيل الشهري', intelMoney(o.avgColl || 0), 'آخر 3 شهور')}</div>
+        <h3 style="margin:18px 0 2px;">هامش الربح بالشهر</h3><p style="margin:0 0 6px; font-size:.72rem; color:var(--muted);">من تكلفة الفواتير، وبعض الأصناف تكلفتها مش دقيقة، فخده كمؤشر للاتجاه مش رقم نهائي.</p>
+        <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>الشهر</th><th>صافي</th><th>الهامش</th></tr>${months.map(x => `<tr class="stmt-row"><td style="padding:6px;">${hrMonthLabel(x[0])}</td><td style="text-align:center;">${fmt(Math.round(x[1].net))}</td><td style="text-align:center;">${m(x)}%</td></tr>`).join('')}</table>
+        <h3 style="margin:18px 0 6px;">أقل الشركات هامشًا (${escapeHtml(o.companiesMonth ? hrMonthLabel(o.companiesMonth) : '')})</h3>
+        <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>الشركة</th><th>صافي</th><th>الهامش</th></tr>${(o.companies || []).map(x => `<tr class="stmt-row"><td style="padding:6px;">${escapeHtml(x.name)}</td><td style="text-align:center;">${fmt(Math.round(x.net))}</td><td style="text-align:center; color:${x.net > x.cost ? 'inherit' : '#C0392B'};">${x.net ? Math.round((x.net - x.cost) / x.net * 1000) / 10 : 0}%</td></tr>`).join('')}</table>`;
+    }).catch(() => { const box = document.getElementById('ownerBlock'); if(box) box.innerHTML = '<p class="empty-note">الهامش والموردين مش متاحين، راجع قواعد الحماية.</p>'; });
   }
 
   // ---------- HR: the admin sees everyone, an employee only their own record (enforced by the DB rules) ----------
@@ -4417,6 +4630,11 @@
       out.textContent = 'جاري قراءة الملف...';
       var current = '';
       const parsed = JSON.parse(await file.text());
+      if(parsed.owner){
+        await fbDb.ref('owner').set(parsed.owner);
+        out.textContent = '✅ اتحملت بيانات قمرة القيادة';
+        return;
+      }
       if(parsed.salaries){
         await fbDb.ref('hr/salaries').set(parsed.salaries);
         const months = new Set(Object.values(parsed.salaries).flatMap(v => Object.keys(v)));
@@ -4450,7 +4668,7 @@
   }
 
   function openSettingsScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4508,7 +4726,7 @@
   }
 
   function openRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4634,7 +4852,7 @@
   }
 
   function openVisitReportForm(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4676,7 +4894,7 @@
   // the "سجل الفواتير" pattern -- shows every report the rep has ever saved,
   // with the same ✓/✗ verify badges the admin sees.
   function openMyVisitReportsLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4910,7 +5128,7 @@
   }
 
   function openVisitReportsAdmin(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -5130,7 +5348,7 @@
     visitReportDetailReturnScreen = currentScreenId;
     visitReportDetailTitle = 'تقرير خط سير مشرف البيع';
     visitReportDetailFilename = `تقرير خط سير مشرف البيع — ${r.repName || ''} — ${r.date || ''}`;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -5207,7 +5425,7 @@
   }
 
   function openChatScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -5503,7 +5721,7 @@
   }
 
   function openOrderHistory(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen','intelScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -6404,6 +6622,7 @@
   // the user is already at the main menu (root level).
   const BACK_ACTIONS = {
     'hrScreen': () => hrBack(),
+    'intelScreen': () => intelBack(),
     'reportsMenuScreen': () => goTo('menu'),
     'storeContent': () => goTo('menu'),
     'statementScreen': () => goTo('menu'),
