@@ -1072,6 +1072,7 @@
 <div class="modal-wrap" id="repAccountsModal">
   <div class="modal" style="max-height:88vh; overflow-y:auto;">
     <h3>حسابات المناديب</h3>
+    <div class="field"><label for="hrRosterFile">تحميل قايمة الموظفين (hr_roster.json)</label><input id="hrRosterFile" type="file" accept=".json" onchange="importHrRoster(this)"></div>
     <div class="mdesc" style="margin-bottom:14px;">اعمل حساب لكل مندوب، وادّيله اسم المستخدم وكلمة المرور اللي هتظهر. المندوب يقدر يغيّر كلمة المرور بعد كده من "تغيير كلمة المرور".</div>
     <div class="field"><label for="repAccRep">المندوب</label><select id="repAccRep" onchange="fillRepAccountDefaults()"></select></div>
     <div class="field"><label for="repAccUser">اسم المستخدم</label><input id="repAccUser" autocomplete="off"></div>
@@ -1740,7 +1741,7 @@
           return;
         }
         const wasShown = !!currentRep;
-        currentRep = { uid: user.uid, code: p.code != null ? p.code : null, name: p.name || REP_MAP[p.code] || 'مندوب', isAdmin: p.isAdmin === true, user: p.user };
+        currentRep = { uid: user.uid, code: p.code != null ? p.code : null, name: p.name || REP_MAP[p.code] || 'مندوب', isAdmin: p.isAdmin === true, user: p.user, empCode: p.empCode != null ? p.empCode : null };
         try{ localStorage.setItem('fc_session', JSON.stringify(currentRep)); }catch(e){}
         if(!wasShown){ hideLogin(); restoreDraft(); } else hideLogin();
         startLiveStock();
@@ -1777,6 +1778,10 @@
     const reps = REPS.filter(r => isRealRep(r) || FULL_ACCESS_REP_CODES.includes(r.code)).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
     document.getElementById('repAccRep').innerHTML = '<option value="admin">الإدارة (حساب الإدارة العام)</option>' +
       reps.map(r => `<option value="${r.code}">${escapeHtml(r.name)} (${r.code})</option>`).join('');
+    fbDb.ref('hrRoster').once('value').then(snap => {  // employees with no rep code; the roster stays out of the public HTML
+      const options = Object.entries(snap.val() || {}).map(([code, name]) => `<option value="emp:${code}">${escapeHtml(name)} (موظف ${code})</option>`).join('');
+      if(options) document.getElementById('repAccRep').insertAdjacentHTML('beforeend', `<optgroup label="الموظفين">${options}</optgroup>`);
+    }).catch(() => {});
     fillRepAccountDefaults();
     document.getElementById('repAccResult').textContent = '';
     document.getElementById('repAccountsModal').classList.add('open');
@@ -1784,7 +1789,7 @@
   }
   function fillRepAccountDefaults(){
     const v = document.getElementById('repAccRep').value;
-    document.getElementById('repAccUser').value = v;
+    document.getElementById('repAccUser').value = v.replace('emp:', '');
     const rnd = new Uint32Array(1); crypto.getRandomValues(rnd);
     document.getElementById('repAccPass').value = String(100000 + rnd[0] % 900000);
   }
@@ -1799,6 +1804,26 @@
         </div>`).join('') : '<p class="empty-note">مفيش حسابات لسه.</p>';
     }).catch(() => { box.textContent = 'تعذّر تحميل الحسابات'; });
   }
+  // Run from the admin account so it keeps working under the DB rules; the file stays on the admin's PC.
+  function importHrRoster(input){
+    const out = document.getElementById('repAccResult');
+    const file = input.files[0];
+    if(!file || !currentRep || !currentRep.isAdmin) return;
+    file.text().then(JSON.parse).then(({ roster, links }) => {
+      if(!roster || !links) throw new Error('bad file');
+      const updates = { hrRoster: roster };
+      Object.entries(links).forEach(([uid, emp]) => {
+        updates[`users/${uid}/empCode`] = emp;
+        updates[`users/${uid}/empKey`] = String(emp);
+      });
+      return fbDb.ref().update(updates).then(() => {
+        out.textContent = `✅ اتحملت قايمة ${Object.keys(roster).length} موظف واتربط ${Object.keys(links).length} حساب`;
+        openRepAccounts();
+        document.getElementById('repAccResult').textContent = out.textContent;
+      });
+    }).catch(() => { out.textContent = 'تعذّر تحميل الملف، اتأكد إنه hr_roster.json'; });
+    input.value = '';
+  }
   function createRepAccount(){
     const v = document.getElementById('repAccRep').value;
     const user = document.getElementById('repAccUser').value.trim().toLowerCase();
@@ -1806,8 +1831,11 @@
     const out = document.getElementById('repAccResult');
     if(!/^[a-z0-9._-]+$/.test(user)){ out.textContent = 'اسم المستخدم: حروف إنجليزي أو أرقام بس'; return; }
     if(pass.length < 6){ out.textContent = 'كلمة المرور لازم تكون 6 أرقام على الأقل'; return; }
-    const code = v === 'admin' ? null : parseInt(v, 10);
-    const profile = code == null ? { name: 'الإدارة', isAdmin: true, user }
+    const emp = v.startsWith('emp:') ? v.slice(4) : null;
+    const code = v === 'admin' || emp ? null : parseInt(v, 10);
+    const empName = emp ? document.getElementById('repAccRep').selectedOptions[0].textContent.replace(/ \(موظف \d+\)$/, '') : '';
+    const profile = emp ? { empCode: Number(emp), empKey: emp, name: empName, isAdmin: false, user }
+      : code == null ? { name: 'الإدارة', isAdmin: true, user }
       : { code, codeKey: String(code), name: REP_MAP[code] || ('مندوب ' + code), isAdmin: FULL_ACCESS_REP_CODES.includes(code), user };  // codeKey: string twin of code for the security rules
     // a second app instance, so creating the account doesn't sign the admin out
     const second = firebase.apps.find(a => a.name === 'accounts') || firebase.initializeApp(firebaseConfig, 'accounts');
