@@ -1773,22 +1773,29 @@
   }
 
   // ---------- Rep accounts (admin): creates the Firebase Auth user + its users/{uid} profile ----------
+  // REPS keeps everyone because old invoices need their names; only these reps can still get an account.
+  const ACCOUNT_REP_CODES = [8,68,131,143,158,161,162,170,171,174,175,176,177,178];
   function openRepAccounts(){
     if(!currentRep || !currentRep.isAdmin || !fbDb) return;
-    const reps = REPS.filter(r => isRealRep(r) || FULL_ACCESS_REP_CODES.includes(r.code)).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-    document.getElementById('repAccRep').innerHTML = '<option value="admin">الإدارة (حساب الإدارة العام)</option>' +
-      reps.map(r => `<option value="${r.code}">${escapeHtml(r.name)} (${r.code})</option>`).join('');
-    fbDb.ref('hrRoster').once('value').then(snap => {  // employees with no rep code; the roster stays out of the public HTML
-      const options = Object.entries(snap.val() || {}).map(([code, name]) => `<option value="emp:${code}">${escapeHtml(name)} (موظف ${code})</option>`).join('');
-      if(options) document.getElementById('repAccRep').insertAdjacentHTML('beforeend', `<optgroup label="الموظفين">${options}</optgroup>`);
-    }).catch(() => {});
-    fillRepAccountDefaults();
     document.getElementById('repAccResult').textContent = '';
     document.getElementById('repAccountsModal').classList.add('open');
+    fillRepAccountOptions();
     renderRepAccounts();
   }
+  // Lists only active people who don't have an account yet, so the list shrinks to nothing as accounts get made.
+  function fillRepAccountOptions(){
+    const select = document.getElementById('repAccRep');
+    return Promise.all([fbDb.ref('users').once('value'), fbDb.ref('hrRoster').once('value')]).then(([usersSnap, rosterSnap]) => {
+      const users = Object.values(usersSnap.val() || {});
+      const hasRep = new Set(users.map(u => u.code)), hasEmp = new Set(users.map(u => u.empKey));
+      const reps = REPS.filter(r => ACCOUNT_REP_CODES.includes(r.code) && !hasRep.has(r.code)).map(r => `<option value="${r.code}">${escapeHtml(r.name)} (${r.code})</option>`).join('');
+      const emps = Object.entries(rosterSnap.val() || {}).filter(([code]) => !hasEmp.has(code)).map(([code, name]) => `<option value="emp:${code}">${escapeHtml(name)} (موظف ${code})</option>`).join('');
+      select.innerHTML = (reps ? `<optgroup label="المناديب">${reps}</optgroup>` : '') + (emps ? `<optgroup label="الموظفين">${emps}</optgroup>` : '');
+      fillRepAccountDefaults();
+    }).catch(() => { document.getElementById('repAccResult').textContent = 'تعذّر تحميل القايمة، جرّب تاني'; });
+  }
   function fillRepAccountDefaults(){
-    const v = document.getElementById('repAccRep').value;
+    const v = document.getElementById('repAccRep').value || '';
     document.getElementById('repAccUser').value = v.replace('emp:', '');
     const rnd = new Uint32Array(1); crypto.getRandomValues(rnd);
     document.getElementById('repAccPass').value = String(100000 + rnd[0] % 900000);
@@ -1818,24 +1825,23 @@
       });
       return fbDb.ref().update(updates).then(() => {
         out.textContent = `✅ اتحملت قايمة ${Object.keys(roster).length} موظف واتربط ${Object.keys(links).length} حساب`;
-        openRepAccounts();
-        document.getElementById('repAccResult').textContent = out.textContent;
+        fillRepAccountOptions();
       });
     }).catch(() => { out.textContent = 'تعذّر تحميل الملف، اتأكد إنه hr_roster.json'; });
     input.value = '';
   }
   function createRepAccount(){
     const v = document.getElementById('repAccRep').value;
+    if(!v){ document.getElementById('repAccResult').textContent = 'كل الموجودين عندهم حسابات'; return; }
     const user = document.getElementById('repAccUser').value.trim().toLowerCase();
     const pass = document.getElementById('repAccPass').value.trim();
     const out = document.getElementById('repAccResult');
     if(!/^[a-z0-9._-]+$/.test(user)){ out.textContent = 'اسم المستخدم: حروف إنجليزي أو أرقام بس'; return; }
     if(pass.length < 6){ out.textContent = 'كلمة المرور لازم تكون 6 أرقام على الأقل'; return; }
     const emp = v.startsWith('emp:') ? v.slice(4) : null;
-    const code = v === 'admin' || emp ? null : parseInt(v, 10);
+    const code = emp ? null : parseInt(v, 10);
     const empName = emp ? document.getElementById('repAccRep').selectedOptions[0].textContent.replace(/ \(موظف \d+\)$/, '') : '';
     const profile = emp ? { empCode: Number(emp), empKey: emp, name: empName, isAdmin: false, user }
-      : code == null ? { name: 'الإدارة', isAdmin: true, user }
       : { code, codeKey: String(code), name: REP_MAP[code] || ('مندوب ' + code), isAdmin: FULL_ACCESS_REP_CODES.includes(code), user };  // codeKey: string twin of code for the security rules
     // a second app instance, so creating the account doesn't sign the admin out
     const second = firebase.apps.find(a => a.name === 'accounts') || firebase.initializeApp(firebaseConfig, 'accounts');
@@ -1845,6 +1851,7 @@
       .then(() => {
         out.innerHTML = `✅ اتعمل الحساب لـ <b>${escapeHtml(profile.name)}</b><br>اسم المستخدم: <b>${escapeHtml(user)}</b> — كلمة المرور: <b>${escapeHtml(pass)}</b>`;
         renderRepAccounts();
+        fillRepAccountOptions();
       })
       .catch(err => {
         out.textContent = err && err.code === 'auth/email-already-in-use'
