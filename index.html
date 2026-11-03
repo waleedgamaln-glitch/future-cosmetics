@@ -4318,7 +4318,7 @@
     const win = window.open('', '_blank');  // opened inside the click, or the phone blocks the popup
     fbDb.ref(`hr/docs/${key}/${id}`).once('value').then(snap => {
       if(!snap.val()) throw 0;
-      return fetch(snap.val()).then(r => r.blob());
+      return fetch(snap.val().join('')).then(r => r.blob());
     }).then(blob => {
       const url = URL.createObjectURL(blob);
       if(win) win.location = url; else location.href = url;
@@ -4328,6 +4328,12 @@
   }
   function setHrDocType(key, id, type){
     fbDb.ref(`hr/docIndex/${key}/${id}/type`).set(type).then(() => showToast('اتحفظ نوع المستند')).catch(() => showToast('تعذّر الحفظ'));
+  }
+  // Realtime Database refuses a string over 10 MB, and some scanned PDFs are bigger once encoded.
+  function hrDocChunks(data){
+    const parts = [];
+    for(let i = 0; i < data.length; i += 5000000) parts.push(data.slice(i, i + 5000000));
+    return parts;
   }
   // Personal data must never reach an open database, so the upload stops unless an anonymous read is refused.
   async function importHrData(input){
@@ -4339,6 +4345,7 @@
       const probe = await fetch(firebaseConfig.databaseURL + '/hr.json?shallow=true', { cache: 'no-store' });
       if(probe.ok){ out.textContent = '⛔ قواعد الحماية لسه ما اتفعلتش، فالبيانات مش هتترفع. فعّل القواعد الأول.'; return; }
       out.textContent = 'جاري قراءة الملف...';
+      var current = '';
       const { employees, docs } = JSON.parse(await file.text());
       await fbDb.ref('hr/employees').set(employees);
       const all = Object.entries(docs || {}).flatMap(([key, list]) => list.map(d => ({ key, ...d })));
@@ -4350,11 +4357,12 @@
       let done = 0;
       for(const d of all){
         out.textContent = `جاري رفع المستندات... ${++done} من ${all.length}`;
-        await fbDb.ref(`hr/docs/${d.key}/${d.id}`).set(d.data);
+        current = d.name;
+        await fbDb.ref(`hr/docs/${d.key}/${d.id}`).set(hrDocChunks(d.data));
       }
       out.textContent = `✅ اتحمل ${Object.keys(employees).length} موظف و${all.length} مستند`;
       renderHrList();
-    }catch(e){ out.textContent = '⚠️ الرفع ما كملش، اختار الملف تاني وهيكمل من الأول بأمان'; }
+    }catch(e){ out.textContent = `⚠️ الرفع ما كملش${current ? ' عند ' + current : ''} (${(e && (e.code || e.message)) || 'خطأ'})، اختار الملف تاني وهيعيد من الأول بأمان`; }
   }
 
   function openSettingsScreen(){
