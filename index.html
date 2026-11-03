@@ -4428,7 +4428,7 @@
     COLL_TX.forEach(([d, rec, rep, name, amt]) => { at(Math.floor(collCloseDate(d) / 100)).coll += amt; });
     const c = at(cur), p = at(prev);
     const delta = (a, b) => b ? `${a >= b ? '▲' : '▼'} ${Math.abs(Math.round((a - b) / b * 100))}%` : '';
-    const card = (title, value, sub) => `<div class="stmt-bal-card" style="flex:1; min-width:150px;"><span>${title}</span><b>${value}</b><span style="font-size:.75rem; color:var(--muted);">${sub || ''}</span></div>`;
+    const card = (title, value, sub) => `<div class="stmt-bal-card" style="flex:1 1 150px; flex-direction:column; align-items:flex-start; gap:4px;"><span>${title}</span><b style="white-space:nowrap;">${value}</b><span style="font-size:.75rem; color:var(--muted);">${sub || ''}</span></div>`;
     const debt = Object.values(byCode).reduce((s, e) => s + Math.max(0, e.bal), 0);
     const repRows = Object.keys({ ...c.reps, ...p.reps }).map(Number).filter(r => SALES_ANALYSIS_GROUP1.includes(r) && ((c.reps[r] || 0) || (p.reps[r] || 0))).map(r => ({ r, now: c.reps[r] || 0, was: p.reps[r] || 0 })).sort((a, b) => (a.now - a.was) - (b.now - b.was));
     const sliding = Object.values(byCode).filter(e => e.gap && e.sinceSale > e.gap * 2 && e.sinceSale <= 120 && e.sales > 0).sort((a, b) => b.sales - a.sales).slice(0, 8);
