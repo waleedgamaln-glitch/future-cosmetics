@@ -4299,17 +4299,30 @@
       if(!e){ body.innerHTML = '<p class="empty-note">بياناتك لسه ما اتسجلتش، كلّم الإدارة.</p>' + hrPasswordBtn(); return; }
       const line = (label, value) => `<div class="hs-row" style="display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid #EDF1F5;"><span style="color:var(--muted);">${label}</span><b style="text-align:left; overflow-wrap:anywhere;">${value}</b></div>`;
       const docs = Object.entries(dSnap.val() || {});
-      const docHtml = docs.length ? docs.map(([id, d]) => `<div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #EDF1F5;">
-          <button class="ghost-btn" style="flex:1; text-align:right; overflow-wrap:anywhere;" onclick="openHrDoc('${key}','${escapeHtml(id)}',this)">📄 ${escapeHtml(d.type || 'مستند')}<span style="display:block; font-size:.72rem; color:var(--muted);">${escapeHtml(d.name || '')}</span></button>
-          ${admin ? `<select aria-label="نوع المستند" onchange="setHrDocType('${key}','${escapeHtml(id)}',this.value)">${HR_DOC_TYPES.map(t => `<option${t === d.type ? ' selected' : ''}>${t}</option>`).join('')}</select>` : ''}
-        </div>`).join('') : '<p class="empty-note">مفيش مستندات مسجلة.</p>';
+      const docHtml = docs.length ? `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;">${docs.map(([id, d]) => `<div style="border:1px solid #DDE5EC; border-radius:10px; padding:8px; min-width:0;">
+          <button class="ghost-btn" style="display:block; width:100%; padding:0; border:0; background:none;" aria-label="فتح ${escapeHtml(d.type || 'مستند')}" onclick="openHrDoc('${key}','${escapeHtml(id)}',this)">
+            ${hrIsImage(d) ? `<img data-hr-doc="${escapeHtml(id)}" alt="${escapeHtml(d.type || 'مستند')}" style="display:block; width:100%; height:170px; object-fit:contain; background:#F5F8FA; border-radius:6px;">` : `<span style="display:flex; align-items:center; justify-content:center; height:170px; background:#F5F8FA; border-radius:6px; font-weight:700;">📄 ملف PDF، دوس عشان يفتح</span>`}
+          </button>
+          <div style="font-weight:700; margin-top:6px;">${escapeHtml(d.type || 'مستند')}</div>
+          ${admin ? `<select aria-label="نوع المستند" style="width:100%; margin-top:4px;" onchange="setHrDocType('${key}','${escapeHtml(id)}',this.value)">${HR_DOC_TYPES.map(t => `<option${t === d.type ? ' selected' : ''}>${t}</option>`).join('')}</select>` : ''}
+        </div>`).join('')}</div>` : '<p class="empty-note">مفيش مستندات مسجلة.</p>';
       body.innerHTML = `<h3 style="margin:0 0 10px;">${escapeHtml(e.name)} <span style="font-size:.8rem; color:var(--muted);">(${key})</span></h3>
         ${HR_FIELDS.map(([k, label]) => line(label, e[k] ? escapeHtml(e[k]) : '<span style="color:#C0392B;">غير مسجل</span>')).join('')}
         <h3 style="margin:18px 0 6px;">المرتب</h3>${HR_MONEY.map(([k, label]) => line(label, fmt(e[k] || 0) + ' ج.م')).join('')}
         <p style="font-size:.72rem; color:var(--muted);">${escapeHtml(e.salaryMonth || '')}</p>
         <h3 style="margin:18px 0 6px;">الأجازات</h3>${line('الرصيد', e.leave_total != null && e.leave_total !== '' ? escapeHtml(e.leave_total) : '—')}${line('المتبقي', e.leave_left != null && e.leave_left !== '' ? escapeHtml(e.leave_left) : '—')}
         <h3 style="margin:18px 0 6px;">المستندات (${docs.length})</h3>${docHtml}${hrPasswordBtn()}`;
+      loadHrThumbs(key);
     }).catch(() => { body.innerHTML = '<p class="empty-note">تعذّر تحميل البيانات.</p>' + hrPasswordBtn(); });
+  }
+  function hrIsImage(d){ return /\.(jpe?g|png)$/i.test(d.name || ''); }
+  // PDFs stay click-to-open: some are several MB, and phones can't preview them inline anyway.
+  function loadHrThumbs(key){
+    document.querySelectorAll('#hrBody img[data-hr-doc]').forEach(img => {
+      fbDb.ref(`hr/docs/${key}/${img.dataset.hrDoc}`).once('value').then(snap => {
+        if(snap.val()) img.src = snap.val().join('');
+      }).catch(() => { img.alt = 'تعذّر تحميل الصورة'; });
+    });
   }
   function hrPasswordBtn(){ return isEmployeeOnly() ? '<button class="ghost-btn" style="width:100%; margin-top:16px;" onclick="openChangePassword()">🔒 تغيير كلمة المرور</button>' : ''; }
   function openHrDoc(key, id, btn){
