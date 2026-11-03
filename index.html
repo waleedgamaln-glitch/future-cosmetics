@@ -4253,8 +4253,12 @@
 
   // ---------- HR: the admin sees everyone, an employee only their own record (enforced by the DB rules) ----------
   const HR_FIELDS = [['title','الوظيفة'],['dept','الإدارة'],['kind','نوع الدوام'],['hired','تاريخ التعيين'],['nid','الرقم القومي'],['birth','تاريخ الميلاد'],['phones','التليفون'],['address','العنوان'],['bank','البنك'],['account','رقم الحساب'],['insurance','الرقم التأميني']];
-  const HR_MONEY = [['gross','إجمالي المرتب'],['loans','السلف'],['net','صافي المرتب']];
-  let hrShowingEmployee = false;
+  const HR_SLIP_EARN = [['fixed','المرتب الأساسي'],['car','بدل انتقال'],['other','بدلات أخرى'],['sales','حوافز المبيعات'],['corp','حوافز الشركات'],['overtime','بدل عمل إضافي'],['rewards','مكافآت'],['misc','إجمالي الحوافز والمكافآت']];
+  const HR_SLIP_DED = [['penDays','أيام الخصم',1],['penAmt','قيمة الخصم'],['unpaidDays','أيام الخصم 2',1],['unpaidAmt','قيمة الخصم 2'],['otherDed','خصومات المرتجعات'],['loans','السلف'],['insurance','حصة العامل في التأمينات']];
+  const HR_SLIP_PAY = [['misr','بنك مصر'],['insta','إنستاباي'],['cash','نقدًا'],['wallet','محفظة إلكترونية']];
+  const HR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const hrMonthLabel = ym => `${HR_MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
+  let hrShowingEmployee = false, hrCode = null, hrSection = null;
   function isEmployeeOnly(){ return !!currentRep && !currentRep.isAdmin && currentRep.code == null; }
   function openHrScreen(){
     goTo('hr');
@@ -4263,18 +4267,20 @@
     else if(currentRep && currentRep.empCode != null) renderHrEmployee(currentRep.empCode);
   }
   function hrBack(){
-    if(currentRep && currentRep.isAdmin && hrShowingEmployee) renderHrList();
+    if(hrSection === 'slip') renderHrEmployee(hrCode, 'salary');
+    else if(hrSection) renderHrEmployee(hrCode);
+    else if(currentRep && currentRep.isAdmin && hrShowingEmployee) renderHrList();
     else if(!isEmployeeOnly()) openSettingsScreen();
   }
   function renderHrList(){
-    hrShowingEmployee = false;
+    hrShowingEmployee = false; hrSection = null;
     document.getElementById('hrTitle').textContent = 'الموارد البشرية';
     document.getElementById('hrBackBtn').style.display = '';
     const body = document.getElementById('hrBody');
     body.innerHTML = '<p class="empty-note">جاري التحميل...</p>';
     fbDb.ref('hr/employees').once('value').then(snap => {
       const list = Object.entries(snap.val() || {}).sort((a, b) => Number(a[0]) - Number(b[0]));
-      const tool = `<div class="field no-print"><label for="hrImportFile">تحميل بيانات ومستندات الموظفين (hr_data.json) أو أنواع المستندات (hr_doc_types.json)</label><input id="hrImportFile" type="file" accept=".json" onchange="importHrData(this)"></div><div id="hrImportResult" style="margin-bottom:12px; font-size:.85rem; font-weight:700;"></div>`;
+      const tool = `<div class="field no-print"><label for="hrImportFile">تحميل بيانات ومستندات الموظفين (hr_data.json) أو المرتبات (hr_salaries.json) أو أنواع المستندات</label><input id="hrImportFile" type="file" accept=".json" onchange="importHrData(this)"></div><div id="hrImportResult" style="margin-bottom:12px; font-size:.85rem; font-weight:700;"></div>`;
       if(!list.length){ body.innerHTML = tool + '<p class="empty-note">لسه بيانات الموظفين ما اتحملتش.</p>'; return; }
       body.innerHTML = tool + `<div class="field"><input id="hrSearch" placeholder="ابحث بالاسم أو الكود" oninput="filterHrList(this.value)"></div>
         <p style="font-size:.85rem; color:var(--muted);">${list.length} موظف</p>
@@ -4285,33 +4291,89 @@
     q = q.trim();
     document.querySelectorAll('#hrList .hr-row').forEach(b => { b.style.display = b.dataset.q.includes(q) ? '' : 'none'; });
   }
-  function renderHrEmployee(code){
-    hrShowingEmployee = true;
+  function hrLine(label, value){ return `<div style="display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid #EDF1F5;"><span style="color:var(--muted);">${label}</span><b style="text-align:left; overflow-wrap:anywhere;">${value}</b></div>`; }
+  // section: none = the icons, or 'data' / 'salary' / 'slip' / 'docs' / 'attendance'
+  function renderHrEmployee(code, section, month){
+    hrShowingEmployee = true; hrCode = code; hrSection = section || null;
     const key = String(code);
-    const admin = !!(currentRep && currentRep.isAdmin);
-    document.getElementById('hrBackBtn').style.display = isEmployeeOnly() ? 'none' : '';
-    document.getElementById('hrTitle').textContent = admin ? 'بيانات موظف' : 'بياناتي';
+    document.getElementById('hrBackBtn').style.display = (isEmployeeOnly() && !section) ? 'none' : '';
+    const titles = { data:'بياناتي', salary:'المرتب', slip:'مفردات المرتب', docs:'المستندات', attendance:'الحضور والانصراف' };
+    const mine = currentRep && Number(currentRep.empCode) === Number(code);
+    document.getElementById('hrTitle').textContent = titles[section] && !(section === 'data' && !mine) ? titles[section] : (section === 'data' ? 'بيانات الموظف' : (mine ? 'حسابي' : 'موظف'));
     const body = document.getElementById('hrBody');
     body.innerHTML = '<p class="empty-note">جاري التحميل...</p>';
-    Promise.all([fbDb.ref('hr/employees/' + key).once('value'), fbDb.ref('hr/docIndex/' + key).once('value')]).then(([eSnap, dSnap]) => {
-      const e = eSnap.val();
+    const failed = () => { body.innerHTML = '<p class="empty-note">تعذّر تحميل البيانات.</p>' + (section ? '' : hrPasswordBtn()); };
+    if(!section) return hrRenderIcons(key, body).catch(failed);
+    if(section === 'data') return hrRenderData(key, body).catch(failed);
+    if(section === 'salary') return hrRenderSalaryMonths(key, body).catch(failed);
+    if(section === 'slip') return hrRenderSlip(key, month, body).catch(failed);
+    if(section === 'docs') return hrRenderDocs(key, body).catch(failed);
+    if(section === 'attendance') return hrRenderAttendance(key, body).catch(failed);
+  }
+  function hrRenderIcons(key, body){
+    return fbDb.ref('hr/employees/' + key).once('value').then(snap => {
+      const e = snap.val();
       if(!e){ body.innerHTML = '<p class="empty-note">بياناتك لسه ما اتسجلتش، كلّم الإدارة.</p>' + hrPasswordBtn(); return; }
-      const line = (label, value) => `<div class="hs-row" style="display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid #EDF1F5;"><span style="color:var(--muted);">${label}</span><b style="text-align:left; overflow-wrap:anywhere;">${value}</b></div>`;
-      const docs = Object.entries(dSnap.val() || {});
-      const docHtml = docs.length ? `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;">${docs.map(([id, d]) => `<div style="border:1px solid #DDE5EC; border-radius:10px; padding:8px; min-width:0;">
+      const tile = (section, icon, label) => `<button class="menu-card" style="padding:22px 10px; gap:8px; min-height:112px;" onclick="renderHrEmployee(${Number(key)},'${section}')"><span style="font-size:2rem; line-height:1;" aria-hidden="true">${icon}</span><span style="font-weight:700;">${label}</span></button>`;
+      body.innerHTML = `<h3 style="margin:0 0 4px;">${escapeHtml(e.name)}</h3><p style="margin:0 0 16px; font-size:.85rem; color:var(--muted);">${escapeHtml(e.title || '')} · ${Number(key)}</p>
+        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;">${tile('salary','💰','المرتب')}${tile('docs','📄','المستندات')}${tile('attendance','🕘','الحضور والانصراف')}${tile('data','👤','البيانات')}</div>${hrPasswordBtn()}`;
+    });
+  }
+  function hrRenderData(key, body){
+    return fbDb.ref('hr/employees/' + key).once('value').then(snap => {
+      const e = snap.val() || {};
+      const has = v => v != null && v !== '';
+      body.innerHTML = `<h3 style="margin:0 0 10px;">${escapeHtml(e.name || '')} <span style="font-size:.8rem; color:var(--muted);">(${key})</span></h3>
+        ${HR_FIELDS.map(([k, label]) => hrLine(label, has(e[k]) ? escapeHtml(e[k]) : '<span style="color:#C0392B;">غير مسجل</span>')).join('')}
+        <h3 style="margin:18px 0 6px;">الأجازات</h3>${hrLine('الرصيد', has(e.leave_total) ? escapeHtml(e.leave_total) : '—')}${hrLine('المتبقي', has(e.leave_left) ? escapeHtml(e.leave_left) : '—')}`;
+    });
+  }
+  function hrRenderSalaryMonths(key, body){
+    return fbDb.ref('hr/salaries/' + key).once('value').then(snap => {
+      const months = Object.entries(snap.val() || {}).sort((a, b) => b[0].localeCompare(a[0]));
+      if(!months.length){ body.innerHTML = '<p class="empty-note">مفيش شيتات مرتبات مسجلة.</p>'; return; }
+      body.innerHTML = months.map(([ym, s]) => `<button class="menu-card" style="flex-direction:row; justify-content:space-between; gap:10px; padding:14px; width:100%; margin-bottom:8px;" onclick="renderHrEmployee(${Number(key)},'slip','${escapeHtml(ym)}')"><span style="font-weight:700;">${hrMonthLabel(ym)}</span><span>${fmt(s.net || 0)} ج.م</span></button>`).join('');
+    });
+  }
+  function hrRenderSlip(key, ym, body){
+    return fbDb.ref(`hr/salaries/${key}/${ym}`).once('value').then(snap => {
+      const s = snap.val();
+      if(!s){ body.innerHTML = '<p class="empty-note">الشهر ده مش موجود.</p>'; return; }
+      const rows = list => list.filter(([k]) => s[k]).map(([k, label, days]) => hrLine(label, days ? fmt(s[k]) : fmt(s[k]) + ' ج.م')).join('');
+      const pay = rows(HR_SLIP_PAY);
+      body.innerHTML = `<h3 style="margin:0 0 10px;">${hrMonthLabel(ym)}</h3>
+        <h4 style="margin:0 0 4px;">الاستحقاقات</h4>${rows(HR_SLIP_EARN)}${hrLine('إجمالي المستحق', fmt(s.earned || 0) + ' ج.م')}
+        <h4 style="margin:16px 0 4px;">الخصومات</h4>${rows(HR_SLIP_DED)}${hrLine('إجمالي الخصومات', fmt(s.totalDed || 0) + ' ج.م')}
+        <div style="display:flex; justify-content:space-between; gap:12px; margin-top:14px; padding:14px; border-radius:10px; background:#0E4A85; color:#fff; font-weight:800;"><span>صافي المرتب</span><span>${fmt(s.net || 0)} ج.م</span></div>
+        ${pay ? `<h4 style="margin:16px 0 4px;">طريقة الدفع</h4>${pay}` : ''}`;
+    });
+  }
+  function hrRenderDocs(key, body){
+    return fbDb.ref('hr/docIndex/' + key).once('value').then(snap => {
+      const docs = Object.entries(snap.val() || {});
+      if(!docs.length){ body.innerHTML = '<p class="empty-note">مفيش مستندات مسجلة.</p>'; return; }
+      body.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;">${docs.map(([id, d]) => `<div style="border:1px solid #DDE5EC; border-radius:10px; padding:8px; min-width:0;">
           <button class="ghost-btn" style="display:block; width:100%; padding:0; border:0; background:none;" aria-label="فتح ${escapeHtml(d.type || 'مستند')}" onclick="openHrDoc('${key}','${escapeHtml(id)}',this)">
             ${hrIsImage(d) ? `<img data-hr-doc="${escapeHtml(id)}" alt="${escapeHtml(d.type || 'مستند')}" style="display:block; width:100%; height:170px; object-fit:contain; background:#F5F8FA; border-radius:6px;">` : `<span style="display:flex; align-items:center; justify-content:center; height:170px; background:#F5F8FA; border-radius:6px; font-weight:700;">📄 ملف PDF، دوس عشان يفتح</span>`}
           </button>
           <div style="font-weight:700; margin-top:6px;">${escapeHtml(d.type || 'مستند')}</div>
-        </div>`).join('')}</div>` : '<p class="empty-note">مفيش مستندات مسجلة.</p>';
-      body.innerHTML = `<h3 style="margin:0 0 10px;">${escapeHtml(e.name)} <span style="font-size:.8rem; color:var(--muted);">(${key})</span></h3>
-        ${HR_FIELDS.map(([k, label]) => line(label, e[k] ? escapeHtml(e[k]) : '<span style="color:#C0392B;">غير مسجل</span>')).join('')}
-        <h3 style="margin:18px 0 6px;">المرتب</h3>${HR_MONEY.map(([k, label]) => line(label, fmt(e[k] || 0) + ' ج.م')).join('')}
-        <p style="font-size:.72rem; color:var(--muted);">${escapeHtml(e.salaryMonth || '')}</p>
-        <h3 style="margin:18px 0 6px;">الأجازات</h3>${line('الرصيد', e.leave_total != null && e.leave_total !== '' ? escapeHtml(e.leave_total) : '—')}${line('المتبقي', e.leave_left != null && e.leave_left !== '' ? escapeHtml(e.leave_left) : '—')}
-        <h3 style="margin:18px 0 6px;">المستندات (${docs.length})</h3>${docHtml}${hrPasswordBtn()}`;
+        </div>`).join('')}</div>`;
       loadHrThumbs(key);
-    }).catch(() => { body.innerHTML = '<p class="empty-note">تعذّر تحميل البيانات.</p>' + hrPasswordBtn(); });
+    });
+  }
+  // hr/attendance/<emp>/<yyyy-mm>/<dd> = { in, out, late } with late in minutes, loaded from the fingerprint file
+  function hrRenderAttendance(key, body){
+    return fbDb.ref('hr/attendance/' + key).once('value').then(snap => {
+      const months = Object.entries(snap.val() || {}).sort((a, b) => b[0].localeCompare(a[0]));
+      if(!months.length){ body.innerHTML = '<p class="empty-note">لسه بيانات البصمة ما اتسجلتش.</p>'; return; }
+      body.innerHTML = months.map(([ym, days]) => {
+        const list = Object.entries(days).sort((a, b) => a[0].localeCompare(b[0]));
+        const late = list.reduce((sum, [, d]) => sum + (Number(d.late) || 0), 0);
+        return `<h3 style="margin:16px 0 4px;">${hrMonthLabel(ym)}</h3><p style="margin:0 0 8px; font-weight:700; color:${late ? '#C0392B' : 'inherit'};">إجمالي التأخير: ${Math.floor(late / 60)} ساعة و${late % 60} دقيقة</p>
+          <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.85rem;"><tr style="background:#F5F8FA;"><th>اليوم</th><th>حضور</th><th>انصراف</th><th>تأخير</th></tr>
+          ${list.map(([dd, d]) => `<tr class="stmt-row"><td style="text-align:center; padding:6px;">${escapeHtml(dd)}</td><td style="text-align:center;">${escapeHtml(d.in || '—')}</td><td style="text-align:center;">${escapeHtml(d.out || '—')}</td><td style="text-align:center; color:${d.late ? '#C0392B' : 'inherit'};">${d.late ? escapeHtml(d.late) + ' د' : '—'}</td></tr>`).join('')}</table>`;
+      }).join('');
+    });
   }
   function hrIsImage(d){ return /\.(jpe?g|png)$/i.test(d.name || ''); }
   // PDFs stay click-to-open: some are several MB, and phones can't preview them inline anyway.
@@ -4355,6 +4417,12 @@
       out.textContent = 'جاري قراءة الملف...';
       var current = '';
       const parsed = JSON.parse(await file.text());
+      if(parsed.salaries){
+        await fbDb.ref('hr/salaries').set(parsed.salaries);
+        const months = new Set(Object.values(parsed.salaries).flatMap(v => Object.keys(v)));
+        out.textContent = `✅ اتحملت مرتبات ${Object.keys(parsed.salaries).length} موظف عن ${months.size} شهور`;
+        return;
+      }
       if(parsed.types){  // a small file with document types only, no re-upload of the documents
         const updates = {};
         Object.entries(parsed.types).forEach(([key, list]) => Object.entries(list).forEach(([id, type]) => { updates[`hr/docIndex/${key}/${id}/type`] = type; }));
