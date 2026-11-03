@@ -4254,7 +4254,6 @@
   // ---------- HR: the admin sees everyone, an employee only their own record (enforced by the DB rules) ----------
   const HR_FIELDS = [['title','الوظيفة'],['dept','الإدارة'],['kind','نوع الدوام'],['hired','تاريخ التعيين'],['nid','الرقم القومي'],['birth','تاريخ الميلاد'],['phones','التليفون'],['address','العنوان'],['bank','البنك'],['account','رقم الحساب'],['insurance','الرقم التأميني']];
   const HR_MONEY = [['gross','إجمالي المرتب'],['loans','السلف'],['net','صافي المرتب']];
-  const HR_DOC_TYPES = ['بطاقة','شهادة ميلاد','شهادة جيش','مؤهل','رخصة','فيش جنائي','كعب عمل','برنت تأمينات','صورة شخصية','وصل أمانة','شهادة عمل','استقالة','مستند'];
   let hrShowingEmployee = false;
   function isEmployeeOnly(){ return !!currentRep && !currentRep.isAdmin && currentRep.code == null; }
   function openHrScreen(){
@@ -4304,7 +4303,6 @@
             ${hrIsImage(d) ? `<img data-hr-doc="${escapeHtml(id)}" alt="${escapeHtml(d.type || 'مستند')}" style="display:block; width:100%; height:170px; object-fit:contain; background:#F5F8FA; border-radius:6px;">` : `<span style="display:flex; align-items:center; justify-content:center; height:170px; background:#F5F8FA; border-radius:6px; font-weight:700;">📄 ملف PDF، دوس عشان يفتح</span>`}
           </button>
           <div style="font-weight:700; margin-top:6px;">${escapeHtml(d.type || 'مستند')}</div>
-          ${admin ? `<select aria-label="نوع المستند" style="width:100%; margin-top:4px;" onchange="setHrDocType('${key}','${escapeHtml(id)}',this.value)">${HR_DOC_TYPES.map(t => `<option${t === d.type ? ' selected' : ''}>${t}</option>`).join('')}</select>` : ''}
         </div>`).join('')}</div>` : '<p class="empty-note">مفيش مستندات مسجلة.</p>';
       body.innerHTML = `<h3 style="margin:0 0 10px;">${escapeHtml(e.name)} <span style="font-size:.8rem; color:var(--muted);">(${key})</span></h3>
         ${HR_FIELDS.map(([k, label]) => line(label, e[k] ? escapeHtml(e[k]) : '<span style="color:#C0392B;">غير مسجل</span>')).join('')}
@@ -4338,9 +4336,6 @@
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     }).catch(() => { if(win) win.close(); showToast('تعذّر فتح المستند'); })
       .finally(() => { btn.disabled = false; btn.innerHTML = label; });
-  }
-  function setHrDocType(key, id, type){
-    fbDb.ref(`hr/docIndex/${key}/${id}/type`).set(type).then(() => showToast('اتحفظ نوع المستند')).catch(() => showToast('تعذّر الحفظ'));
   }
   // Realtime Database refuses a string over 10 MB, and some scanned PDFs are bigger once encoded.
   function hrDocChunks(data){
