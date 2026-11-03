@@ -4649,6 +4649,7 @@
         return;
       }
       const { employees, docs } = parsed;
+      if(!employees){ out.textContent = '⚠️ الملف ده مش معروف للصفحة دي. دوس Ctrl+F5 وجرب تاني، أو اختار ملف تاني.'; return; }
       await fbDb.ref('hr/employees').set(employees);
       const all = Object.entries(docs || {}).flatMap(([key, list]) => list.map(d => ({ key, ...d })));
       const index = {};
