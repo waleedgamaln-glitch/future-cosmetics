@@ -290,6 +290,7 @@
     justify-content:space-around; align-items:stretch;
   }
   #bottomNav.show{ display:flex; }
+  body.emp-only #bottomNav{ display:none !important; }
   .bnav-item{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:3px; background:none; border:none; color:var(--muted); font-family:inherit;
@@ -1002,6 +1003,12 @@
   <div id="myRouteLogBody"></div>
 </div>
 
+<div id="hrScreen" class="report-screen" style="display:none;">
+  <button id="hrBackBtn" class="back-btn" onclick="hrBack()">‹ رجوع</button>
+  <h2 id="hrTitle">الموارد البشرية</h2>
+  <div id="hrBody"></div>
+</div>
+
 <div id="settingsScreen" class="report-screen" style="display:none;">
   <button class="back-btn" onclick="goTo('menu')">‹ رجوع</button>
   <h2>الإعدادات</h2>
@@ -1017,6 +1024,10 @@
     <button id="resyncStockBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="resyncLiveStock()">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 32 a20 20 0 0 1 34-14 M52 32 a20 20 0 0 1-34 14"/><path d="M46 10 v10 h-10 M18 54 v-10 h10"/></svg>
       <span>إعادة مزامنة المخزون اللحظي (للإدارة فقط)</span>
+    </button>
+    <button id="hrBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openHrScreen()">
+      <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="10" y="10" width="44" height="44" rx="6"/><circle cx="32" cy="27" r="7"/><path d="M20 47 c1-8 6-11 12-11 s11 3 12 11"/></svg>
+      <span id="hrBtnLabel">الموارد البشرية</span>
     </button>
     <button id="repAccountsBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openRepAccounts()">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="26" cy="22" r="10"/><path d="M8 54 c0-12 8-18 18-18 s18 6 18 18"/><rect x="40" y="30" width="18" height="14" rx="3"/><path d="M44 30 v-4 a5 5 0 0 1 10 0 v4"/></svg>
@@ -1073,6 +1084,8 @@
   <div class="modal" style="max-height:88vh; overflow-y:auto;">
     <h3>حسابات المناديب</h3>
     <div class="field"><label for="hrRosterFile">تحميل قايمة الموظفين (hr_roster.json)</label><input id="hrRosterFile" type="file" accept=".json" onchange="importHrRoster(this)"></div>
+    <div class="field"><label for="bulkAccountsFile">إنشاء كل الحسابات مرة واحدة (hr_accounts.json)</label><input id="bulkAccountsFile" type="file" accept=".json" onchange="createAccountsFromFile(this)"></div>
+    <div id="bulkAccountsResult" style="margin-bottom:12px; font-size:.85rem; font-weight:700;"></div>
     <div class="mdesc" style="margin-bottom:14px;">اعمل حساب لكل مندوب، وادّيله اسم المستخدم وكلمة المرور اللي هتظهر. المندوب يقدر يغيّر كلمة المرور بعد كده من "تغيير كلمة المرور".</div>
     <div class="field"><label for="repAccRep">المندوب</label><select id="repAccRep" onchange="fillRepAccountDefaults()"></select></div>
     <div class="field"><label for="repAccUser">اسم المستخدم</label><input id="repAccUser" autocomplete="off"></div>
@@ -1830,6 +1843,34 @@
     }).catch(() => { out.textContent = 'تعذّر تحميل الملف، اتأكد إنه hr_roster.json'; });
     input.value = '';
   }
+  // The admin's click creates them all; passwords stay in the admin's file. Safe to rerun: existing accounts are skipped.
+  async function createAccountsFromFile(input){
+    const out = document.getElementById('bulkAccountsResult');
+    const file = input.files[0];
+    input.value = '';
+    if(!file || !currentRep || !currentRep.isAdmin) return;
+    let rows;
+    try{ rows = JSON.parse(await file.text()); if(!Array.isArray(rows)) throw 0; }
+    catch(e){ out.textContent = 'الملف مش صحيح، اختار hr_accounts.json'; return; }
+    const second = firebase.apps.find(a => a.name === 'accounts') || firebase.initializeApp(firebaseConfig, 'accounts');
+    let made = 0, skipped = 0; const failed = [];
+    for(const r of rows){
+      out.textContent = `جاري الإنشاء... ${made + skipped + failed.length + 1} من ${rows.length}`;
+      const profile = r.rep ? { code: r.rep, codeKey: String(r.rep), name: r.name, isAdmin: false, user: r.user }
+        : { empCode: Number(r.emp), empKey: String(r.emp), name: r.name, isAdmin: false, user: r.user };
+      try{
+        const cred = await second.auth().createUserWithEmailAndPassword(loginEmail(r.user), r.pass);
+        await fbDb.ref('users/' + cred.user.uid).set(profile);
+        await second.auth().signOut();
+        made++;
+      }catch(err){
+        if(err && err.code === 'auth/email-already-in-use') skipped++; else failed.push(r.name);
+      }
+    }
+    out.textContent = `✅ اتعمل ${made} حساب` + (skipped ? `، وموجود قبل كده ${skipped}` : '') + (failed.length ? ` — ⚠️ ما اتعملش: ${failed.join('، ')}، اختار الملف تاني` : '');
+    renderRepAccounts();
+    fillRepAccountOptions();
+  }
   function createRepAccount(){
     const v = document.getElementById('repAccRep').value;
     if(!v){ document.getElementById('repAccResult').textContent = 'كل الموجودين عندهم حسابات'; return; }
@@ -1928,6 +1969,8 @@
     document.body.classList.add('has-bottom-nav');
     refreshEnableNotifBtnLabel();
     applyRepLock();
+    document.body.classList.toggle('emp-only', isEmployeeOnly());
+    if(isEmployeeOnly()){ openHrScreen(); maybeShowDataUpdateNotice(); return; }
     goTo('menu');
     const acctHubMenuBtn = document.getElementById('accountsHubMenuBtn');
     if(acctHubMenuBtn) acctHubMenuBtn.style.display = currentRep ? 'flex' : 'none';
@@ -2015,8 +2058,8 @@
 
   // ---------- Screen navigation ----------
   function goTo(screen){
-    const map = { menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen', orderHistory:'orderHistoryScreen', account:'accountScreen', route:'routeScreen' };
-    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    const map = { hr:'hrScreen', menu:'mainMenuScreen', reportsMenu:'reportsMenuScreen', store:'storeContent', statement:'statementScreen', itemStatement:'itemStatementScreen', debtList:'debtListScreen', arrears:'arrearsScreen', orderHistory:'orderHistoryScreen', account:'accountScreen', route:'routeScreen' };
+    ['mainMenuScreen','reportsMenuScreen','storeContent','reportScreen','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -2138,7 +2181,7 @@
     const [f, t] = monthRange();
     document.getElementById('reportFrom').value = f;
     document.getElementById('reportTo').value = t;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3085,7 +3128,7 @@
   }
 
   function openDebtList(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3269,7 +3312,7 @@
   }
 
   function openArrears(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3479,7 +3522,7 @@
   let carRouteData = null;
 
   function openAccountsHub(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3531,7 +3574,7 @@
   }
 
   function openSalesAnalysisScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3632,7 +3675,7 @@
   }
 
   function openSuppliersReportScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3690,7 +3733,7 @@
   }
 
   function openCarRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3725,7 +3768,7 @@
   // rep's own approved orders and which car/distributor is handling them.
   // No edit/move controls here; those stay admin-only in carRouteScreen.
   function openMyRouteLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -3952,7 +3995,7 @@
   function printSingleCarRoute(car){ withSingleCarFilter(car, () => { printCurrentScreen(); return Promise.resolve(); }); }
 
   function openInvoiceLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4029,7 +4072,7 @@
   let returnRows = [];
 
   function openReturnsScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4187,7 +4230,7 @@
   }
 
   function openAccountScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4208,8 +4251,114 @@
     refreshAdminChatUnreadState();
   }
 
+  // ---------- HR: the admin sees everyone, an employee only their own record (enforced by the DB rules) ----------
+  const HR_FIELDS = [['title','الوظيفة'],['dept','الإدارة'],['kind','نوع الدوام'],['hired','تاريخ التعيين'],['nid','الرقم القومي'],['birth','تاريخ الميلاد'],['phones','التليفون'],['address','العنوان'],['bank','البنك'],['account','رقم الحساب'],['insurance','الرقم التأميني']];
+  const HR_MONEY = [['gross','إجمالي المرتب'],['loans','السلف'],['net','صافي المرتب']];
+  const HR_DOC_TYPES = ['بطاقة','شهادة ميلاد','شهادة جيش','مؤهل','رخصة','فيش جنائي','كعب عمل','برنت تأمينات','صورة شخصية','وصل أمانة','مستند'];
+  let hrShowingEmployee = false;
+  function isEmployeeOnly(){ return !!currentRep && !currentRep.isAdmin && currentRep.code == null; }
+  function openHrScreen(){
+    goTo('hr');
+    setBottomNavActive(null);
+    if(currentRep && currentRep.isAdmin) renderHrList();
+    else if(currentRep && currentRep.empCode != null) renderHrEmployee(currentRep.empCode);
+  }
+  function hrBack(){
+    if(currentRep && currentRep.isAdmin && hrShowingEmployee) renderHrList();
+    else if(!isEmployeeOnly()) openSettingsScreen();
+  }
+  function renderHrList(){
+    hrShowingEmployee = false;
+    document.getElementById('hrTitle').textContent = 'الموارد البشرية';
+    document.getElementById('hrBackBtn').style.display = '';
+    const body = document.getElementById('hrBody');
+    body.innerHTML = '<p class="empty-note">جاري التحميل...</p>';
+    fbDb.ref('hr/employees').once('value').then(snap => {
+      const list = Object.entries(snap.val() || {}).sort((a, b) => Number(a[0]) - Number(b[0]));
+      const tool = `<div class="field no-print"><label for="hrImportFile">تحميل بيانات ومستندات الموظفين (hr_data.json)</label><input id="hrImportFile" type="file" accept=".json" onchange="importHrData(this)"></div><div id="hrImportResult" style="margin-bottom:12px; font-size:.85rem; font-weight:700;"></div>`;
+      if(!list.length){ body.innerHTML = tool + '<p class="empty-note">لسه بيانات الموظفين ما اتحملتش.</p>'; return; }
+      body.innerHTML = tool + `<div class="field"><input id="hrSearch" placeholder="ابحث بالاسم أو الكود" oninput="filterHrList(this.value)"></div>
+        <p style="font-size:.85rem; color:var(--muted);">${list.length} موظف</p>
+        <div id="hrList">${list.map(([k, e]) => `<button class="menu-card hr-row" data-q="${escapeHtml(k + ' ' + e.name).replace(/"/g, '&quot;')}" style="flex-direction:row; justify-content:space-between; gap:10px; padding:12px 14px; width:100%; margin-bottom:8px;" onclick="renderHrEmployee(${Number(k)})"><span style="font-weight:700;">${escapeHtml(e.name)}</span><span style="font-size:.8rem; color:var(--muted);">${escapeHtml(e.title || '')} · ${Number(k)}</span></button>`).join('')}</div>`;
+    }).catch(() => { body.innerHTML = '<p class="empty-note">تعذّر تحميل البيانات.</p>'; });
+  }
+  function filterHrList(q){
+    q = q.trim();
+    document.querySelectorAll('#hrList .hr-row').forEach(b => { b.style.display = b.dataset.q.includes(q) ? '' : 'none'; });
+  }
+  function renderHrEmployee(code){
+    hrShowingEmployee = true;
+    const key = String(code);
+    const admin = !!(currentRep && currentRep.isAdmin);
+    document.getElementById('hrBackBtn').style.display = isEmployeeOnly() ? 'none' : '';
+    document.getElementById('hrTitle').textContent = admin ? 'بيانات موظف' : 'بياناتي';
+    const body = document.getElementById('hrBody');
+    body.innerHTML = '<p class="empty-note">جاري التحميل...</p>';
+    Promise.all([fbDb.ref('hr/employees/' + key).once('value'), fbDb.ref('hr/docIndex/' + key).once('value')]).then(([eSnap, dSnap]) => {
+      const e = eSnap.val();
+      if(!e){ body.innerHTML = '<p class="empty-note">بياناتك لسه ما اتسجلتش، كلّم الإدارة.</p>' + hrPasswordBtn(); return; }
+      const line = (label, value) => `<div class="hs-row" style="display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid #EDF1F5;"><span style="color:var(--muted);">${label}</span><b style="text-align:left; overflow-wrap:anywhere;">${value}</b></div>`;
+      const docs = Object.entries(dSnap.val() || {});
+      const docHtml = docs.length ? docs.map(([id, d]) => `<div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #EDF1F5;">
+          <button class="ghost-btn" style="flex:1; text-align:right; overflow-wrap:anywhere;" onclick="openHrDoc('${key}','${escapeHtml(id)}',this)">📄 ${escapeHtml(d.type || 'مستند')}<span style="display:block; font-size:.72rem; color:var(--muted);">${escapeHtml(d.name || '')}</span></button>
+          ${admin ? `<select aria-label="نوع المستند" onchange="setHrDocType('${key}','${escapeHtml(id)}',this.value)">${HR_DOC_TYPES.map(t => `<option${t === d.type ? ' selected' : ''}>${t}</option>`).join('')}</select>` : ''}
+        </div>`).join('') : '<p class="empty-note">مفيش مستندات مسجلة.</p>';
+      body.innerHTML = `<h3 style="margin:0 0 10px;">${escapeHtml(e.name)} <span style="font-size:.8rem; color:var(--muted);">(${key})</span></h3>
+        ${HR_FIELDS.map(([k, label]) => line(label, e[k] ? escapeHtml(e[k]) : '<span style="color:#C0392B;">غير مسجل</span>')).join('')}
+        <h3 style="margin:18px 0 6px;">المرتب</h3>${HR_MONEY.map(([k, label]) => line(label, fmt(e[k] || 0) + ' ج.م')).join('')}
+        <p style="font-size:.72rem; color:var(--muted);">${escapeHtml(e.salaryMonth || '')}</p>
+        <h3 style="margin:18px 0 6px;">الأجازات</h3>${line('الرصيد', e.leave_total != null && e.leave_total !== '' ? escapeHtml(e.leave_total) : '—')}${line('المتبقي', e.leave_left != null && e.leave_left !== '' ? escapeHtml(e.leave_left) : '—')}
+        <h3 style="margin:18px 0 6px;">المستندات (${docs.length})</h3>${docHtml}${hrPasswordBtn()}`;
+    }).catch(() => { body.innerHTML = '<p class="empty-note">تعذّر تحميل البيانات.</p>' + hrPasswordBtn(); });
+  }
+  function hrPasswordBtn(){ return isEmployeeOnly() ? '<button class="ghost-btn" style="width:100%; margin-top:16px;" onclick="openChangePassword()">🔒 تغيير كلمة المرور</button>' : ''; }
+  function openHrDoc(key, id, btn){
+    const label = btn.innerHTML;
+    btn.disabled = true; btn.textContent = 'جاري الفتح...';
+    const win = window.open('', '_blank');  // opened inside the click, or the phone blocks the popup
+    fbDb.ref(`hr/docs/${key}/${id}`).once('value').then(snap => {
+      if(!snap.val()) throw 0;
+      return fetch(snap.val()).then(r => r.blob());
+    }).then(blob => {
+      const url = URL.createObjectURL(blob);
+      if(win) win.location = url; else location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }).catch(() => { if(win) win.close(); showToast('تعذّر فتح المستند'); })
+      .finally(() => { btn.disabled = false; btn.innerHTML = label; });
+  }
+  function setHrDocType(key, id, type){
+    fbDb.ref(`hr/docIndex/${key}/${id}/type`).set(type).then(() => showToast('اتحفظ نوع المستند')).catch(() => showToast('تعذّر الحفظ'));
+  }
+  // Personal data must never reach an open database, so the upload stops unless an anonymous read is refused.
+  async function importHrData(input){
+    const out = document.getElementById('hrImportResult');
+    const file = input.files[0];
+    input.value = '';
+    if(!file || !currentRep || !currentRep.isAdmin) return;
+    try{
+      const probe = await fetch(firebaseConfig.databaseURL + '/hr.json?shallow=true', { cache: 'no-store' });
+      if(probe.ok){ out.textContent = '⛔ قواعد الحماية لسه ما اتفعلتش، فالبيانات مش هتترفع. فعّل القواعد الأول.'; return; }
+      out.textContent = 'جاري قراءة الملف...';
+      const { employees, docs } = JSON.parse(await file.text());
+      await fbDb.ref('hr/employees').set(employees);
+      const all = Object.entries(docs || {}).flatMap(([key, list]) => list.map(d => ({ key, ...d })));
+      const index = {};
+      all.forEach(d => { (index[d.key] = index[d.key] || {})[d.id] = { name: d.name, type: d.type }; });
+      const known = (await fbDb.ref('hr/docIndex').once('value')).val() || {};
+      Object.keys(index).forEach(k => Object.keys(index[k]).forEach(id => { if(known[k] && known[k][id] && known[k][id].type) index[k][id].type = known[k][id].type; }));  // a rerun keeps types the admin chose
+      await fbDb.ref('hr/docIndex').set(index);
+      let done = 0;
+      for(const d of all){
+        out.textContent = `جاري رفع المستندات... ${++done} من ${all.length}`;
+        await fbDb.ref(`hr/docs/${d.key}/${d.id}`).set(d.data);
+      }
+      out.textContent = `✅ اتحمل ${Object.keys(employees).length} موظف و${all.length} مستند`;
+      renderHrList();
+    }catch(e){ out.textContent = '⚠️ الرفع ما كملش، اختار الملف تاني وهيكمل من الأول بأمان'; }
+  }
+
   function openSettingsScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4223,6 +4372,10 @@
     if(rsb) rsb.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
     const sun = document.getElementById('sendUpdateNotifBtn');
     if(sun) sun.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    const hb = document.getElementById('hrBtn');
+    if(hb) hb.style.display = (currentRep && (currentRep.isAdmin || currentRep.empCode != null)) ? 'flex' : 'none';
+    const hl = document.getElementById('hrBtnLabel');
+    if(hl && currentRep) hl.textContent = currentRep.isAdmin ? 'الموارد البشرية (للإدارة فقط)' : 'بياناتي';
     const rab = document.getElementById('repAccountsBtn');
     if(rab) rab.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
     refreshEnableNotifBtnLabel();
@@ -4263,7 +4416,7 @@
   }
 
   function openRouteScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4389,7 +4542,7 @@
   }
 
   function openVisitReportForm(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4431,7 +4584,7 @@
   // the "سجل الفواتير" pattern -- shows every report the rep has ever saved,
   // with the same ✓/✗ verify badges the admin sees.
   function openMyVisitReportsLogScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4665,7 +4818,7 @@
   }
 
   function openVisitReportsAdmin(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4885,7 +5038,7 @@
     visitReportDetailReturnScreen = currentScreenId;
     visitReportDetailTitle = 'تقرير خط سير مشرف البيع';
     visitReportDetailFilename = `تقرير خط سير مشرف البيع — ${r.repName || ''} — ${r.date || ''}`;
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -4962,7 +5115,7 @@
   }
 
   function openChatScreen(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -5258,7 +5411,7 @@
   }
 
   function openOrderHistory(){
-    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen'].forEach(id=>{
+    ['mainMenuScreen','reportsMenuScreen','storeContent','statementScreen','itemStatementScreen','debtListScreen','arrearsScreen','orderHistoryScreen','accountScreen','routeScreen','visitReportScreen','myVisitReportsLogScreen','visitReportsAdminScreen','visitReportDetailScreen','invoiceLogScreen','accountsHubScreen','carRouteScreen','myRouteLogScreen','suppliersReportScreen','salesAnalysisScreen','chatScreen','settingsScreen','returnsScreen','hrScreen'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
@@ -6158,6 +6311,7 @@
   // we trap it: navigate one screen inward first, and only ask to exit once
   // the user is already at the main menu (root level).
   const BACK_ACTIONS = {
+    'hrScreen': () => hrBack(),
     'reportsMenuScreen': () => goTo('menu'),
     'storeContent': () => goTo('menu'),
     'statementScreen': () => goTo('menu'),
