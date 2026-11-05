@@ -4630,6 +4630,12 @@
       out.textContent = 'جاري قراءة الملف...';
       var current = '';
       const parsed = JSON.parse(await file.text());
+      if(parsed.hrUpdate){  // employee data, roster and salaries at once, without touching documents
+        const { employees, roster, salaries } = parsed.hrUpdate;
+        await fbDb.ref().update({ 'hr/employees': employees, hrRoster: roster, 'hr/salaries': salaries });
+        out.textContent = `✅ اتحدثت بيانات ${Object.keys(employees).length} موظف ومرتباتهم`;
+        return;
+      }
       if(parsed.owner){
         await fbDb.ref('owner').set(parsed.owner);
         out.textContent = '✅ اتحملت بيانات قمرة القيادة';
