@@ -4631,9 +4631,16 @@
       var current = '';
       const parsed = JSON.parse(await file.text());
       if(parsed.hrUpdate){  // employee data, roster and salaries at once, without touching documents
-        const { employees, roster, salaries } = parsed.hrUpdate;
-        await fbDb.ref().update({ 'hr/employees': employees, hrRoster: roster, 'hr/salaries': salaries });
-        out.textContent = `✅ اتحدثت بيانات ${Object.keys(employees).length} موظف ومرتباتهم`;
+        const { employees, roster, salaries, repToEmp } = parsed.hrUpdate;
+        const updates = { 'hr/employees': employees, hrRoster: roster, 'hr/salaries': salaries };
+        const users = (await fbDb.ref('users').once('value')).val() || {};
+        let linked = 0;
+        Object.entries(users).forEach(([uid, u]) => {
+          const emp = (repToEmp || {})[u.code];
+          if(emp && u.empKey !== String(emp)){ updates[`users/${uid}/empCode`] = emp; updates[`users/${uid}/empKey`] = String(emp); linked++; }
+        });
+        await fbDb.ref().update(updates);
+        out.textContent = `✅ اتحدثت بيانات ${Object.keys(employees).length} موظف ومرتباتهم` + (linked ? `، واتربط ${linked} حساب` : '');
         return;
       }
       if(parsed.owner){
