@@ -1628,10 +1628,13 @@
     if(!label) return;
     const state = notifPermissionState();
     if(state === 'unsupported') label.textContent = 'الإشعارات غير مدعومة على المتصفح ده';
-    else if(state === 'granted') label.textContent = '✓ الإشعارات مفعّلة';
+    else if(state === 'granted') label.textContent = '✓ الإشعارات مفعّلة (دوس لو مش بتوصلك)';
     else if(state === 'denied') label.textContent = 'الإشعارات ممنوعة — فعّلها من إعدادات المتصفح';
     else label.textContent = 'تفعيل إشعارات التحديثات';
   }
+
+  const PUSH_SCOPE = '/future-cosmetics/onesignal/';
+  let enablingPush = false;
 
   function initOneSignal(){
     window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -1652,21 +1655,53 @@
       showToast('خدمة الإشعارات لسه بتحمّل، حاول تاني بعد ثانيتين');
       return;
     }
+    if(enablingPush) return;
+    enablingPush = true;
     try{
-      await OneSignal.Notifications.requestPermission();
-      refreshEnableNotifBtnLabel();
+      // A subscription can die while permission stays granted and the browser can't tell, so a press always renews it.
       if(Notification.permission === 'granted'){
+        showToast('جاري تجديد الاشتراك...');
+        const reg = await navigator.serviceWorker.getRegistration(PUSH_SCOPE);
+        const old = reg && await reg.pushManager.getSubscription();
+        if(old) await old.unsubscribe();
+      }
+      OneSignal.Notifications.requestPermission().catch(() => {}); // not awaited: it can stay pending after he answers
+      await waitForPush(() => Notification.permission !== 'default', 60000);
+      refreshEnableNotifBtnLabel();
+      if(Notification.permission !== 'granted'){
+        showToast('محتاجين إذن الإشعارات عشان تشتغل الخاصية دي');
+        return;
+      }
+      OneSignal.User.PushSubscription.optIn().catch(() => {});
+      if(await waitForPush(pushSubscriptionLive, 20000)){
         if(currentRep){
           const key = currentRep.code != null ? String(currentRep.code) : 'admin';
           OneSignal.login(key); // tags this subscriber with the rep code, for reference in the OneSignal dashboard
         }
         showToast('تم تفعيل الإشعارات بنجاح');
       } else {
-        showToast('محتاجين إذن الإشعارات عشان تشتغل الخاصية دي');
+        showToast('الاشتراك ما كملش، اتأكد من النت ودوس تاني');
       }
     }catch(e){
       showToast('حصل خطأ أثناء تفعيل الإشعارات، حاول تاني');
+    }finally{
+      enablingPush = false;
     }
+  }
+
+  // Success comes from the live subscription, not from the browser's permission.
+  async function pushSubscriptionLive(){
+    const reg = await navigator.serviceWorker.getRegistration(PUSH_SCOPE);
+    const browserSub = reg && await reg.pushManager.getSubscription();
+    const sub = OneSignal.User.PushSubscription;
+    return !!(browserSub && sub.optedIn && sub.id);
+  }
+
+  async function waitForPush(check, ms){
+    for(const end = Date.now() + ms; Date.now() < end; await new Promise(r => setTimeout(r, 500))){
+      if(await check()) return true;
+    }
+    return false;
   }
 
   function openSendUpdateNotice(){
