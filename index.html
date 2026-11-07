@@ -4401,7 +4401,7 @@
       ${plan.length ? plan.map((x, i) => {
         const items = intelCustomerItems(x.e.c.code);
         return `<div style="border:1px solid #DDE5EC; border-radius:10px; padding:12px; margin-bottom:10px;">
-          <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;"><b>${i + 1}. ${escapeHtml(x.e.c.name)}</b>${intelBadge(x.e)}</div>
+          <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;"><b>${i + 1}. ${escapeHtml(x.e.c.name)} <span style="font-weight:400; color:var(--muted); font-size:.8rem;">(${x.e.c.code})</span></b>${intelBadge(x.e)}</div>
           <div style="font-size:.8rem; color:var(--muted);">${escapeHtml(x.e.c.region || '')}</div>
           <ul style="margin:8px 0; padding-inline-start:18px; font-size:.85rem;">${x.reasons.map(r => `<li>${r}</li>`).join('')}</ul>
           ${items.length ? `<div style="font-size:.8rem;"><b>يبيعله:</b> ${items.map(it => escapeHtml(it.p.name)).join('، ')}</div>` : ''}
@@ -4415,7 +4415,7 @@
     const body = intelOpen('تقييم العملاء');
     const { ref } = customerIntel();
     body.innerHTML = `<p style="font-size:.75rem; color:var(--muted);">حسب البيانات لحد ${intelDate(ref)}. التقييم من السداد والمرتجعات والمديونية، ومؤشر بيساعدك مش حكم نهائي.</p>
-      <div class="field"><input id="intelSearch" placeholder="ابحث باسم العميل" value="${escapeHtml(intelFilter.q).replace(/"/g, '&quot;')}" oninput="intelFilter.q=this.value; renderIntelList()"></div>
+      <div class="field"><input id="intelSearch" placeholder="ابحث باسم العميل أو الكود" value="${escapeHtml(intelFilter.q).replace(/"/g, '&quot;')}" oninput="intelFilter.q=this.value; renderIntelList()"></div>
       <div class="field"><select id="intelGrade" aria-label="التقييم" onchange="intelFilter.grade=this.value; renderIntelList()"><option value="">كل التقييمات</option>${INTEL_GRADES.map(g => `<option${intelFilter.grade === g[1] ? ' selected' : ''}>${g[1]}</option>`).join('')}</select></div>
       <div id="intelList"></div>`;
     renderIntelList();
@@ -4423,10 +4423,10 @@
   function renderIntelList(){
     const { byCode } = customerIntel();
     const q = intelFilter.q.trim();
-    let rows = Object.values(byCode).filter(e => intelScoped(e) && e.sales > 0 && e.enough && (!q || String(e.c.name).includes(q)) && (!intelFilter.grade || e.grade[1] === intelFilter.grade));
+    let rows = Object.values(byCode).filter(e => intelScoped(e) && e.sales > 0 && e.enough && (!q || String(e.c.name).includes(q) || String(e.c.code) === q) && (!intelFilter.grade || e.grade[1] === intelFilter.grade));
     const total = rows.length;
     rows = rows.sort((a, b) => a.score - b.score || b.bal - a.bal).slice(0, 60);  // worst first; the search reaches the rest
-    document.getElementById('intelList').innerHTML = `<p style="font-size:.8rem; color:var(--muted);">${total} عميل${total > 60 ? '، ظاهر أول 60' : ''}</p>` + (rows.map(e => `<button class="ghost-btn" style="display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCustomerIntel)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">رصيد ${intelMoney(e.bal)}</span></span>${intelBadge(e)}</button>`).join('') || '<p class="empty-note">مفيش نتايج.</p>');
+    document.getElementById('intelList').innerHTML = `<p style="font-size:.8rem; color:var(--muted);">${total} عميل${total > 60 ? '، ظاهر أول 60' : ''}</p>` + (rows.map(e => `<button class="ghost-btn" style="display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCustomerIntel)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">كود ${e.c.code} · رصيد ${intelMoney(e.bal)}</span></span>${intelBadge(e)}</button>`).join('') || '<p class="empty-note">مفيش نتايج.</p>');
   }
   function openCustomerCard(code, back){
     const e = customerIntel().byCode[code];
@@ -4440,7 +4440,7 @@
     if(e.sales && e.ret / e.sales > 0.2) notes.push(`المرتجعات ${Math.round(e.ret / e.sales * 100)}% من المبيعات، راجع الأصناف اللي بترجع.`);
     if(e.gap && e.sinceSale > e.gap * 2 && e.sinceSale <= 120) notes.push(`بطّل يشتري من ${e.sinceSale} يوم، ومعدله كل ${e.gap} يوم.`);
     const items = intelCustomerItems(code);
-    body.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">${escapeHtml(e.c.name)}</h3>${intelBadge(e)}</div>
+    body.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">${escapeHtml(e.c.name)} <span style="font-weight:400; color:var(--muted); font-size:.85rem;">(${e.c.code})</span></h3>${intelBadge(e)}</div>
       ${line('الرصيد الحالي', intelMoney(e.bal))}${line('مبيعات 2026', intelMoney(e.sales))}${line('مرتجعات 2026', intelMoney(e.ret))}${line('الصافي', intelMoney(net))}${line('تحصيل 2026', intelMoney(e.coll))}
       ${line('آخر فاتورة', intelDate(e.lastSale))}${line('آخر تحصيل', intelDate(e.lastPay))}${line('متوسط الشراء', e.gap ? `كل ${e.gap} يوم` : '—')}${line('المندوب', escapeHtml(REP_MAP[e.c.repCode] || '—'))}${line('المنطقة', escapeHtml(e.c.region || '—'))}
       ${notes.length ? `<h4 style="margin:16px 0 6px;">ملاحظات</h4><ul style="margin:0; padding-inline-start:18px; font-size:.85rem;">${notes.map(n => `<li>${n}</li>`).join('')}</ul>` : ''}
@@ -4469,7 +4469,7 @@
     const sliding = Object.values(byCode).filter(e => e.gap && e.sinceSale > e.gap * 2 && e.sinceSale <= 120 && e.sales > 0).sort((a, b) => b.sales - a.sales).slice(0, 8);
     const risky = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).sort((a, b) => b.bal - a.bal).slice(0, 8);
     const riskTotal = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).reduce((s, e) => s + e.bal, 0);
-    const custRow = (e, sub) => `<button class="ghost-btn" style="display:flex; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCockpit)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">${sub}</span></span><span>${intelMoney(e.bal)}</span></button>`;
+    const custRow = (e, sub) => `<button class="ghost-btn" style="display:flex; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCockpit)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">كود ${e.c.code} · ${sub}</span></span><span>${intelMoney(e.bal)}</span></button>`;
     body.innerHTML = `<p style="font-size:.8rem; color:var(--muted);">${label(cur)} مقارنة بـ ${label(prev)}، والبيانات لحد ${intelDate(ref)}.</p>
       <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
         ${card('صافي المبيعات', intelMoney(c.sales - c.ret), delta(c.sales - c.ret, p.sales - p.ret))}
