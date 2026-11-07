@@ -1807,7 +1807,7 @@
           return;
         }
         const wasShown = !!currentRep;
-        currentRep = { uid: user.uid, code: p.code != null ? p.code : null, name: p.name || REP_MAP[p.code] || 'مندوب', isAdmin: p.isAdmin === true, user: p.user, empCode: p.empCode != null ? p.empCode : null };
+        currentRep = { uid: user.uid, code: p.code != null ? p.code : null, name: p.name || REP_MAP[p.code] || 'مندوب', isAdmin: p.isAdmin === true, noHr: p.noHr === true, user: p.user, empCode: p.empCode != null ? p.empCode : null };
         try{ localStorage.setItem('fc_session', JSON.stringify(currentRep)); }catch(e){}
         if(!wasShown){ hideLogin(); restoreDraft(); } else hideLogin();
         startLiveStock();
@@ -4508,16 +4508,17 @@
   const hrMonthLabel = ym => `${HR_MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
   let hrShowingEmployee = false, hrCode = null, hrSection = null;
   function isEmployeeOnly(){ return !!currentRep && !currentRep.isAdmin && currentRep.code == null; }
+  function hrAdmin(){ return !!currentRep && currentRep.isAdmin && !currentRep.noHr; }  // a manager marked noHr sees only their own HR record
   function openHrScreen(){
     goTo('hr');
     setBottomNavActive(null);
-    if(currentRep && currentRep.isAdmin) renderHrList();
+    if(hrAdmin()) renderHrList();
     else if(currentRep && currentRep.empCode != null) renderHrEmployee(currentRep.empCode);
   }
   function hrBack(){
     if(hrSection === 'slip') renderHrEmployee(hrCode, 'salary');
     else if(hrSection) renderHrEmployee(hrCode);
-    else if(currentRep && currentRep.isAdmin && hrShowingEmployee) renderHrList();
+    else if(hrAdmin() && hrShowingEmployee) renderHrList();
     else if(!isEmployeeOnly()) openSettingsScreen();
   }
   function renderHrList(){
@@ -4658,13 +4659,25 @@
     const out = document.getElementById('hrImportResult');
     const file = input.files[0];
     input.value = '';
-    if(!file || !currentRep || !currentRep.isAdmin) return;
+    if(!file || !hrAdmin()) return;
     try{
       const probe = await fetch(firebaseConfig.databaseURL + '/hr.json?shallow=true', { cache: 'no-store' });
       if(probe.ok){ out.textContent = '⛔ قواعد الحماية لسه ما اتفعلتش، فالبيانات مش هتترفع. فعّل القواعد الأول.'; return; }
       out.textContent = 'جاري قراءة الملف...';
       var current = '';
       const parsed = JSON.parse(await file.text());
+      if(parsed.grantAdmin){  // management rights for one account, with HR limited to their own record
+        const users = (await fbDb.ref('users').once('value')).val() || {};
+        const done = [], missing = [];
+        for(const want of [].concat(parsed.grantAdmin.users || parsed.grantAdmin.user).map(String)){
+          const uid = Object.keys(users).find(u => String(users[u].user) === want || users[u].empKey === want);
+          if(!uid){ missing.push(want); continue; }
+          await fbDb.ref('users/' + uid).update({ isAdmin: true, noHr: true });
+          done.push(users[uid].name || want);
+        }
+        out.textContent = (done.length ? `✅ ${done.join(' و')} بقى ليهم صلاحيات الإدارة، والموارد البشرية بياناتهم بس` : '') + (missing.length ? ` ⚠️ مفيش حساب باسم المستخدم ${missing.join('، ')}` : '');
+        return;
+      }
       if(parsed.hrUpdate){  // employee data, roster and salaries at once, without touching documents
         const { employees, roster, salaries, repToEmp } = parsed.hrUpdate;
         const updates = { 'hr/employees': employees, hrRoster: roster, 'hr/salaries': salaries };
@@ -4735,9 +4748,9 @@
     const hb = document.getElementById('hrBtn');
     if(hb) hb.style.display = (currentRep && (currentRep.isAdmin || currentRep.empCode != null)) ? 'flex' : 'none';
     const hl = document.getElementById('hrBtnLabel');
-    if(hl && currentRep) hl.textContent = currentRep.isAdmin ? 'الموارد البشرية (للإدارة فقط)' : 'بياناتي';
+    if(hl && currentRep) hl.textContent = hrAdmin() ? 'الموارد البشرية (للإدارة فقط)' : 'بياناتي';
     const rab = document.getElementById('repAccountsBtn');
-    if(rab) rab.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
+    if(rab) rab.style.display = hrAdmin() ? 'flex' : 'none';  // accounts decide who sees HR, so they stay with the full admin
     refreshEnableNotifBtnLabel();
   }
 
