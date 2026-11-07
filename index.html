@@ -4448,6 +4448,58 @@
       <div style="margin-top:14px;">${intelWhatsApp(e)}</div>`;
   }
 
+  // ---------- the manager's morning: this month's pace and what needs a decision today ----------
+  function cockpitToday(byCode, ref){
+    const ym = Math.floor(ref / 100), day = ref % 100;
+    const prevYm = (ym % 100 === 1) ? ym - 100 + 11 : ym - 1;
+    const daysIn = new Date(Math.floor(ym / 100), ym % 100, 0).getDate();
+    let net = 0, netPrev = 0, coll = 0, collPrev = 0, prevFull = 0;
+    const lastByRep = {};
+    SALES_TX.forEach(([d, inv, cust, rep, t, amt]) => {
+      const m = Math.floor(d / 100);
+      if(m === ym) net += t * amt;
+      if(m === prevYm){ prevFull += t * amt; if(d % 100 <= day) netPrev += t * amt; }
+      if(t === 1 && d > (lastByRep[rep] || 0)) lastByRep[rep] = d;
+    });
+    COLL_TX.forEach(([d, rec, rep, name, amt]) => {
+      const cd = collCloseDate(d), m = Math.floor(cd / 100);
+      if(m === ym) coll += amt;
+      if(m === prevYm && cd % 100 <= day) collPrev += amt;
+    });
+    const projected = day ? net / day * daysIn : 0;
+    // steady sellers: sold in each of the last three full months, now out of stock
+    const months = [prevYm, (prevYm % 100 === 1) ? prevYm - 100 + 11 : prevYm - 1];
+    months.push((months[1] % 100 === 1) ? months[1] - 100 + 11 : months[1] - 1);
+    const sold = {};
+    Object.values(INVOICE_ITEMS).forEach(e => {
+      if(e[4] !== 1) return;
+      const m = Math.floor(e[0] / 100), i = months.indexOf(m); if(i < 0) return;
+      e[5].forEach(l => { const k = String(l[0]).padStart(6, '0'); (sold[k] = sold[k] || [0, 0, 0])[i] += l[4]; });
+    });
+    const out = PRODUCTS.filter(p => (p.stock || 0) <= 0).map(p => ({ p, v: sold[String(p.code).padStart(6, '0')] })).filter(x => x.v && x.v.every(n => n > 0))
+      .map(x => ({ p: x.p, monthly: (x.v[0] + x.v[1] + x.v[2]) / 3 })).sort((a, b) => b.monthly - a.monthly);
+    const late = Object.values(byCode).filter(e => e.bal > 1 && (e.sincePay == null || e.sincePay > 60));
+    const lateTotal = late.reduce((t, e) => t + e.bal, 0);
+    const idle = SALES_ANALYSIS_GROUP1.filter(r => lastByRep[r] && Math.floor(lastByRep[r] / 100) >= prevYm)
+      .map(r => ({ r, days: Math.round(intelDays(ref) - intelDays(lastByRep[r])) })).filter(x => x.days >= 3).sort((a, b) => b.days - a.days);
+    const pct = (a, b) => b ? `${a >= b ? '▲' : '▼'} ${Math.abs(Math.round((a - b) / b * 100))}%` : '';
+    const box = (title, value, sub, color) => `<div class="stmt-bal-card" style="flex:1 1 150px; flex-direction:column; align-items:flex-start; gap:4px;${color ? ` border-right:4px solid ${color};` : ''}"><span>${title}</span><b style="white-space:nowrap;">${value}</b><span style="font-size:.75rem; color:var(--muted);">${sub || ''}</span></div>`;
+    const alert = (n, text, color) => `<div style="display:flex; gap:10px; align-items:flex-start; padding:8px 10px; margin-bottom:6px; border-radius:10px; background:var(--card, #F5F8FA); border-right:4px solid ${color};"><b style="min-width:44px; color:${color};">${n}</b><span style="font-size:.85rem;">${text}</span></div>`;
+    const alerts = [];
+    if(out.length) alerts.push(alert(out.length, `صنف بيتباع كل شهر ورصيده صفر، بيبيعوا حوالي ${intelMoney(out.reduce((t, x) => t + x.monthly, 0))} في الشهر. أكبرهم: ${out.slice(0, 4).map(x => escapeHtml(x.p.name)).join('، ')}.`, '#C0392B'));
+    if(late.length) alerts.push(alert(late.length, `عميل عليهم ${intelMoney(lateTotal)} ومادفعوش من أكتر من 60 يوم. أكبرهم: ${late.sort((a, b) => b.bal - a.bal).slice(0, 3).map(e => `${escapeHtml(e.c.name)} (${intelMoney(e.bal)})`).join('، ')}.`, '#B9770E'));
+    if(idle.length) alerts.push(alert(idle.length, `مندوب ماعملش فاتورة من 3 أيام أو أكتر: ${idle.slice(0, 6).map(x => `${escapeHtml(REP_MAP[x.r] || String(x.r))} (${x.days} يوم)`).join('، ')}.`, '#2471A3'));
+    const sliding = Object.values(byCode).filter(e => e.gap && e.sinceSale > e.gap * 2 && e.sinceSale <= 120 && e.sales > 0).length;
+    if(sliding) alerts.push(alert(sliding, 'عميل بطّلوا يشتروا بالمعدل بتاعهم (التفاصيل تحت في "عملاء كبار بدأوا يقعوا").', '#6C3483'));
+    return `<h3 style="margin:4px 0 6px;">الشهر لحد النهارده (${day} ${HR_MONTHS[ym % 100 - 1]})</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+        ${box('صافي المبيعات', intelMoney(net), `${pct(net, netPrev)} عن نفس الأيام الشهر اللي فات`, net >= netPrev ? '#1E8449' : '#C0392B')}
+        ${box('التحصيل', intelMoney(coll), `${pct(coll, collPrev)} عن نفس الأيام الشهر اللي فات`, coll >= collPrev ? '#1E8449' : '#C0392B')}
+        ${box('لو كمل بنفس المعدل', intelMoney(projected), `الشهر اللي فات قفل ${intelMoney(prevFull)}`, projected >= prevFull ? '#1E8449' : '#C0392B')}
+      </div>
+      <h3 style="margin:12px 0 6px;">محتاج قرار النهارده</h3>${alerts.join('') || '<p class="empty-note">مفيش تنبيهات.</p>'}
+      <p style="font-size:.72rem; color:var(--muted); margin:4px 0 14px;">المعدل محسوب على أيام الشهر الميلادية لحد آخر فاتورة، والرصيد من المخزون المباشر.</p>`;
+  }
   function openCockpit(){
     if(!currentRep || !currentRep.isAdmin) return;
     const body = intelOpen('قمرة القيادة');
@@ -4470,7 +4522,7 @@
     const risky = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).sort((a, b) => b.bal - a.bal).slice(0, 8);
     const riskTotal = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).reduce((s, e) => s + e.bal, 0);
     const custRow = (e, sub) => `<button class="ghost-btn" style="display:flex; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCockpit)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">كود ${e.c.code} · ${escapeHtml(REP_MAP[e.c.repCode] || 'بدون مندوب')} · ${sub}</span></span><span>${intelMoney(e.bal)}</span></button>`;
-    body.innerHTML = `<p style="font-size:.8rem; color:var(--muted);">${label(cur)} مقارنة بـ ${label(prev)}، والبيانات لحد ${intelDate(ref)}.</p>
+    body.innerHTML = `${cockpitToday(byCode, ref)}<h3 style="margin:18px 0 6px;">آخر شهر مقفول</h3><p style="font-size:.8rem; color:var(--muted);">${label(cur)} مقارنة بـ ${label(prev)}، والبيانات لحد ${intelDate(ref)}.</p>
       <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
         ${card('صافي المبيعات', intelMoney(c.sales - c.ret), delta(c.sales - c.ret, p.sales - p.ret))}
         ${card('التحصيل', intelMoney(c.coll), delta(c.coll, p.coll))}
