@@ -4526,7 +4526,7 @@
     document.getElementById('hrBackBtn').style.display = '';
     const body = document.getElementById('hrBody');
     body.innerHTML = '<p class="empty-note">جاري التحميل...</p>';
-    fbDb.ref('hr/employees').once('value').then(snap => {
+    return fbDb.ref('hr/employees').once('value').then(snap => {
       const list = Object.entries(snap.val() || {}).sort((a, b) => Number(a[0]) - Number(b[0]));
       const tool = `<div class="field no-print"><label for="hrImportFile">تحميل بيانات ومستندات الموظفين (hr_data.json) أو المرتبات (hr_salaries.json) أو أنواع المستندات</label><input id="hrImportFile" type="file" accept=".json" onchange="importHrData(this)"></div><div id="hrImportResult" style="margin-bottom:12px; font-size:.85rem; font-weight:700;"></div>`;
       if(!list.length){ body.innerHTML = tool + '<p class="empty-note">لسه بيانات الموظفين ما اتحملتش.</p>'; return; }
@@ -4675,7 +4675,8 @@
           if(emp && u.empKey !== String(emp)){ updates[`users/${uid}/empCode`] = emp; updates[`users/${uid}/empKey`] = String(emp); linked++; }
         });
         await fbDb.ref().update(updates);
-        out.textContent = `✅ اتحدثت بيانات ${Object.keys(employees).length} موظف ومرتباتهم` + (linked ? `، واتربط ${linked} حساب` : '');
+        await renderHrList();  // redraws the list, and with it a fresh result line
+        document.getElementById('hrImportResult').textContent = `✅ اتحدثت بيانات ${Object.keys(employees).length} موظف ومرتباتهم` + (linked ? `، واتربط ${linked} حساب` : '');
         return;
       }
       if(parsed.owner){
@@ -4711,8 +4712,8 @@
         current = d.name;
         await fbDb.ref(`hr/docs/${d.key}/${d.id}`).set(hrDocChunks(d.data));
       }
-      out.textContent = `✅ اتحمل ${Object.keys(employees).length} موظف و${all.length} مستند`;
-      renderHrList();
+      await renderHrList();
+      document.getElementById('hrImportResult').textContent = `✅ اتحمل ${Object.keys(employees).length} موظف و${all.length} مستند`;
     }catch(e){ out.textContent = `⚠️ الرفع ما كملش${current ? ' عند ' + current : ''} (${(e && (e.code || e.message)) || 'خطأ'})، اختار الملف تاني وهيعيد من الأول بأمان`; }
   }
 
