@@ -4426,7 +4426,7 @@
     let rows = Object.values(byCode).filter(e => intelScoped(e) && e.sales > 0 && e.enough && (!q || String(e.c.name).includes(q) || String(e.c.code) === q) && (!intelFilter.grade || e.grade[1] === intelFilter.grade));
     const total = rows.length;
     rows = rows.sort((a, b) => a.score - b.score || b.bal - a.bal).slice(0, 60);  // worst first; the search reaches the rest
-    document.getElementById('intelList').innerHTML = `<p style="font-size:.8rem; color:var(--muted);">${total} عميل${total > 60 ? '، ظاهر أول 60' : ''}</p>` + (rows.map(e => `<button class="ghost-btn" style="display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCustomerIntel)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">كود ${e.c.code} · رصيد ${intelMoney(e.bal)}</span></span>${intelBadge(e)}</button>`).join('') || '<p class="empty-note">مفيش نتايج.</p>');
+    document.getElementById('intelList').innerHTML = `<p style="font-size:.8rem; color:var(--muted);">${total} عميل${total > 60 ? '، ظاهر أول 60' : ''}</p>` + (rows.map(e => `<button class="ghost-btn" style="display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCustomerIntel)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">كود ${e.c.code} · ${escapeHtml(REP_MAP[e.c.repCode] || 'بدون مندوب')} · رصيد ${intelMoney(e.bal)}</span></span>${intelBadge(e)}</button>`).join('') || '<p class="empty-note">مفيش نتايج.</p>');
   }
   function openCustomerCard(code, back){
     const e = customerIntel().byCode[code];
@@ -4469,7 +4469,7 @@
     const sliding = Object.values(byCode).filter(e => e.gap && e.sinceSale > e.gap * 2 && e.sinceSale <= 120 && e.sales > 0).sort((a, b) => b.sales - a.sales).slice(0, 8);
     const risky = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).sort((a, b) => b.bal - a.bal).slice(0, 8);
     const riskTotal = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).reduce((s, e) => s + e.bal, 0);
-    const custRow = (e, sub) => `<button class="ghost-btn" style="display:flex; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCockpit)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">كود ${e.c.code} · ${sub}</span></span><span>${intelMoney(e.bal)}</span></button>`;
+    const custRow = (e, sub) => `<button class="ghost-btn" style="display:flex; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCockpit)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">كود ${e.c.code} · ${escapeHtml(REP_MAP[e.c.repCode] || 'بدون مندوب')} · ${sub}</span></span><span>${intelMoney(e.bal)}</span></button>`;
     body.innerHTML = `<p style="font-size:.8rem; color:var(--muted);">${label(cur)} مقارنة بـ ${label(prev)}، والبيانات لحد ${intelDate(ref)}.</p>
       <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
         ${card('صافي المبيعات', intelMoney(c.sales - c.ret), delta(c.sales - c.ret, p.sales - p.ret))}
