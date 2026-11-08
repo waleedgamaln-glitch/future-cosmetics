@@ -4393,6 +4393,7 @@
     const per10k = Math.round(commissionBase(target) * 10000 / target);
     const picker = admin ? `<div class="field"><label for="planRep">المندوب</label><select id="planRep" onchange="openTodayPlan(this.value)">${ACCOUNT_REP_CODES.map(c => `<option value="${c}"${c === code ? ' selected' : ''}>${escapeHtml(REP_MAP[c] || String(c))}</option>`).join('')}</select></div>` : '';
     body.innerHTML = `${picker}<p style="font-size:.75rem; color:var(--muted);">حسب البيانات لحد ${intelDate(ref)}</p>
+      ${targetBlock(code)}
       <div class="stmt-bal-card" style="margin-bottom:14px; display:block;">
         <b>هدفك الشهر ده</b>
         <div style="margin-top:6px;">${need ? `محتاج <b>${intelMoney(need)}</b> صافي مبيعات عشان توصل 70% من الهدف وتستحق العمولة.` : 'عديت شرط 70% من الهدف، أي تحصيل دلوقتي بيزود عمولتك.'}</div>
@@ -4407,7 +4408,8 @@
           ${items.length ? `<div style="font-size:.8rem;"><b>يبيعله:</b> ${items.map(it => escapeHtml(it.p.name)).join('، ')}</div>` : ''}
           <div style="display:flex; gap:8px; margin-top:8px;"><button class="ghost-btn" style="font-size:.8rem;" onclick="openCustomerCard(${x.e.c.code}, () => openTodayPlan(${code}))">ملف العميل</button>${intelWhatsApp(x.e)}</div>
         </div>`;
-      }).join('') : '<p class="empty-note">مفيش عملاء محتاجين متابعة حسب البيانات دي.</p>'}`;
+      }).join('') : '<p class="empty-note">مفيش عملاء محتاجين متابعة حسب البيانات دي.</p>'}
+      ${repSellSections(code)}`;
   }
 
   let intelFilter = { q: '', grade: '' };
@@ -4445,6 +4447,7 @@
       ${line('آخر فاتورة', intelDate(e.lastSale))}${line('آخر تحصيل', intelDate(e.lastPay))}${line('متوسط الشراء', e.gap ? `كل ${e.gap} يوم` : '—')}${line('المندوب', escapeHtml(REP_MAP[e.c.repCode] || '—'))}${line('المنطقة', escapeHtml(e.c.region || '—'))}
       ${notes.length ? `<h4 style="margin:16px 0 6px;">ملاحظات</h4><ul style="margin:0; padding-inline-start:18px; font-size:.85rem;">${notes.map(n => `<li>${n}</li>`).join('')}</ul>` : ''}
       ${items.length ? `<h4 style="margin:16px 0 6px;">أكتر أصناف بيشتريها ومتاحة</h4><ul style="margin:0; padding-inline-start:18px; font-size:.85rem;">${items.map(it => `<li>${escapeHtml(it.p.name)}</li>`).join('')}</ul>` : ''}
+      ${customerSellBlock(code)}
       <div style="margin-top:14px;">${intelWhatsApp(e)}</div>`;
   }
 
@@ -4500,6 +4503,210 @@
       <h3 style="margin:12px 0 6px;">محتاج قرار النهارده</h3>${alerts.join('') || '<p class="empty-note">مفيش تنبيهات.</p>'}
       <p style="font-size:.72rem; color:var(--muted); margin:4px 0 14px;">المعدل محسوب على أيام الشهر الميلادية لحد آخر فاتورة، والرصيد من المخزون المباشر.</p>`;
   }
+  // ---------- selling help for reps and the manager: built from the invoice lines already in the app ----------
+  const REP_EMP = { 8: 1011, 68: 1012, 143: 1013, 162: 1014, 170: 1015, 158: 1016, 171: 1017, 131: 1019, 161: 1021, 175: 1044, 176: 1045 };  // rep code -> payroll code
+  const pad6 = c => String(c).padStart(6, '0');
+  const ymOf = d => Math.floor(d / 100);
+  const prevYm = m => (m % 100 === 1) ? m - 100 + 11 : m - 1;
+  let _sell = null;
+  function sellIndex(){
+    if(_sell) return _sell;
+    const { ref } = customerIntel();
+    const refDay = intelDays(ref);
+    const prod = {};
+    PRODUCTS.forEach(p => { if(!prod[pad6(p.code)]) prod[pad6(p.code)] = p; });
+    const byCust = {}, lastSold = {}, monthQty = {}, buyers = {};
+    Object.values(INVOICE_ITEMS).forEach(([d, cust, rep, inv, t, lines]) => {
+      if(t !== 1) return;
+      const m = ymOf(d), age = refDay - intelDays(d);
+      lines.forEach(([code, unit, qty, price, val]) => {
+        const k = pad6(code);
+        const c = (byCust[cust] = byCust[cust] || {});
+        const x = (c[k] = c[k] || { months: new Set(), last: 0, value: 0 });
+        x.months.add(m); x.value += val; if(d > x.last) x.last = d;
+        if(d > (lastSold[k] || 0)) lastSold[k] = d;
+        (monthQty[k] = monthQty[k] || {})[m] = (monthQty[k][m] || 0) + val;
+        if(age <= 120) (buyers[k] = buyers[k] || new Set()).add(cust);
+      });
+    });
+    return (_sell = { ref, refDay, prod, byCust, lastSold, monthQty, buyers });
+  }
+  const inStock = p => p && (p.stock || 0) > 0 && p.price;
+  const addBtn = code => `<button class="ghost-btn" style="width:auto; padding:2px 10px; font-size:.75rem;" onclick="addToCart('${code}')">أضف للطلب</button>`;
+  const itemRow = (p, sub) => `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #EDF1F5;"><span style="font-size:.85rem;">${escapeHtml(p.name)}<span style="display:block; font-size:.72rem; color:var(--muted);">${sub}</span></span>${addBtn(p.code)}</div>`;
+
+  // 1. what customers like this one buy that this one never bought
+  function crossSell(code){
+    const S = sellIndex(), e = customerIntel().byCode[code]; if(!e) return [];
+    const mine = S.byCust[code] || {};
+    const peers = new Set(CUSTOMERS.filter(c => c.code !== code && (e.c.region ? c.region === e.c.region : c.repCode === e.c.repCode)).map(c => c.code));
+    if(!peers.size) return [];
+    return Object.entries(S.buyers).filter(([k]) => !mine[k] && inStock(S.prod[k]))
+      .map(([k, set]) => ({ p: S.prod[k], n: [...set].filter(c => peers.has(c)).length })).filter(x => x.n >= 3)
+      .sort((a, b) => b.n - a.n).slice(0, 5);
+  }
+  // 2. what this customer used to buy every month and stopped
+  function missingItems(code){
+    const S = sellIndex(), mine = S.byCust[code] || {};
+    return Object.entries(mine).filter(([k, x]) => x.months.size >= 2 && S.refDay - intelDays(x.last) > 45 && inStock(S.prod[k]))
+      .map(([k, x]) => ({ p: S.prod[k], months: x.months.size, since: Math.round(S.refDay - intelDays(x.last)) })).sort((a, b) => b.months - a.months || a.since - b.since).slice(0, 5);
+  }
+  function customerSellBlock(code){
+    const cs = crossSell(code), ms = missingItems(code);
+    return (ms.length ? `<h4 style="margin:16px 0 6px;">كان بيشتريها وبطّل</h4>${ms.map(x => itemRow(x.p, `اشتراها في ${x.months} شهور، وآخر مرة من ${x.since} يوم`)).join('')}` : '')
+      + (cs.length ? `<h4 style="margin:16px 0 6px;">بيع معاه: عملاء ${escapeHtml(customerIntel().byCode[code].c.region || 'نفس المندوب')} بياخدوها وهو لأ</h4>${cs.map(x => itemRow(x.p, `${x.n} عميل في المنطقة اشتروها آخر 4 شهور`)).join('')}` : '');
+  }
+  // 3. slow stock worth moving, with this rep's customers who bought it before
+  function slowStockFor(repCode){
+    const S = sellIndex();
+    const mineCust = new Set(CUSTOMERS.filter(c => c.repCode === repCode).map(c => c.code));
+    return PRODUCTS.filter(p => (p.stock || 0) * (p.price || 0) >= 5000 && (!S.lastSold[pad6(p.code)] || S.refDay - intelDays(S.lastSold[pad6(p.code)]) > 60))
+      .map(p => ({ p, value: p.stock * p.price, who: Object.entries(S.byCust).filter(([c, items]) => mineCust.has(Number(c)) && items[pad6(p.code)]).map(([c]) => customerIntel().byCode[c]).filter(Boolean).slice(0, 3) }))
+      .sort((a, b) => b.value - a.value).slice(0, 8);
+  }
+  // 4. target, daily pace and rank among the reps
+  function targetBlock(code){
+    const target = getRepMonthlyTarget(code), { sales } = computeMonthSummary(code);
+    const now = new Date(), daysIn = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(), left = Math.max(1, daysIn - now.getDate() + 1);
+    const peers = ACCOUNT_REP_CODES.filter(c => getRepMonthlyTarget(c) === target).map(c => ({ c, pct: computeMonthSummary(c).sales / getRepMonthlyTarget(c) })).sort((a, b) => b.pct - a.pct);
+    const rank = peers.findIndex(x => x.c === code) + 1;
+    const pct = Math.min(100, Math.round(sales / target * 100));
+    return `<div class="stmt-bal-card" style="margin-bottom:14px; display:block;">
+      <b>إنت فين من هدفك (${intelMoney(target)})</b>
+      <div style="height:10px; background:#E6EDF3; border-radius:6px; margin:8px 0; overflow:hidden;"><div style="height:100%; width:${pct}%; background:${pct >= 70 ? '#1E8449' : '#B9770E'};"></div></div>
+      <div style="font-size:.85rem;">بعت ${intelMoney(sales)} (${pct}%)، ${sales >= target ? 'وعديت الهدف.' : `ومحتاج ${intelMoney((target - sales) / left)} في اليوم لآخر الشهر.`}</div>
+      ${rank ? `<div style="font-size:.85rem; margin-top:4px;">ترتيبك <b>${rank}</b> من ${peers.length} في نسبة تحقيق الهدف.</div>` : ''}
+    </div>`;
+  }
+  // 5. customers who stopped buying, with a call and a WhatsApp offer
+  function callList(code){
+    return Object.values(customerIntel().byCode).filter(e => e.c.repCode === code && e.sales > 0 && e.sinceSale != null && e.sinceSale >= 30 && e.sinceSale <= 150)
+      .sort((a, b) => b.sales - a.sales).slice(0, 10);
+  }
+  function callRow(e){
+    const phone = String(e.c.phone || '').replace(/\D/g, '');
+    const ok = /^01[0125]\d{8}$/.test(phone);
+    const text = `أهلا ${e.c.name}\nوحشتونا في فيوتشر كوزماتكس، عندنا أصناف وعروض جديدة الشهر ده. تحب أعدي عليك أو أبعتلك الطلبية؟`;
+    return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #EDF1F5;">
+      <span style="font-size:.85rem;"><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.72rem; color:var(--muted);">كود ${e.c.code} · آخر فاتورة من ${e.sinceSale} يوم · مشترياته ${intelMoney(e.sales)}</span></span>
+      <span style="display:flex; gap:6px;">${ok ? `<a class="ghost-btn" style="width:auto; padding:2px 10px; font-size:.75rem; text-decoration:none;" href="tel:${phone}">اتصال</a><a class="ghost-btn" style="width:auto; padding:2px 10px; font-size:.75rem; text-decoration:none;" target="_blank" rel="noopener" href="https://wa.me/2${phone}?text=${encodeURIComponent(text)}">واتساب</a>` : '<span style="font-size:.72rem; color:var(--muted);">مفيش تليفون</span>'}</span></div>`;
+  }
+  function repSellSections(code){
+    const slow = slowStockFor(code), calls = callList(code);
+    return `<h3 style="margin:18px 0 6px;">اتصل بيهم: بطّلوا يشتروا من شهر أو أكتر</h3>${calls.map(callRow).join('') || '<p class="empty-note">مفيش.</p>'}
+      <h3 style="margin:18px 0 6px;">صرّف الراكد: بضاعة في المخزن ما اتباعتش من شهرين</h3>
+      ${slow.map(x => `<div style="padding:6px 0; border-bottom:1px solid #EDF1F5; font-size:.85rem;"><b>${escapeHtml(x.p.name)}</b> <span style="color:var(--muted); font-size:.75rem;">رصيد ${fmt(x.p.stock)} قطعة · ${intelMoney(x.value)}</span>${x.who.length ? `<div style="font-size:.75rem;">اشتراها قبل كده من عملاءك: ${x.who.map(w => escapeHtml(w.c.name)).join('، ')}</div>` : ''}</div>`).join('') || '<p class="empty-note">مفيش.</p>'}`;
+  }
+
+  // 6. regions with many customers who don't buy, and who brought customers back this month
+  function opportunityBlock(){
+    const { byCode, ref } = customerIntel();
+    const regions = {};
+    Object.values(byCode).forEach(e => {
+      const r = e.c.region || 'بدون منطقة'; const x = (regions[r] = regions[r] || { all: 0, active: 0 });
+      x.all++; if(e.sales > 0) x.active++;
+    });
+    const rows = Object.entries(regions).map(([r, x]) => ({ r, ...x, idle: x.all - x.active })).filter(x => x.r !== 'بدون منطقة').sort((a, b) => b.idle - a.idle).slice(0, 12);
+    const cur = ymOf(ref), back = {};
+    const firstThisMonth = {}, lastBefore = {};
+    SALES_TX.forEach(([d, inv, cust, rep, t]) => {
+      if(t !== 1) return;
+      if(ymOf(d) === cur){ if(!firstThisMonth[cust] || d < firstThisMonth[cust][0]) firstThisMonth[cust] = [d, rep]; }
+      else if(d > (lastBefore[cust] || 0)) lastBefore[cust] = d;
+    });
+    Object.entries(firstThisMonth).forEach(([cust, [d, rep]]) => { if(!lastBefore[cust] || intelDays(d) - intelDays(lastBefore[cust]) > 60) back[rep] = (back[rep] || 0) + 1; });
+    const backRows = Object.entries(back).sort((a, b) => b[1] - a[1]);
+    return `<h3 style="margin:18px 0 6px;">خريطة الفرص: مناطق فيها عملاء مش بيشتروا</h3>
+      <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>المنطقة</th><th>العملاء</th><th>اشتروا في 2026</th><th>مش بيشتروا</th></tr>
+      ${rows.map(x => `<tr class="stmt-row"><td style="padding:6px;">${escapeHtml(x.r)}</td><td style="text-align:center;">${fmt(x.all)}</td><td style="text-align:center;">${fmt(x.active)} (${Math.round(x.active / x.all * 100)}%)</td><td style="text-align:center; font-weight:700;">${fmt(x.idle)}</td></tr>`).join('')}</table>
+      <h3 style="margin:18px 0 6px;">رجّعوا عملاء الشهر ده</h3><p style="margin:0 0 6px; font-size:.72rem; color:var(--muted);">عميل اشترى الشهر ده، ومكنش اشترى قبلها بشهرين أو أكتر أو خالص في 2026.</p>
+      ${backRows.length ? `<table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>المندوب</th><th>عملاء رجعوا</th></tr>${backRows.map(([r, n]) => `<tr class="stmt-row"><td style="padding:6px;">${escapeHtml(REP_MAP[r] || String(r))}</td><td style="text-align:center;">${n}</td></tr>`).join('')}</table>` : '<p class="empty-note">لسه مفيش.</p>'}`;
+  }
+  // 7. what each rep brings in against what he costs (cost only for the full HR admin)
+  function repReturnBlock(month){
+    const s = {};
+    SALES_TX.forEach(([d, inv, cust, rep, t, amt]) => { if(ymOf(d) !== month) return; const x = (s[rep] = s[rep] || { sales: 0, ret: 0, coll: 0 }); if(t === 1) x.sales += amt; else x.ret += amt; });
+    COLL_TX.forEach(([d, rec, rep, name, amt]) => { if(ymOf(collCloseDate(d)) === month && s[rep]) s[rep].coll += amt; });
+    const reps = Object.keys(REP_EMP).map(Number).filter(r => s[r]);
+    const key = `${Math.floor(month / 100)}-${String(month % 100).padStart(2, '0')}`;
+    const html = cost => `<h3 style="margin:18px 0 6px;">عائد كل مندوب (${hrMonthLabel(key)})</h3>
+      <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>المندوب</th><th>صافي البيع</th><th>المرتجعات</th><th>التحصيل</th>${cost ? '<th>تكلفته</th><th>صافي لكل جنيه</th>' : ''}</tr>
+      ${reps.map(r => { const x = s[r], net = x.sales - x.ret, c = cost && cost[r]; return `<tr class="stmt-row"><td style="padding:6px;">${escapeHtml(REP_MAP[r] || String(r))}</td><td style="text-align:center;">${fmt(Math.round(net))}</td><td style="text-align:center;">${x.sales ? Math.round(x.ret / x.sales * 100) : 0}%</td><td style="text-align:center;">${fmt(Math.round(x.coll))}</td>${cost ? `<td style="text-align:center;">${c ? fmt(Math.round(c)) : '—'}</td><td style="text-align:center; font-weight:700;">${c ? fmt(Math.round(net / c)) : '—'}</td>` : ''}</tr>`; }).join('')}</table>`;
+    if(!hrAdmin()) return Promise.resolve(html(null));
+    return fbDb.ref('hr/salaries').once('value').then(snap => {
+      const sal = snap.val() || {}, cost = {};
+      reps.forEach(r => { const slip = (sal[REP_EMP[r]] || {})[key]; if(slip) cost[r] = slip.earned || slip.net || 0; });
+      return html(cost);
+    }).catch(() => html(null));
+  }
+  // 8. steady sellers that run out within two weeks, with a suggested order
+  function runOutBlock(ref){
+    const S = sellIndex(), m1 = prevYm(ymOf(ref)), months = [m1, prevYm(m1), prevYm(prevYm(m1))];
+    const rows = PRODUCTS.filter(p => (p.stock || 0) > 0).map(p => {
+      const q = S.monthQty[pad6(p.code)] || {}; const v = months.map(m => q[m] || 0);
+      if(!v.every(n => n > 0) || !p.price) return null;
+      const perDay = v.reduce((a, b) => a + b, 0) / 3 / 30 / p.price;  // pieces a day from sales value
+      const days = p.stock / perDay;
+      if(days >= 14) return null;
+      const need = Math.max(0, perDay * 60 - p.stock), size = p.cartonSize || 1;
+      return { p, days: Math.round(days), cartons: Math.ceil(need / size), size };
+    }).filter(Boolean).sort((a, b) => a.days - b.days).slice(0, 15);
+    return `<h3 style="margin:18px 0 6px;">هيخلصوا خلال أسبوعين</h3><p style="margin:0 0 6px; font-size:.72rem; color:var(--muted);">أصناف بتتباع كل شهر، والكمية المقترحة تكفي شهرين بعد الرصيد.</p>
+      <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>الصنف</th><th>الشركة</th><th>الرصيد</th><th>يكفي</th><th>اطلب</th></tr>
+      ${rows.map(x => `<tr class="stmt-row"><td style="padding:6px;">${escapeHtml(x.p.name)}</td><td style="text-align:center;">${escapeHtml(x.p.company || '')}</td><td style="text-align:center;">${fmt(x.p.stock)}</td><td style="text-align:center;">${x.days} يوم</td><td style="text-align:center;">${x.cartons ? `${x.cartons} كرتونة${x.size > 1 ? ` (${x.size})` : ''}` : '—'}</td></tr>`).join('') || '<tr><td colspan="5" class="empty-note">مفيش.</td></tr>'}</table>`;
+  }
+  // 9. invoices this month sold under cost (cost per piece from the admin's owner data)
+  function marginBlock(o, ref){
+    const cost = (o && o.itemCost) || {}; if(!Object.keys(cost).length) return '<p class="empty-note" style="margin-top:12px;">هامش الفواتير هيظهر بعد تحميل ملف تكلفة الأصناف.</p>';
+    const pieces = u => { u = String(u); if(u.startsWith('1/2')) return 6; if(u.includes('دست')) return 12; const m = u.match(/\d+/); return m ? Number(m[0]) : 1; };
+    const cur = ymOf(ref), bad = [], items = {};
+    Object.values(INVOICE_ITEMS).forEach(([d, cust, rep, inv, t, lines]) => {
+      if(t !== 1 || ymOf(d) !== cur) return;
+      let val = 0, cst = 0, known = true;
+      lines.forEach(([code, unit, qty, price, v]) => {
+        const c = cost[pad6(code)]; if(c == null){ known = false; return; }
+        const lc = c * qty * pieces(unit); val += v; cst += lc;
+        if(v < lc){ const x = (items[pad6(code)] = items[pad6(code)] || { loss: 0, n: 0 }); x.loss += lc - v; x.n++; }
+      });
+      if(val && val < cst - 0.5) bad.push({ d, cust, rep, inv, val, cst });  // ignore rounding pennies
+    });
+    bad.sort((a, b) => (a.val - a.cst) - (b.val - b.cst));
+    const prod = sellIndex().prod;
+    const topItems = Object.entries(items).sort((a, b) => b[1].loss - a[1].loss).slice(0, 8);
+    return `<h3 style="margin:18px 0 6px;">فواتير الشهر ده تحت التكلفة</h3>
+      ${bad.length ? `<table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>الفاتورة</th><th>العميل</th><th>المندوب</th><th>الخسارة</th></tr>${bad.slice(0, 10).map(x => `<tr class="stmt-row"><td style="padding:6px;">${x.inv} (${intelDate(x.d)})</td><td>${escapeHtml((customerIntel().byCode[x.cust] || { c: { name: x.cust } }).c.name)}</td><td>${escapeHtml(REP_MAP[x.rep] || String(x.rep))}</td><td style="text-align:center; color:#C0392B; font-weight:700;">${fmt(Math.round(x.cst - x.val))}</td></tr>`).join('')}</table>` : '<p class="empty-note">مفيش فواتير خسرانة الشهر ده.</p>'}
+      ${topItems.length ? `<h4 style="margin:12px 0 6px;">أصناف بتتباع تحت تكلفتها</h4>${topItems.map(([k, x]) => `<div style="font-size:.82rem; padding:4px 0;">${escapeHtml((prod[k] || { name: k }).name)}: خسارة ${intelMoney(x.loss)} في ${x.n} سطر</div>`).join('')}` : ''}`;
+  }
+  // 10. a company's offer: sales, buyers and new buyers during it against the same length before
+  function promoBlock(){
+    const cos = [...new Set(PRODUCTS.map(p => p.company).filter(Boolean))].sort();
+    return `<h3 style="margin:18px 0 6px;">العروض جابت إيه</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+        <div class="field" style="flex:1 1 160px;"><label for="promoCo">الشركة</label><select id="promoCo">${cos.map(c => `<option>${escapeHtml(c)}</option>`).join('')}</select></div>
+        <div class="field" style="flex:1 1 120px;"><label for="promoFrom">من</label><input id="promoFrom" type="date"></div>
+        <div class="field" style="flex:1 1 120px;"><label for="promoTo">إلى</label><input id="promoTo" type="date"></div>
+        <button class="ghost-btn" style="width:auto; margin-bottom:12px;" onclick="runPromo()">احسب</button>
+      </div><div id="promoOut"></div>`;
+  }
+  function runPromo(){
+    const co = document.getElementById('promoCo').value, f = document.getElementById('promoFrom').value, t = document.getElementById('promoTo').value;
+    const out = document.getElementById('promoOut');
+    if(!f || !t || f > t){ out.innerHTML = '<p class="empty-note">اختار تاريخ البداية والنهاية.</p>'; return; }
+    const num = s => Number(s.replace(/-/g, '')), from = num(f), to = num(t);
+    const len = intelDays(to) - intelDays(from) + 1;
+    const dayNum = x => { const dt = new Date(x * 86400000); return dt.getUTCFullYear() * 10000 + (dt.getUTCMonth() + 1) * 100 + dt.getUTCDate(); };
+    const bFrom = dayNum(intelDays(from) - len), bTo = dayNum(intelDays(from) - 1), seenFrom = dayNum(intelDays(from) - 90);
+    const prod = sellIndex().prod;
+    const agg = (a, b) => { let net = 0; const buyers = new Set(); Object.values(INVOICE_ITEMS).forEach(([d, cust, rep, inv, typ, lines]) => { if(d < a || d > b) return; lines.forEach(l => { if((prod[pad6(l[0])] || {}).company === co){ net += typ * l[4]; if(typ === 1) buyers.add(cust); } }); }); return { net, buyers }; };
+    const during = agg(from, to), before = agg(bFrom, bTo), seen = agg(seenFrom, bTo);
+    const fresh = [...during.buyers].filter(c => !seen.buyers.has(c)).length;
+    const delta = (a, b) => b ? `${a >= b ? '▲' : '▼'} ${Math.abs(Math.round((a - b) / b * 100))}%` : '';
+    out.innerHTML = `<table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th></th><th>قبل العرض (${len} يوم)</th><th>أثناء العرض</th><th>التغير</th></tr>
+      <tr class="stmt-row"><td style="padding:6px;">صافي المبيعات</td><td style="text-align:center;">${fmt(Math.round(before.net))}</td><td style="text-align:center;">${fmt(Math.round(during.net))}</td><td style="text-align:center;">${delta(during.net, before.net)}</td></tr>
+      <tr class="stmt-row"><td style="padding:6px;">عملاء اشتروا</td><td style="text-align:center;">${before.buyers.size}</td><td style="text-align:center;">${during.buyers.size}</td><td style="text-align:center;">${delta(during.buyers.size, before.buyers.size)}</td></tr>
+      <tr class="stmt-row"><td style="padding:6px;">عملاء جداد على الشركة</td><td></td><td style="text-align:center; font-weight:700;">${fresh}</td><td style="font-size:.72rem; color:var(--muted);">ما اشتروهاش آخر 90 يوم قبل العرض</td></tr></table>`;
+  }
+
   function openCockpit(){
     if(!currentRep || !currentRep.isAdmin) return;
     const body = intelOpen('قمرة القيادة');
@@ -4522,7 +4729,7 @@
     const risky = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).sort((a, b) => b.bal - a.bal).slice(0, 8);
     const riskTotal = Object.values(byCode).filter(e => e.enough && e.grade[1] === 'خطر' && e.bal > 1).reduce((s, e) => s + e.bal, 0);
     const custRow = (e, sub) => `<button class="ghost-btn" style="display:flex; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px; text-align:right;" onclick="openCustomerCard(${e.c.code}, openCockpit)"><span><b>${escapeHtml(e.c.name)}</b><span style="display:block; font-size:.75rem; color:var(--muted);">كود ${e.c.code} · ${escapeHtml(REP_MAP[e.c.repCode] || 'بدون مندوب')} · ${sub}</span></span><span>${intelMoney(e.bal)}</span></button>`;
-    body.innerHTML = `${cockpitToday(byCode, ref)}<h3 style="margin:18px 0 6px;">آخر شهر مقفول</h3><p style="font-size:.8rem; color:var(--muted);">${label(cur)} مقارنة بـ ${label(prev)}، والبيانات لحد ${intelDate(ref)}.</p>
+    body.innerHTML = `${cockpitToday(byCode, ref)}${runOutBlock(ref)}<h3 style="margin:18px 0 6px;">آخر شهر مقفول</h3><p style="font-size:.8rem; color:var(--muted);">${label(cur)} مقارنة بـ ${label(prev)}، والبيانات لحد ${intelDate(ref)}.</p>
       <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
         ${card('صافي المبيعات', intelMoney(c.sales - c.ret), delta(c.sales - c.ret, p.sales - p.ret))}
         ${card('التحصيل', intelMoney(c.coll), delta(c.coll, p.coll))}
@@ -4534,7 +4741,9 @@
       <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>المندوب</th><th>${label(cur)}</th><th>${label(prev)}</th><th>التغير</th></tr>
       ${repRows.map(x => `<tr class="stmt-row"><td style="padding:6px;">${escapeHtml(REP_MAP[x.r] || String(x.r))}</td><td style="text-align:center;">${fmt(Math.round(x.now))}</td><td style="text-align:center;">${fmt(Math.round(x.was))}</td><td style="text-align:center; color:${x.now < x.was ? '#C0392B' : '#1E8449'};">${delta(x.now, x.was)}</td></tr>`).join('')}</table>
       <h3 style="margin:18px 0 6px;">عملاء كبار بدأوا يقعوا</h3>${sliding.map(e => custRow(e, `آخر فاتورة من ${e.sinceSale} يوم، ومعدله كل ${e.gap} يوم`)).join('') || '<p class="empty-note">مفيش.</p>'}
-      <h3 style="margin:18px 0 6px;">أكبر مديونيات خطر</h3>${risky.map(e => custRow(e, e.sincePay == null ? 'مفيش تحصيل مسجل' : `آخر تحصيل من ${e.sincePay} يوم`)).join('') || '<p class="empty-note">مفيش.</p>'}`;
+      <h3 style="margin:18px 0 6px;">أكبر مديونيات خطر</h3>${risky.map(e => custRow(e, e.sincePay == null ? 'مفيش تحصيل مسجل' : `آخر تحصيل من ${e.sincePay} يوم`)).join('') || '<p class="empty-note">مفيش.</p>'}
+      <div id="repReturnBlock"></div>${opportunityBlock()}${promoBlock()}`;
+    repReturnBlock(cur).then(h => { const box = document.getElementById('repReturnBlock'); if(box) box.innerHTML = h; });
     fbDb.ref('owner').once('value').then(snap => {
       const box = document.getElementById('ownerBlock'); if(!box) return;
       const o = snap.val();
@@ -4547,7 +4756,7 @@
         <h3 style="margin:18px 0 2px;">هامش الربح بالشهر</h3><p style="margin:0 0 6px; font-size:.72rem; color:var(--muted);">من تكلفة الفواتير، وبعض الأصناف تكلفتها مش دقيقة، فخده كمؤشر للاتجاه مش رقم نهائي.</p>
         <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>الشهر</th><th>صافي</th><th>الهامش</th></tr>${months.map(x => `<tr class="stmt-row"><td style="padding:6px;">${hrMonthLabel(x[0])}</td><td style="text-align:center;">${fmt(Math.round(x[1].net))}</td><td style="text-align:center;">${m(x)}%</td></tr>`).join('')}</table>
         <h3 style="margin:18px 0 6px;">أقل الشركات هامشًا (${escapeHtml(o.companiesMonth ? hrMonthLabel(o.companiesMonth) : '')})</h3>
-        <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>الشركة</th><th>صافي</th><th>الهامش</th></tr>${(o.companies || []).map(x => `<tr class="stmt-row"><td style="padding:6px;">${escapeHtml(x.name)}</td><td style="text-align:center;">${fmt(Math.round(x.net))}</td><td style="text-align:center; color:${x.net > x.cost ? 'inherit' : '#C0392B'};">${x.net ? Math.round((x.net - x.cost) / x.net * 1000) / 10 : 0}%</td></tr>`).join('')}</table>`;
+        <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.8rem;"><tr style="background:#F5F8FA;"><th>الشركة</th><th>صافي</th><th>الهامش</th></tr>${(o.companies || []).map(x => `<tr class="stmt-row"><td style="padding:6px;">${escapeHtml(x.name)}</td><td style="text-align:center;">${fmt(Math.round(x.net))}</td><td style="text-align:center; color:${x.net > x.cost ? 'inherit' : '#C0392B'};">${x.net ? Math.round((x.net - x.cost) / x.net * 1000) / 10 : 0}%</td></tr>`).join('')}</table>${marginBlock(o, ref)}`;
     }).catch(() => { const box = document.getElementById('ownerBlock'); if(box) box.innerHTML = '<p class="empty-note">الهامش والموردين مش متاحين، راجع قواعد الحماية.</p>'; });
   }
 
