@@ -1035,6 +1035,7 @@
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 8 a14 14 0 0 1 14 14 v10 l6 10 H12 l6-10 V22 a14 14 0 0 1 14-14 Z"/><path d="M26 50 a6 6 0 0 0 12 0"/></svg>
       <span id="enableNotifBtnLabel">تفعيل إشعارات التحديثات</span>
     </button>
+    <div id="notifDiag" style="font-size:.75rem; color:var(--muted); margin:-4px 6px 10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;"></div>
     <button id="sendUpdateNotifBtn" class="menu-card" style="display:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:18px 20px;" onclick="openSendUpdateNotice()">
       <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 14 L58 32 L6 50 L14 32 Z" stroke-linejoin="round"/></svg>
       <span>إرسال إشعار تحديث بيانات لكل المناديب</span>
@@ -1693,6 +1694,23 @@
     else if(state === 'granted') label.textContent = '✓ الإشعارات مفعّلة (دوس لو مش بتوصلك)';
     else if(state === 'denied') label.textContent = 'الإشعارات ممنوعة — فعّلها من إعدادات المتصفح';
     else label.textContent = 'تفعيل إشعارات التحديثات';
+    refreshNotifDiag();
+  }
+  // what Waleed sends when a phone gets nothing: the subscription id to target, and a local test that skips the push service
+  function refreshNotifDiag(){
+    const box = document.getElementById('notifDiag'); if(!box) return;
+    const sub = oneSignalReady && typeof OneSignal !== 'undefined' ? OneSignal.User.PushSubscription : null;
+    const id = sub && sub.id ? sub.id : '';
+    box.innerHTML = `<span>رقم الجهاز: <b dir="ltr">${id ? id.slice(0, 8) : 'مش مشترك'}</b>${sub && !sub.optedIn ? ' (موقوف)' : ''}</span>`
+      + `<button class="ghost-btn" style="width:auto; padding:2px 10px; font-size:.75rem;" onclick="testLocalNotification()">جرب إشعار على الجهاز ده</button>`;
+  }
+  async function testLocalNotification(){
+    try{
+      if(!('Notification' in window) || Notification.permission !== 'granted'){ showToast('الإشعارات مش مسموحة على الجهاز ده، فعّلها الأول'); return; }
+      const reg = (await navigator.serviceWorker.getRegistration(PUSH_SCOPE)) || (await navigator.serviceWorker.ready);
+      await reg.showNotification('تجربة من الجهاز نفسه', { body: 'لو ظهرت دي، الموبايل بيعرض الإشعارات، والمشكلة في وصولها', icon: 'icon-192.png', tag: 'local-test' });
+      showToast('اتبعت إشعار تجربة، بص على شريط الإشعارات');
+    }catch(e){ showToast('ما قدرتش أعرض إشعار: ' + ((e && e.message) || 'خطأ')); }
   }
 
   const PUSH_SCOPE = '/future-cosmetics/onesignal/';
