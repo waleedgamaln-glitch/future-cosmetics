@@ -1724,9 +1724,26 @@
       oneSignalReady = true;
       OneSignal.User.PushSubscription.addEventListener('change', refreshNotifDiag);
       refreshEnableNotifBtnLabel();
+      askNotifOnce();
       ensurePushAlive().then(refreshNotifDiag); // a phone whose subscription died gets it back on every open, without pressing anything
       document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') ensurePushAlive().then(refreshNotifDiag); });
     });
+  }
+
+  // Chrome hides a permission prompt that no tap asked for, so a logged-in phone that was never asked gets a banner whose button is that tap.
+  function askNotifOnce(){
+    if(!oneSignalReady || !currentRep || !('Notification' in window) || Notification.permission !== 'default' || document.getElementById('notifAsk')) return;
+    try{ if(Date.now() - Number(localStorage.getItem('fc_notif_later') || 0) < 3 * 864e5) return; }catch(e){}
+    const b = document.createElement('div');
+    b.id = 'notifAsk';
+    b.style.cssText = 'position:fixed; left:12px; right:12px; bottom:16px; z-index:9999; background:#0E4A85; color:#fff; border-radius:14px; padding:14px 16px; box-shadow:0 6px 24px rgba(0,0,0,.3); display:flex; gap:10px; align-items:center; font-size:.9rem;';
+    b.innerHTML = '<span style="flex:1">🔔 فعّل الإشعارات عشان توصلك التحديثات أول بأول</span>'
+      + '<button style="background:#fff; color:#0E4A85; border:0; border-radius:10px; padding:8px 14px; font-weight:700; font-family:inherit;">فعّل</button>'
+      + '<button aria-label="بعدين" style="background:transparent; color:#fff; border:0; padding:8px; font-family:inherit;">بعدين</button>';
+    const [yes, later] = b.querySelectorAll('button');
+    yes.onclick = () => { b.remove(); enablePushNotifications(); };
+    later.onclick = () => { b.remove(); try{ localStorage.setItem('fc_notif_later', String(Date.now())); }catch(e){} };
+    document.body.appendChild(b);
   }
 
   // Permission granted but no live subscription: OneSignal can still think it is opted in, so a plain optIn is a no-op; opt out first to force a new one.
@@ -1846,6 +1863,7 @@
         try{ localStorage.setItem('fc_session', JSON.stringify(currentRep)); }catch(e){}
         if(!wasShown){ hideLogin(); restoreDraft(); } else hideLogin();
         startLiveStock();
+        askNotifOnce();
       }).catch(() => {
         // offline: keep the cached profile of this same account if we have it
         if(currentRep && currentRep.uid === user.uid){ hideLogin(); startLiveStock(); }
