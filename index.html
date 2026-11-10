@@ -1722,8 +1722,29 @@
       // The site lives under /future-cosmetics/: the default path (origin root) is a 404, and its own scope keeps it off sw.js's.
       await OneSignal.init({ appId: ONESIGNAL_APP_ID, serviceWorkerPath: 'future-cosmetics/OneSignalSDKWorker.js', serviceWorkerParam: { scope: '/future-cosmetics/onesignal/' } });
       oneSignalReady = true;
+      OneSignal.User.PushSubscription.addEventListener('change', refreshNotifDiag);
       refreshEnableNotifBtnLabel();
+      ensurePushAlive().then(refreshNotifDiag); // a phone whose subscription died gets it back on every open, without pressing anything
+      document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') ensurePushAlive().then(refreshNotifDiag); });
     });
+  }
+
+  // Permission granted but no live subscription: OneSignal can still think it is opted in, so a plain optIn is a no-op; opt out first to force a new one.
+  let ensuringPush = null;
+  function ensurePushAlive(){
+    return ensuringPush = ensuringPush || (async () => {
+      try{
+        if(!oneSignalReady || Notification.permission !== 'granted') return false;
+        if(await pushSubscriptionLive()) return true;
+        const sub = OneSignal.User.PushSubscription;
+        if(sub.optedIn) await sub.optOut().catch(() => {});
+        await sub.optIn().catch(() => {});
+        const ok = await waitForPush(pushSubscriptionLive, 20000);
+        if(ok && currentRep) OneSignal.login(currentRep.code != null ? String(currentRep.code) : 'admin');
+        return ok;
+      }catch(e){ return false; }
+      finally{ ensuringPush = null; }
+    })();
   }
 
   async function enablePushNotifications(){
@@ -1752,12 +1773,8 @@
         showToast('محتاجين إذن الإشعارات عشان تشتغل الخاصية دي');
         return;
       }
-      OneSignal.User.PushSubscription.optIn().catch(() => {});
-      if(await waitForPush(pushSubscriptionLive, 20000)){
-        if(currentRep){
-          const key = currentRep.code != null ? String(currentRep.code) : 'admin';
-          OneSignal.login(key); // tags this subscriber with the rep code, for reference in the OneSignal dashboard
-        }
+      if(await ensurePushAlive()){ // also tags the subscriber with the rep code in OneSignal
+        refreshNotifDiag();
         showToast('تم تفعيل الإشعارات بنجاح');
       } else {
         showToast('الاشتراك ما كملش، اتأكد من النت ودوس تاني');
