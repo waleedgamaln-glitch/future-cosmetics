@@ -4669,7 +4669,7 @@
     const body = intelOpen('عروض الراكد');
     const admin = currentRep && currentRep.isAdmin, me = currentRep && currentRep.code;
     const mine = c => admin || (CUSTOMERS.find(k => k.code === c) || {}).repCode === me;
-    const list = offerItems().map(x => ({ ...x, who: x.buyers.filter(([c]) => mine(c)) })).sort((a, b) => b.who.length - a.who.length || b.p.stock * b.price - a.p.stock * a.price);
+    const list = offerItems().map(x => ({ ...x, who: x.buyers.filter(([c]) => mine(c)) })).sort((a, b) => b.p.stock - a.p.stock);  // biggest stock first, as Waleed asked
     const total = list.reduce((t, x) => t + x.who.length, 0);
     body.innerHTML = `<p style="margin:0 0 12px; font-size:.85rem; color:var(--muted);">أصناف راكدة عليها خصم لحد ما تخلص. تحت كل صنف ${admin ? 'العملاء' : 'عملاءك'} اللي اشتروه قبل كده: ابدأ بيهم. (${list.length} صنف · ${total} عميل)</p>`
       + list.map(x => `<details style="border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px; background:#fff;">
