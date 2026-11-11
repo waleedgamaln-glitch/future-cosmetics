@@ -805,6 +805,10 @@
       <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="14" width="48" height="36" rx="4"/><path d="M8 24 h48"/><circle cx="18" cy="34" r="3" fill="currentColor" stroke="none"/><path d="M28 34 h20 M18 42 h8"/></svg>
       <span>الحسابات</span>
     </button>
+    <button id="hrMenuBtn" class="menu-card" style="display:none;" onclick="openHrScreen()">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="22" r="8"/><path d="M10 50 c0-9 6-15 14-15 s14 6 14 15"/><circle cx="44" cy="26" r="6"/><path d="M40 37 c8 0 14 5 14 13"/></svg>
+      <span>الموارد البشرية</span>
+    </button>
     <button id="fleetMenuBtn" class="menu-card" style="display:none;" onclick="openFleet()">
       <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 40 V26 l8-12 h28 l8 12 h6 v14 z"/><circle cx="18" cy="44" r="6"/><circle cx="46" cy="44" r="6"/><path d="M16 26 h30"/></svg>
       <span>العربيات والتفويل</span>
@@ -2131,6 +2135,7 @@
     document.getElementById('custIntelBtn').style.display = (isAdmin || hasRep) ? 'flex' : 'none';
     document.getElementById('offersBtn').style.display = (typeof STAGNANT_OFFERS !== 'undefined' && (isAdmin || hasRep)) ? 'flex' : 'none';
     document.getElementById('cockpitBtn').style.display = isAdmin ? 'flex' : 'none';
+    document.getElementById('hrMenuBtn').style.display = isAdmin ? 'flex' : 'none';  // a noHr manager lands on his own record
     const pharmBtn = document.getElementById('pharmacyMenuBtn');
     if(pharmBtn) pharmBtn.style.display = (currentRep && (currentRep.isAdmin || PHARMACY_REP_CODES.includes(currentRep.code))) ? 'flex' : 'none';
     arrangeMenu(isAdmin);
@@ -2193,7 +2198,7 @@
 
   // Manager: the home buttons grouped by job; reps keep the plain grid (the original order is restored if a rep signs in after)
   const MENU_SECTIONS = [
-    ['لوحة الإدارة', ['#cockpitBtn', '#accountsHubMenuBtn', "[onclick=\"goTo('reportsMenu')\"]", '#fleetMenuBtn'], 'sec-main'],
+    ['لوحة الإدارة', ['#cockpitBtn', '#accountsHubMenuBtn', "[onclick=\"goTo('reportsMenu')\"]", '#hrMenuBtn', '#fleetMenuBtn'], 'sec-main'],
     ['البيع والعملاء', ['#todayPlanBtn', '#custIntelBtn', '#offersBtn', '[onclick="openArrears()"]'], ''],
     ['الكشوف', ['[onclick="openDebtList()"]', "[onclick=\"goTo('statement')\"]", "[onclick=\"goTo('itemStatement')\"]"], ''],
     ['المتجر', ['[onclick="openRetailStore()"]', '#pharmacyMenuBtn'], ''],
