@@ -4946,6 +4946,7 @@
     if(hrSection === 'slip') renderHrEmployee(hrCode, 'salary');
     else if(hrSection) renderHrEmployee(hrCode);
     else if(hrAdmin() && hrShowingEmployee) renderHrList();
+    else if(currentRep && currentRep.isAdmin) goTo('menu');  // the manager came from the home screen's HR button
     else if(!isEmployeeOnly()) openSettingsScreen();
   }
   function renderHrList(){
@@ -5268,7 +5269,7 @@
     const sun = document.getElementById('sendUpdateNotifBtn');
     if(sun) sun.style.display = (currentRep && currentRep.isAdmin) ? 'flex' : 'none';
     const hb = document.getElementById('hrBtn');
-    if(hb) hb.style.display = (currentRep && (currentRep.isAdmin || currentRep.empCode != null)) ? 'flex' : 'none';
+    if(hb) hb.style.display = (currentRep && !currentRep.isAdmin && currentRep.empCode != null) ? 'flex' : 'none';  // managers open HR from the home screen now; a rep who is also staff keeps "بياناتي" here
     const hl = document.getElementById('hrBtnLabel');
     if(hl && currentRep) hl.textContent = hrAdmin() ? 'الموارد البشرية (للإدارة فقط)' : 'بياناتي';
     const rab = document.getElementById('repAccountsBtn');
