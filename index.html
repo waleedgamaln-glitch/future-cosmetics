@@ -4876,7 +4876,11 @@
     document.getElementById('hrTitle').textContent = titles[section] && !(section === 'data' && !mine) ? titles[section] : (section === 'data' ? 'بيانات الموظف' : (mine ? 'حسابي' : 'موظف'));
     const body = document.getElementById('hrBody');
     body.innerHTML = '<p class="empty-note">جاري التحميل...</p>';
-    const failed = () => { body.innerHTML = '<p class="empty-note">تعذّر تحميل البيانات.</p>' + (section ? '' : hrPasswordBtn()); };
+    const again = `<button class="apply-btn" style="width:100%; margin-top:10px;" onclick="renderHrEmployee(${Number(code)}${section ? `,'${section}'` : ''}${month ? `,'${month}'` : ''})">حاول تاني</button>`;
+    // the reason in brackets is what Waleed sends back when a phone can't load (permission_denied = account not linked, else the network)
+    const failed = e => { clearTimeout(slow); body.innerHTML = `<p class="empty-note">تعذّر تحميل البيانات${e && (e.code || e.message) ? ` (${escapeHtml(String(e.code || e.message))})` : ''}.</p>` + again + (section ? '' : hrPasswordBtn()); };
+    if(!fbDb){ setTimeout(() => { if(hrShowingEmployee && hrCode === code && hrSection === (section || null)) renderHrEmployee(code, section, month); }, 1500); return; }  // opened from the saved session before the database was ready
+    const slow = setTimeout(() => { if(body.textContent.includes('جاري التحميل')) body.innerHTML = '<p class="empty-note">التحميل مطوّل، اتأكد من النت (timeout).</p>' + again + (section ? '' : hrPasswordBtn()); }, 20000);
     if(!section) return hrRenderIcons(key, body).catch(failed);
     if(section === 'data') return hrRenderData(key, body).catch(failed);
     if(section === 'salary') return hrRenderSalaryMonths(key, body).catch(failed);
