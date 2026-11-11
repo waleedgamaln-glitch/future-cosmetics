@@ -146,6 +146,20 @@
   .menu-card svg{ width:44px; height:44px; }
   .menu-card span{ font-weight:800; font-size:.92rem; text-align:center; }
   .menu-card:active{ transform:scale(.97); }
+  /* the manager's home: the same buttons grouped under headings, smaller so it fits without scrolling far */
+  .menu-sec-title{ display:flex; align-items:center; gap:8px; margin:22px 2px 0; font-weight:800; font-size:.86rem; color:var(--teal-dark); }
+  .menu-sec-title:first-child{ margin-top:4px; }
+  .menu-sec-title::after{ content:''; flex:1; height:1px; background:var(--line); }
+  .menu-grid.compact{ grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-top:10px; }
+  .menu-grid.compact > .menu-card{ grid-column:span 2; }
+  /* a row that isn't full: two left share it, one left becomes a wide bar */
+  .menu-grid.compact > .menu-card:nth-last-child(2):nth-child(3n+1), .menu-grid.compact > .menu-card:last-child:nth-child(3n+2){ grid-column:span 3; }
+  .menu-grid.compact > .menu-card:last-child:nth-child(3n+1){ grid-column:1 / -1; flex-direction:row; min-height:64px; padding:12px 18px; gap:12px; }
+  .menu-grid.compact .menu-card{ padding:16px 6px; gap:8px; border-radius:14px; min-height:104px; justify-content:center; }
+  .menu-grid.compact .menu-card svg{ width:32px; height:32px; }
+  .menu-grid.compact .menu-card span{ font-size:.78rem; line-height:1.35; }
+  .menu-grid.compact .sec-main{ background:linear-gradient(150deg,#0B2E57 0%, #0E4A85 100%); }
+
   .menu-card.pharmacy-card{
     background:linear-gradient(150deg,#0F6B4C 0%, #1E9E6B 60%, #36B37E 100%);
   }
@@ -2119,6 +2133,7 @@
     document.getElementById('cockpitBtn').style.display = isAdmin ? 'flex' : 'none';
     const pharmBtn = document.getElementById('pharmacyMenuBtn');
     if(pharmBtn) pharmBtn.style.display = (currentRep && (currentRep.isAdmin || PHARMACY_REP_CODES.includes(currentRep.code))) ? 'flex' : 'none';
+    arrangeMenu(isAdmin);
     maybeShowDataUpdateNotice();
     if(fbDb){
       watchGroupChatUnread();
@@ -2174,6 +2189,33 @@
     document.body.classList.remove('has-bottom-nav');
     if(presenceRef){ try{ presenceRef.remove(); }catch(e){} presenceRef = null; }
     if(presenceListenerRef){ try{ presenceListenerRef.off('value'); }catch(e){} presenceListenerRef = null; }
+  }
+
+  // Manager: the home buttons grouped by job; reps keep the plain grid (the original order is restored if a rep signs in after)
+  const MENU_SECTIONS = [
+    ['لوحة الإدارة', ['#cockpitBtn', '#accountsHubMenuBtn', "[onclick=\"goTo('reportsMenu')\"]", '#fleetMenuBtn'], 'sec-main'],
+    ['البيع والعملاء', ['#todayPlanBtn', '#custIntelBtn', '#offersBtn', '[onclick="openArrears()"]'], ''],
+    ['الكشوف', ['[onclick="openDebtList()"]', "[onclick=\"goTo('statement')\"]", "[onclick=\"goTo('itemStatement')\"]"], ''],
+    ['المتجر', ['[onclick="openRetailStore()"]', '#pharmacyMenuBtn'], ''],
+  ];
+  let menuOriginal = null;
+  function arrangeMenu(isAdmin){
+    const screen = document.getElementById('mainMenuScreen');
+    const grid = screen.querySelector('.menu-grid:not(.compact)') || screen.querySelector('.menu-grid');
+    if(!menuOriginal) menuOriginal = [...grid.children];
+    screen.querySelectorAll('.menu-sec').forEach(el => el.remove());
+    menuOriginal.forEach(b => { grid.appendChild(b); b.classList.remove('sec-main'); });
+    grid.style.display = '';
+    if(!isAdmin) return;
+    const anchor = grid;
+    MENU_SECTIONS.forEach(([title, sels, cls]) => {
+      const wrap = document.createElement('div'); wrap.className = 'menu-sec';
+      wrap.innerHTML = `<div class="menu-sec-title">${title}</div>`;
+      const g = document.createElement('div'); g.className = 'menu-grid compact';
+      sels.forEach(sel => { const b = grid.querySelector(sel); if(b){ if(cls) b.classList.add(cls); g.appendChild(b); } });
+      wrap.appendChild(g); anchor.parentNode.insertBefore(wrap, anchor);
+    });
+    if(!grid.children.length) grid.style.display = 'none';  // anything not placed stays in the old grid underneath
   }
 
   function applyRepLock(){
