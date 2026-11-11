@@ -4867,6 +4867,7 @@
   }
   function hrLine(label, value){ return `<div style="display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid #EDF1F5;"><span style="color:var(--muted);">${label}</span><b style="text-align:left; overflow-wrap:anywhere;">${value}</b></div>`; }
   // section: none = the icons, or 'data' / 'salary' / 'slip' / 'docs' / 'attendance'
+  let hrDbWaits = 0;
   function renderHrEmployee(code, section, month){
     hrShowingEmployee = true; hrCode = code; hrSection = section || null;
     const key = String(code);
@@ -4878,9 +4879,16 @@
     body.innerHTML = '<p class="empty-note">جاري التحميل...</p>';
     const again = `<button class="apply-btn" style="width:100%; margin-top:10px;" onclick="renderHrEmployee(${Number(code)}${section ? `,'${section}'` : ''}${month ? `,'${month}'` : ''})">حاول تاني</button>`;
     // the reason in brackets is what Waleed sends back when a phone can't load (permission_denied = account not linked, else the network)
+    let slow;
     const failed = e => { clearTimeout(slow); body.innerHTML = `<p class="empty-note">تعذّر تحميل البيانات${e && (e.code || e.message) ? ` (${escapeHtml(String(e.code || e.message))})` : ''}.</p>` + again + (section ? '' : hrPasswordBtn()); };
-    if(!fbDb){ setTimeout(() => { if(hrShowingEmployee && hrCode === code && hrSection === (section || null)) renderHrEmployee(code, section, month); }, 1500); return; }  // opened from the saved session before the database was ready
-    const slow = setTimeout(() => { if(body.textContent.includes('جاري التحميل')) body.innerHTML = '<p class="empty-note">التحميل مطوّل، اتأكد من النت (timeout).</p>' + again + (section ? '' : hrPasswordBtn()); }, 20000);
+    if(!fbDb){  // opened from the saved session before the database was ready: retry for a while, then say so instead of loading forever
+      hrDbWaits = (hrDbWaits || 0) + 1;
+      if(hrDbWaits > 12){ hrDbWaits = 0; ensureFirebaseReady(); failed({ code: 'no database connection' }); return; }
+      setTimeout(() => { if(hrShowingEmployee && hrCode === code && hrSection === (section || null)) renderHrEmployee(code, section, month); }, 1500);
+      return;
+    }
+    hrDbWaits = 0;
+    slow = setTimeout(() => { if(body.textContent.includes('جاري التحميل')) body.innerHTML = '<p class="empty-note">التحميل مطوّل، اتأكد من النت (timeout).</p>' + again + (section ? '' : hrPasswordBtn()); }, 20000);
     if(!section) return hrRenderIcons(key, body).catch(failed);
     if(section === 'data') return hrRenderData(key, body).catch(failed);
     if(section === 'salary') return hrRenderSalaryMonths(key, body).catch(failed);
