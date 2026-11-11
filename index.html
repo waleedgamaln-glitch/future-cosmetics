@@ -1756,18 +1756,32 @@
     document.body.appendChild(b);
   }
 
+  // OneSignal external id = who this phone belongs to, so a push can reach one employee (send_hr_push.py): emp<code> for staff, else the rep code.
+  let pushTaggedAs = null;
+  function pushOwnerKey(){
+    if(!currentRep) return null;
+    if(currentRep.empCode != null) return 'emp' + currentRep.empCode;
+    return currentRep.code != null ? String(currentRep.code) : 'admin';
+  }
+  function pushTagOwner(){
+    const key = pushOwnerKey();
+    if(!key || key === pushTaggedAs || !oneSignalReady) return;
+    pushTaggedAs = key;
+    try{ OneSignal.login(key); }catch(e){ pushTaggedAs = null; }
+  }
+
   // Permission granted but no live subscription: OneSignal can still think it is opted in, so a plain optIn is a no-op; opt out first to force a new one.
   let ensuringPush = null;
   function ensurePushAlive(){
     return ensuringPush = ensuringPush || (async () => {
       try{
         if(!oneSignalReady || Notification.permission !== 'granted') return false;
-        if(await pushSubscriptionLive()) return true;
+        if(await pushSubscriptionLive()){ pushTagOwner(); return true; }
         const sub = OneSignal.User.PushSubscription;
         if(sub.optedIn) await sub.optOut().catch(() => {});
         await sub.optIn().catch(() => {});
         const ok = await waitForPush(pushSubscriptionLive, 20000);
-        if(ok && currentRep) OneSignal.login(currentRep.code != null ? String(currentRep.code) : 'admin');
+        if(ok) pushTagOwner();
         return ok;
       }catch(e){ return false; }
       finally{ ensuringPush = null; }
@@ -1875,6 +1889,8 @@
         startLiveStock();
         askNotifOnce();
         refreshFleetBtn();
+        ensurePushAlive();  // also tags this phone with its owner for personal pushes
+        showAnnouncements();
       }).catch(() => {
         // offline: keep the cached profile of this same account if we have it
         if(currentRep && currentRep.uid === user.uid){ hideLogin(); startLiveStock(); }
@@ -2188,7 +2204,7 @@
     if(target){
       const el = document.getElementById(target);
       if(el) el.style.display = 'block';
-      currentScreenId = target;
+      currentScreenId = target; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     }
     const bag = document.getElementById('bagBtn');
@@ -2307,7 +2323,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('reportScreen').style.display = 'block';
-    currentScreenId = 'reportScreen';
+    currentScreenId = 'reportScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -3254,7 +3270,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('debtListScreen').style.display = 'block';
-    currentScreenId = 'debtListScreen';
+    currentScreenId = 'debtListScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -3438,7 +3454,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('arrearsScreen').style.display = 'block';
-    currentScreenId = 'arrearsScreen';
+    currentScreenId = 'arrearsScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -3648,7 +3664,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('accountsHubScreen').style.display = 'block';
-    currentScreenId = 'accountsHubScreen';
+    currentScreenId = 'accountsHubScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     setBottomNavActive(null);
     const bag = document.getElementById('bagBtn');
@@ -3700,7 +3716,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('salesAnalysisScreen').style.display = 'block';
-    currentScreenId = 'salesAnalysisScreen';
+    currentScreenId = 'salesAnalysisScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     setBottomNavActive(null);
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -3801,7 +3817,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('suppliersReportScreen').style.display = 'block';
-    currentScreenId = 'suppliersReportScreen';
+    currentScreenId = 'suppliersReportScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     setBottomNavActive(null);
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -3859,7 +3875,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('carRouteScreen').style.display = 'block';
-    currentScreenId = 'carRouteScreen';
+    currentScreenId = 'carRouteScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     setBottomNavActive(null);
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -3894,7 +3910,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('myRouteLogScreen').style.display = 'block';
-    currentScreenId = 'myRouteLogScreen';
+    currentScreenId = 'myRouteLogScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     setBottomNavActive(null);
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -4121,7 +4137,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('invoiceLogScreen').style.display = 'block';
-    currentScreenId = 'invoiceLogScreen';
+    currentScreenId = 'invoiceLogScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     setBottomNavActive(null);
     const bag = document.getElementById('bagBtn');
@@ -4198,7 +4214,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('returnsScreen').style.display = 'block';
-    currentScreenId = 'returnsScreen';
+    currentScreenId = 'returnsScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     setBottomNavActive(null);
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -4356,7 +4372,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('accountScreen').style.display = 'block';
-    currentScreenId = 'accountScreen';
+    currentScreenId = 'accountScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     setBottomNavActive('bnavAccount');
     const bag = document.getElementById('bagBtn');
@@ -4856,7 +4872,14 @@
       const list = Object.entries(snap.val() || {}).sort((a, b) => Number(a[0]) - Number(b[0]));
       const tool = `<div class="field no-print"><label for="hrImportFile">تحميل بيانات ومستندات الموظفين (hr_data.json) أو المرتبات (hr_salaries.json) أو السلف (hr_advances.json) أو أنواع المستندات</label><input id="hrImportFile" type="file" accept=".json" onchange="importHrData(this)"></div><div id="hrImportResult" style="margin-bottom:12px; font-size:.85rem; font-weight:700;"></div>`;
       if(!list.length){ body.innerHTML = tool + '<p class="empty-note">لسه بيانات الموظفين ما اتحملتش.</p>'; return; }
-      body.innerHTML = tool + `<div class="field"><input id="hrSearch" placeholder="ابحث بالاسم أو الكود" oninput="filterHrList(this.value)"></div>
+      const names = Object.fromEntries(list);
+      fbDb.ref('hr/docIndex').once('value').then(s2 => {
+        const due = [];
+        Object.entries(s2.val() || {}).forEach(([k, docs]) => Object.values(docs || {}).forEach(d => { if(hrDocDue(d)) due.push([k, d]); }));
+        const box = document.getElementById('hrDueDocs');
+        if(box && due.length) box.innerHTML = `<h3 style="margin:0 0 8px;">مستندات بتخلص (${due.length})</h3>` + due.sort((a, b) => a[1].expires.localeCompare(b[1].expires)).map(([k, d]) => `<button class="menu-card" style="flex-direction:row; justify-content:space-between; gap:10px; padding:10px 14px; width:100%; margin-bottom:6px; color:#C0392B;" onclick="renderHrEmployee(${Number(k)},'docs')"><b>${escapeHtml((names[k] || {}).name || k)}</b><span style="font-size:.8rem;">${escapeHtml(hrDocDueText(d))}</span></button>`).join('');
+      }).catch(() => {});
+      body.innerHTML = tool + annForm() + `<div id="hrDueDocs"></div><div class="field"><input id="hrSearch" placeholder="ابحث بالاسم أو الكود" oninput="filterHrList(this.value)"></div>
         <p style="font-size:.85rem; color:var(--muted);">${list.length} موظف</p>
         <div id="hrList">${list.map(([k, e]) => `<button class="menu-card hr-row" data-q="${escapeHtml(k + ' ' + e.name).replace(/"/g, '&quot;')}" style="flex-direction:row; justify-content:space-between; gap:10px; padding:12px 14px; width:100%; margin-bottom:8px;" onclick="renderHrEmployee(${Number(k)})"><span style="font-weight:700;">${escapeHtml(e.name)}</span><span style="font-size:.8rem; color:var(--muted);">${escapeHtml(e.title || '')} · ${Number(k)}</span></button>`).join('')}</div>`;
     }).catch(() => { body.innerHTML = '<p class="empty-note">تعذّر تحميل البيانات.</p>'; });
@@ -4902,8 +4925,13 @@
       const e = snap.val();
       if(!e){ body.innerHTML = '<p class="empty-note">بياناتك لسه ما اتسجلتش، كلّم الإدارة.</p>' + hrPasswordBtn(); return; }
       const tile = (section, icon, label) => `<button class="menu-card" style="padding:22px 10px; gap:8px; min-height:112px;" onclick="renderHrEmployee(${Number(key)},'${section}')"><span style="font-size:2rem; line-height:1;" aria-hidden="true">${icon}</span><span style="font-weight:700;">${label}</span></button>`;
-      body.innerHTML = `<h3 style="margin:0 0 4px;">${escapeHtml(e.name)}</h3><p style="margin:0 0 16px; font-size:.85rem; color:var(--muted);">${escapeHtml(e.title || '')} · ${Number(key)}</p>
-        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;">${tile('salary','💰','المرتب')}${tile('docs','📄','المستندات')}${tile('attendance','🕘','الحضور والانصراف')}${tile('advances','💵','السلف')}${tile('data','👤','البيانات')}</div>${hrPasswordBtn()}`;
+      fbDb.ref('hr/docIndex/' + key).once('value').then(s2 => {
+        const due = Object.values(s2.val() || {}).filter(hrDocDue);
+        const box = document.getElementById('hrDocAlerts');
+        if(box && due.length) box.innerHTML = due.map(d => `<div style="padding:10px 12px; border-radius:10px; background:#FDECEA; color:#C0392B; font-weight:700; margin-bottom:8px;">⚠ ${escapeHtml(hrDocDueText(d))}، جدده وابعت صورته للإدارة</div>`).join('');
+      }).catch(() => {});
+      body.innerHTML = `<div id="hrAnnBox"></div><div id="hrDocAlerts"></div><h3 style="margin:0 0 4px;">${escapeHtml(e.name)}</h3><p style="margin:0 0 16px; font-size:.85rem; color:var(--muted);">${escapeHtml(e.title || '')} · ${Number(key)}</p>
+        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;">${tile('salary','💰','المرتب')}${tile('docs','📄','المستندات')}${tile('attendance','🕘','الحضور والانصراف')}${tile('advances','💵','السلف')}${tile('data','👤','البيانات')}</div>${hrPasswordBtn()}`; showAnnouncements();
     });
   }
   function hrRenderData(key, body){
@@ -4944,6 +4972,7 @@
             ${hrIsImage(d) ? `<img data-hr-doc="${escapeHtml(id)}" alt="${escapeHtml(d.type || 'مستند')}" style="display:block; width:100%; height:170px; object-fit:contain; background:#F5F8FA; border-radius:6px;">` : `<span style="display:flex; align-items:center; justify-content:center; height:170px; background:#F5F8FA; border-radius:6px; font-weight:700;">📄 ملف PDF، دوس عشان يفتح</span>`}
           </button>
           <div style="font-weight:700; margin-top:6px;">${escapeHtml(d.type || 'مستند')}</div>
+          ${hrAdmin() ? `<label style="display:block; font-size:.75rem; color:var(--muted); margin-top:4px;">ينتهي يوم <input type="date" value="${escapeHtml(d.expires || '')}" onchange="hrSetDocExpiry('${key}','${escapeHtml(id)}',this.value)" style="width:100%; font-family:inherit;"></label>` : (d.expires ? `<div style="font-size:.78rem; color:${hrDocDue(d) ? '#C0392B' : 'var(--muted)'};">ينتهي ${escapeHtml(d.expires.split('-').reverse().join('/'))}</div>` : '')}
         </div>`).join('')}</div>`;
       loadHrThumbs(key);
     });
@@ -4953,10 +4982,18 @@
     return fbDb.ref('hr/attendance/' + key).once('value').then(snap => {
       const months = Object.entries(snap.val() || {}).sort((a, b) => b[0].localeCompare(a[0]));
       if(!months.length){ body.innerHTML = '<p class="empty-note">لسه بيانات البصمة ما اتسجلتش.</p>'; return; }
-      body.innerHTML = months.map(([ym, days]) => {
+      const stat = days => { const l = Object.values(days); return { present: l.filter(d => d.in || d.out).length, lateDays: l.filter(d => Number(d.late) > 0).length, late: l.reduce((t, d) => t + (Number(d.late) || 0), 0) }; };
+      body.innerHTML = months.map(([ym, days], i) => {
         const list = Object.entries(days).sort((a, b) => a[0].localeCompare(b[0]));
-        const late = list.reduce((sum, [, d]) => sum + (Number(d.late) || 0), 0);
-        return `<h3 style="margin:16px 0 4px;">${hrMonthLabel(ym)}</h3><p style="margin:0 0 8px; font-weight:700; color:${late ? '#C0392B' : 'inherit'};">إجمالي التأخير: ${Math.floor(late / 60)} ساعة و${late % 60} دقيقة</p>
+        const st = stat(days), late = st.late, prev = months[i + 1] ? stat(months[i + 1][1]) : null;  // months run newest first, so i + 1 is the month before
+        const diff = prev ? late - prev.late : 0;
+        const cmp = !prev ? '' : diff === 0 ? 'زي الشهر اللي فات' : `${diff > 0 ? '⬆ أكتر' : '⬇ أقل'} من الشهر اللي فات بـ ${Math.abs(diff)} دقيقة`;
+        return `<h3 style="margin:16px 0 4px;">${hrMonthLabel(ym)}</h3>
+          <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:0 0 8px; text-align:center;">
+            <div style="background:#F5F8FA; border-radius:10px; padding:8px;"><div style="font-size:.75rem; color:var(--muted);">أيام حضور</div><b>${st.present}</b></div>
+            <div style="background:#F5F8FA; border-radius:10px; padding:8px;"><div style="font-size:.75rem; color:var(--muted);">أيام تأخير</div><b style="color:${st.lateDays ? '#C0392B' : 'inherit'};">${st.lateDays}</b></div>
+            <div style="background:#F5F8FA; border-radius:10px; padding:8px;"><div style="font-size:.75rem; color:var(--muted);">إجمالي التأخير</div><b style="color:${late ? '#C0392B' : 'inherit'};">${Math.floor(late / 60)}س ${late % 60}د</b></div>
+          </div>${cmp ? `<p style="margin:0 0 8px; font-size:.8rem; font-weight:700; color:${diff > 0 ? '#C0392B' : '#1E9E6B'};">${cmp}</p>` : ''}
           <table class="rep-table" style="width:100%; border-collapse:collapse; font-size:.85rem;"><tr style="background:#F5F8FA;"><th>اليوم</th><th>حضور</th><th>انصراف</th><th>تأخير</th></tr>
           ${list.map(([dd, d]) => `<tr class="stmt-row"><td style="text-align:center; padding:6px;">${escapeHtml(dd)}</td><td style="text-align:center;">${escapeHtml(d.in || '—')}</td><td style="text-align:center;">${escapeHtml(d.out || '—')}</td><td style="text-align:center; color:${d.late ? '#C0392B' : 'inherit'};">${d.late ? escapeHtml(d.late) + ' د' : '—'}</td></tr>`).join('')}</table>`;
       }).join('');
@@ -4978,6 +5015,45 @@
           ${list.map(m => `<tr class="stmt-row"><td style="text-align:center; padding:6px; white-space:nowrap;">${escapeHtml(m[0].slice(8))}</td><td style="padding:6px;">${escapeHtml(m[1] || '—')}</td><td style="text-align:center; color:#C0392B;">${m[2] ? fmt(m[2]) : ''}</td><td style="text-align:center; color:#1E9E6B;">${m[3] ? fmt(m[3]) : ''}</td><td style="text-align:center; font-weight:700;">${fmt(m[4])}</td></tr>`).join('')}
           <tr style="background:#F5F8FA; font-weight:800;"><td colspan="2" style="padding:6px;">إجمالي ${hrMonthLabel(ym)}</td><td style="text-align:center; color:#C0392B;">${fmt(Math.round(list.reduce((t, m) => t + m[2], 0) * 100) / 100)}</td><td style="text-align:center; color:#1E9E6B;">${fmt(Math.round(list.reduce((t, m) => t + m[3], 0) * 100) / 100)}</td><td style="text-align:center;">${fmt(list[list.length - 1][4])}</td></tr></table>`).join('')}`;
     });
+  }
+  const HR_DOC_WARN_DAYS = 30;
+  function hrDocDue(d){ return !!d.expires && (new Date(d.expires) - Date.now()) / 864e5 <= HR_DOC_WARN_DAYS; }  // also true once expired
+  function hrDocDueText(d){ const days = Math.ceil((new Date(d.expires) - Date.now()) / 864e5); return days < 0 ? `${d.type || 'مستند'} خلص من ${-days} يوم` : `${d.type || 'مستند'} بيخلص بعد ${days} يوم (${d.expires.split('-').reverse().join('/')})`; }
+  function hrSetDocExpiry(key, id, value){
+    fbDb.ref(`hr/docIndex/${key}/${id}/expires`).set(value || null).then(() => showToast(value ? 'اتسجل تاريخ الانتهاء' : 'اتشال التاريخ')).catch(() => showToast('ما اتحفظش، حاول تاني'));
+  }
+  // announcements/<id> = { title, body, ts, by }; the PC sends the push (auto_update.py) and marks it pushed
+  function annForm(){
+    return `<details class="no-print" style="margin-bottom:12px; border:1px solid var(--line); border-radius:12px; padding:10px 12px;"><summary style="font-weight:700; cursor:pointer;">📢 إعلان جديد لكل الموظفين والمناديب</summary>
+      <div class="field" style="margin-top:8px;"><input id="annTitle" placeholder="العنوان (مثلاً: إجازة رسمية الخميس)"></div>
+      <div class="field"><textarea id="annBody" rows="3" placeholder="التفاصيل" style="width:100%; font-family:inherit; padding:8px; border:1px solid var(--line); border-radius:8px;"></textarea></div>
+      <button class="apply-btn" style="width:100%;" onclick="postAnnouncement()">نشر الإعلان</button></details>`;
+  }
+  function postAnnouncement(){
+    const title = document.getElementById('annTitle').value.trim(), text = document.getElementById('annBody').value.trim();
+    if(!title) return showToast('اكتب عنوان الإعلان');
+    fbDb.ref('announcements').push({ title, body: text, ts: Date.now(), by: currentRep.name || '' })
+      .then(() => { document.getElementById('annTitle').value = ''; document.getElementById('annBody').value = ''; showToast('اتنشر الإعلان، والإشعار هيوصل للموبايلات في خلال دقايق'); })
+      .catch(() => showToast('ما اتنشرش، حاول تاني'));
+  }
+  function showAnnouncements(){
+    if(!fbDb || !currentRep) return;
+    fbDb.ref('announcements').orderByChild('ts').limitToLast(5).once('value').then(snap => {
+      const list = Object.entries(snap.val() || {}).sort((a, b) => b[1].ts - a[1].ts).filter(([, a]) => Date.now() - a.ts < 30 * 864e5);
+      if(!list.length) return;
+      let seen = ''; try{ seen = localStorage.getItem('fc_ann_seen') || ''; }catch(e){}
+      const [id, a] = list[0];
+      const card = (x, big) => `<div style="padding:12px 14px; border-radius:12px; background:#EAF6FC; border:1px solid #BFE3F5; margin-bottom:10px;"><div style="font-weight:800; ${big ? 'font-size:1.05rem;' : ''}">📢 ${escapeHtml(x.title)}</div>${x.body ? `<div style="margin-top:4px; white-space:pre-line;">${escapeHtml(x.body)}</div>` : ''}<div style="font-size:.72rem; color:var(--muted); margin-top:4px;">${new Date(x.ts).toLocaleDateString('ar-EG')}</div></div>`;
+      const box = document.getElementById('hrAnnBox');  // staff home keeps the latest ones in view
+      if(box) box.innerHTML = list.slice(0, 3).map(([, x]) => card(x)).join('');
+      if(seen === id || document.getElementById('annPopup')) return;
+      const pop = document.createElement('div');
+      pop.id = 'annPopup';
+      pop.style.cssText = 'position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; padding:16px;';
+      pop.innerHTML = `<div style="background:#fff; border-radius:16px; padding:16px; max-width:420px; width:100%;">${card(a, true)}<button class="apply-btn" style="width:100%;">تمام</button></div>`;
+      pop.querySelector('button').onclick = () => { pop.remove(); try{ localStorage.setItem('fc_ann_seen', id); }catch(e){} };
+      document.body.appendChild(pop);
+    }).catch(() => {});
   }
   function hrIsImage(d){ return /\.(jpe?g|png)$/i.test(d.name || ''); }
   // PDFs stay click-to-open: some are several MB, and phones can't preview them inline anyway.
@@ -5096,7 +5172,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('settingsScreen').style.display = 'block';
-    currentScreenId = 'settingsScreen';
+    currentScreenId = 'settingsScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     setBottomNavActive('bnavSettings');
     const bag = document.getElementById('bagBtn');
@@ -5154,7 +5230,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('routeScreen').style.display = 'block';
-    currentScreenId = 'routeScreen';
+    currentScreenId = 'routeScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -5280,7 +5356,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('visitReportScreen').style.display = 'block';
-    currentScreenId = 'visitReportScreen';
+    currentScreenId = 'visitReportScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -5322,7 +5398,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('myVisitReportsLogScreen').style.display = 'block';
-    currentScreenId = 'myVisitReportsLogScreen';
+    currentScreenId = 'myVisitReportsLogScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -5556,7 +5632,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('visitReportsAdminScreen').style.display = 'block';
-    currentScreenId = 'visitReportsAdminScreen';
+    currentScreenId = 'visitReportsAdminScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
@@ -5776,7 +5852,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('visitReportDetailScreen').style.display = 'block';
-    currentScreenId = 'visitReportDetailScreen';
+    currentScreenId = 'visitReportDetailScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     setBottomNavActive(null);
     const bag = document.getElementById('bagBtn');
@@ -5853,7 +5929,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('chatScreen').style.display = 'flex';
-    currentScreenId = 'chatScreen';
+    currentScreenId = 'chatScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     setBottomNavActive('bnavChat');
     const bag = document.getElementById('bagBtn');
@@ -6149,7 +6225,7 @@
       if(el) el.style.display = 'none';
     });
     document.getElementById('orderHistoryScreen').style.display = 'block';
-    currentScreenId = 'orderHistoryScreen';
+    currentScreenId = 'orderHistoryScreen'; window.scrollTo(0, 0);  // a new screen opens at its top, not where the last one was scrolled
     updateGlobalDownloadBtn();
     const bag = document.getElementById('bagBtn');
     if(bag) bag.style.display = 'none';
