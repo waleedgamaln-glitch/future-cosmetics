@@ -7200,6 +7200,17 @@
     if(!b || !currentRep) return;
     try{ await loadFleetBase(); }catch(e){ fleetCars = {}; }
     b.style.display = (fleetIsAdmin() || fleetMine().length) ? 'flex' : 'none';
+    const d = fleetDraft();  // the phone closed the app while the camera was open: go back to the half-done form
+    if(d && fleetCars[d.car] && !document.getElementById('fleetBody').innerHTML.trim()){
+      await openFleet(); fleetGo({ v:'form', type: d.type, car: d.car }); showToast('رجعتلك الصور اللي اتصورت، كمّل');
+    }
+  }
+  // photos are kept on the phone as they are taken, so an Android camera that kills the app loses nothing
+  function fleetDraft(){
+    try{ const d = JSON.parse(localStorage.getItem('fleetDraft') || 'null'); return d && Date.now() - d.at < 6 * 3600000 ? d : null; }catch(e){ return null; }
+  }
+  function fleetSaveDraft(){
+    try{ localStorage.setItem('fleetDraft', JSON.stringify({ type: fleetView.type, car: fleetView.car, shots: fleetShots, at: Date.now() })); }catch(e){}
   }
   async function openFleet(){
     goTo('fleet');
@@ -7425,12 +7436,13 @@
       + '<p style="font-size:.78rem; color:var(--muted)">صوّر من الكاميرا وقت التفويل بس، من غير ما تكتب حاجة. كل تسجيل بياخد رقم، اكتبه في إذن الصرف من الخزينة.</p>';
   }
   function fleetFormHtml(v){
-    fleetShots = {};
+    const d = fleetDraft();
+    fleetShots = d && d.type === v.type && d.car === v.car ? d.shots || {} : {};
     const shots = v.type === 'fuel' ? { odo:'صورة العداد', pump:'صورة شاشة الطلمبة (اللترات والمبلغ)', receipt:'صورة الفاتورة' } : { odo:'صورة العداد', receipt:'صورة الفاتورة' };
     return fleetCard(
       (v.type === 'service' ? `<div style="font-weight:600; margin-bottom:6px">النوع</div><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px">${Object.entries(FLEET_SERVICE).map(([k, t], i) => `<label style="display:flex; gap:6px; align-items:center; padding:10px; border:1px solid var(--line); border-radius:10px"><input type="radio" name="fleetKind" value="${k}" ${i ? '' : 'checked'}>${t}</label>`).join('')}</div>` : '') +
       Object.entries(shots).map(([k, t]) => `<label style="display:flex; align-items:center; gap:10px; padding:10px; border:1.5px dashed var(--line); border-radius:12px; margin-bottom:10px; cursor:pointer">
-        <span id="fleetShot_${k}" style="width:64px; height:64px; border-radius:8px; background:var(--teal-soft); display:flex; align-items:center; justify-content:center; font-size:1.6rem; overflow:hidden">📷</span>
+        <span id="fleetShot_${k}" style="width:64px; height:64px; border-radius:8px; background:var(--teal-soft); display:flex; align-items:center; justify-content:center; font-size:1.6rem; overflow:hidden">${fleetShots[k] ? `<img src="${fleetShots[k].data}" style="width:100%; height:100%; object-fit:cover">` : '📷'}</span>
         <span style="flex:1; font-weight:600">${t}</span>
         <input type="file" accept="image/*" capture="environment" style="display:none" onchange="fleetTakeShot('${k}', this)"></label>`).join('') +
       `<button id="fleetSubmitBtn" class="apply-btn" style="width:100%; margin-top:6px" onclick="fleetSubmit()">إرسال</button>`);
@@ -7461,6 +7473,7 @@
     try{
       const data = await fleetPhoto(file, `${c.name || ''} — ${new Date().toLocaleString('ar-EG')} — ${(currentRep && currentRep.name) || ''}`);
       fleetShots[k] = { data, old: Date.now() - file.lastModified > 10 * 60000 };  // a gallery picture keeps its older time
+      fleetSaveDraft();
       document.getElementById('fleetShot_' + k).innerHTML = `<img src="${data}" style="width:100%; height:100%; object-fit:cover">`;
     }catch(e){ showToast('ما قدرتش أقرا الصورة، صورها تاني'); }
   }
@@ -7484,6 +7497,7 @@
       await fdb().ref('fleetPhotos/' + id).set(Object.fromEntries(need.map(k => [k, fleetShots[k].data])));
       await fdb().ref('fleet/logs/' + id).set(log);
       fleetShots = {};
+      try{ localStorage.removeItem('fleetDraft'); }catch(e){}
       document.getElementById('fleetBody').innerHTML = fleetCard(`<div style="text-align:center"><div style="font-size:2.4rem">✅</div><b>اتسجلت</b><div style="margin:10px 0; font-size:1.6rem; font-weight:900; letter-spacing:2px" dir="ltr">${fleetCode(id)}</div><div style="color:var(--muted)">اكتب الرقم ده في إذن الصرف من الخزينة</div></div>`)
         + `<button class="apply-btn" style="width:100%" onclick="fleetView={v:'driver'}; renderFleet()">رجوع</button>`;
     }catch(e){
