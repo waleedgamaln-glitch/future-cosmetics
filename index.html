@@ -1943,7 +1943,7 @@
 
   // ---------- Rep accounts (admin): creates the Firebase Auth user + its users/{uid} profile ----------
   // REPS keeps everyone because old invoices need their names; only these reps can still get an account.
-  const ACCOUNT_REP_CODES = [8,68,131,143,158,161,162,170,171,174,175,176,177,178];
+  const ACCOUNT_REP_CODES = [8,68,131,143,158,161,162,164,170,171,174,175,176,177,178];
   function openRepAccounts(){
     if(!currentRep || !currentRep.isAdmin || !fbDb) return;
     document.getElementById('repAccResult').textContent = '';
